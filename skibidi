@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-	Name = "⚡ Q HUB  - LARGE UI",
+	Name = "⚡ Q HUB - eggchan",
 	LoadingTitle = "Q Hub Cyber Script",
 	LoadingSubtitle = "Created by Gemini & Quy",
 	ConfigurationSaving = { Enabled = false },
@@ -21,6 +21,9 @@ local tpDelay, walkSpeed, jumpPower, flySpeed = 0.005, 50, 50, 50
 local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLimbsEnabled = false, false, false, false, false
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
 local SelectedTargetPlayer, autoNextTarget = nil, false
+
+-- TP ALL BLACKLIST (ĐI CHỖ KHÁC)
+local tpBlacklist = {}
 
 -- AIM LOCK & SILENT AIM SETTINGS (MẶC ĐỊNH TẮT)
 local aimLockEnabled = false
@@ -212,7 +215,7 @@ TabInfo:CreateParagraph({
 })
 TabInfo:CreateParagraph({
 	Title = "Version",
-	Content = "Q Hub Cyber V6.5 - Fast TP All 0.005s"
+	Content = "Q HUB - eggchan V6.8"
 })
 
 ---------------------------------------------------------
@@ -312,7 +315,7 @@ RS.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- TAB 2: TP ALL (MẶC ĐỊNH DELAY 0.005s)
+-- TAB 2: TP ALL
 ---------------------------------------------------------
 local ToggleTPAll = TabTP:CreateToggle({
 	Name = "Teleport All Players (TP All - 0.005s)",
@@ -324,7 +327,7 @@ local ToggleTPAll = TabTP:CreateToggle({
 				while true do
 					local alivePlayers = {}
 					for _, p in ipairs(P:GetPlayers()) do
-						if p ~= LP and p.Character then
+						if p ~= LP and not table.find(tpBlacklist, p.Name) and p.Character then
 							local tr = p.Character:FindFirstChild("HumanoidRootPart")
 							local hum = p.Character:FindFirstChildOfClass("Humanoid")
 							if tr and hum and hum.Health > 0 then table.insert(alivePlayers, tr) end
@@ -347,6 +350,24 @@ local ToggleTPAll = TabTP:CreateToggle({
 	end
 })
 
+local TPBlacklistDropdown = TabTP:CreateDropdown({
+	Name = "đi chỗ khác",
+	Options = GetPlayerListNames(),
+	MultipleOptions = true,
+	CurrentOption = {},
+	Flag = "TPBlacklistDropdown",
+	Callback = function(selectedList)
+		tpBlacklist = {}
+		if type(selectedList) == "table" then
+			for _, name in ipairs(selectedList) do
+				if name ~= "No players found" then
+					table.insert(tpBlacklist, name)
+				end
+			end
+		end
+	end
+})
+
 ---------------------------------------------------------
 -- TAB 3: TARGET & ORBIT
 ---------------------------------------------------------
@@ -364,17 +385,18 @@ local PlayerDropdown = TabTarget:CreateDropdown({
 	end,
 })
 
-local function RefreshPlayerDropdown()
+local function RefreshPlayerDropdowns()
 	task.wait(0.1)
 	local updatedList = GetPlayerListNames()
 	PlayerDropdown:Refresh(updatedList)
+	TPBlacklistDropdown:Refresh(updatedList)
 	if SelectedTargetPlayer and not P:FindFirstChild(SelectedTargetPlayer.Name) then
 		SelectedTargetPlayer = nil
 	end
 end
 
-P.PlayerAdded:Connect(RefreshPlayerDropdown)
-P.PlayerRemoving:Connect(RefreshPlayerDropdown)
+P.PlayerAdded:Connect(RefreshPlayerDropdowns)
+P.PlayerRemoving:Connect(RefreshPlayerDropdowns)
 
 local ToggleOrbit = TabTarget:CreateToggle({
 	Name = "Orbit Target Player",
