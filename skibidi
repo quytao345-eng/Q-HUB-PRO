@@ -22,6 +22,13 @@ local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLi
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
 local SelectedTargetPlayer, autoNextTarget = nil, false
 
+-- FOV TARGET ORBIT SETTINGS (RED FOV)
+local targetFOVEnabled = false
+local showTargetFOVCircle = false
+local targetFOVRadius = 150
+local currentFOVTarget = nil
+local fovOrbitActive = false
+
 -- TP ALL BLACKLIST (ĐI CHỖ KHÁC)
 local tpBlacklist = {}
 
@@ -35,7 +42,7 @@ local aimPart = "Head"
 local aimFOV = 150
 local aimSmoothness = 0.2
 
--- FOV CIRCLE (DRAWING API)
+-- FOV CIRCLE (WHITE - AIM)
 local FOVCircle = nil
 local successDrawing, _ = pcall(function()
 	FOVCircle = Drawing.new("Circle")
@@ -47,8 +54,22 @@ local successDrawing, _ = pcall(function()
 	FOVCircle.Visible = false
 end)
 
--- FOV CIRCLE BACKUP (GUI FALLBACK)
+-- FOV CIRCLE (RED - TARGET ORBIT)
+local TargetFOVCircle = nil
+pcall(function()
+	TargetFOVCircle = Drawing.new("Circle")
+	TargetFOVCircle.Color = Color3.fromRGB(255, 50, 50)
+	TargetFOVCircle.Thickness = 2
+	TargetFOVCircle.NumSides = 60
+	TargetFOVCircle.Filled = false
+	TargetFOVCircle.Transparency = 1
+	TargetFOVCircle.Visible = false
+end)
+
+-- GUI CIRCLES FALLBACK
 local GuiCircle = nil
+local TargetGuiCircle = nil
+
 if not successDrawing or not FOVCircle then
 	local coreGui = game:GetService("CoreGui")
 	local sg = Instance.new("ScreenGui")
@@ -64,14 +85,23 @@ if not successDrawing or not FOVCircle then
 	GuiCircle.Visible = false
 	GuiCircle.Parent = sg
 
-	local fovCorner = Instance.new("UICorner")
-	fovCorner.CornerRadius = UDim2.new(1, 0)
-	fovCorner.Parent = GuiCircle
-
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(255, 255, 255)
 	stroke.Thickness = 2
 	stroke.Parent = GuiCircle
+
+	TargetGuiCircle = Instance.new("Frame")
+	TargetGuiCircle.Name = "TargetCircleFrame"
+	TargetGuiCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+	TargetGuiCircle.BackgroundTransparency = 1
+	TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
+	TargetGuiCircle.Visible = false
+	TargetGuiCircle.Parent = sg
+
+	local targetStroke = Instance.new("UIStroke")
+	targetStroke.Color = Color3.fromRGB(255, 50, 50)
+	targetStroke.Thickness = 2
+	targetStroke.Parent = TargetGuiCircle
 end
 
 -- ESP SETTINGS
@@ -123,6 +153,31 @@ local function GetPlayerListNames()
 	end
 	if #names == 0 then table.insert(names, "No players found") end
 	return names
+end
+
+-- HELPER: GET TARGET IN RED FOV
+local function GetTargetInRedFOV()
+	local closestPlayer = nil
+	local shortestDistance = targetFOVRadius
+	local mousePos = UIS:GetMouseLocation()
+
+	for _, p in ipairs(P:GetPlayers()) do
+		if p ~= LP and p.Character then
+			local hum = p.Character:FindFirstChildOfClass("Humanoid")
+			local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+			if hum and hum.Health > 0 and hrp then
+				local screenPos, onScreen = Cam:WorldToViewportPoint(hrp.Position)
+				if onScreen then
+					local distFromMouse = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+					if distFromMouse < shortestDistance then
+						shortestDistance = distFromMouse
+						closestPlayer = p
+					end
+				end
+			end
+		end
+	end
+	return closestPlayer
 end
 
 -- HELPER: WALL CHECK
@@ -212,7 +267,7 @@ local Tabs = {
 ---------------------------------------------------------
 Tabs.Info:AddParagraph({
     Title = "Q HUB - eggchan",
-    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V9.0"
+    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V10.0\n- Thêm Red FOV Orbit bằng phím tắt phím tắt"
 })
 
 ---------------------------------------------------------
@@ -252,6 +307,7 @@ Tabs.Aim:AddSlider("AimFOV", {
 RS.RenderStepped:Connect(function()
 	local mousePos = UIS:GetMouseLocation()
 
+	-- WHITE FOV
 	if showFOVCircle then
 		if FOVCircle then
 			FOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
@@ -265,6 +321,22 @@ RS.RenderStepped:Connect(function()
 	else
 		if FOVCircle then FOVCircle.Visible = false end
 		if GuiCircle then GuiCircle.Visible = false end
+	end
+
+	-- RED FOV (TARGET ORBIT)
+	if showTargetFOVCircle then
+		if TargetFOVCircle then
+			TargetFOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
+			TargetFOVCircle.Radius = targetFOVRadius
+			TargetFOVCircle.Visible = true
+		elseif TargetGuiCircle then
+			TargetGuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+			TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
+			TargetGuiCircle.Visible = true
+		end
+	else
+		if TargetFOVCircle then TargetFOVCircle.Visible = false end
+		if TargetGuiCircle then TargetGuiCircle.Visible = false end
 	end
 
 	if aimLockEnabled then
@@ -327,8 +399,75 @@ local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", {
 })
 
 ---------------------------------------------------------
--- TAB 3: TARGET & ORBIT
+-- TAB 3: TARGET & ORBIT (CÓ THÊM RED FOV QUICK ORBIT)
 ---------------------------------------------------------
+Tabs.Target:AddToggle("DrawRedFOV", {
+    Title = "Draw Target FOV Circle (Vòng Tròn Đỏ)",
+    Default = false,
+    Callback = function(state) showTargetFOVCircle = state end
+})
+
+Tabs.Target:AddSlider("RedFOVRadius", {
+    Title = "Target FOV Radius",
+    Min = 50,
+    Max = 500,
+    Default = 150,
+    Rounding = 0,
+    Callback = function(val) targetFOVRadius = val end
+})
+
+-- LOGIC TOGGLE FOV ORBIT BẰNG PHÍM TẮT
+local function ToggleFOVOrbit()
+	fovOrbitActive = not fovOrbitActive
+	if fovOrbitActive then
+		local target = GetTargetInRedFOV()
+		if target then
+			currentFOVTarget = target
+			T.RedOrbit = RS.Heartbeat:Connect(function(dt)
+				local char = LP.Character
+				local hrp = char and char:FindFirstChild("HumanoidRootPart")
+				local tChar = currentFOVTarget and currentFOVTarget.Character
+				local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
+				local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
+
+				if not currentFOVTarget or not tChar or not tHrp or not tHum or tHum.Health <= 0 or not fovOrbitActive then
+					StopT("RedOrbit")
+					ResetCamToSelf()
+					fovOrbitActive = false
+					currentFOVTarget = nil
+					return
+				end
+
+				if hrp and tHrp then
+					if Cam and Cam.CameraSubject ~= tHum then Cam.CameraSubject = tHum end
+					orbitAngle = orbitAngle + (orbitSpeed * dt)
+					local offsetX = math.cos(orbitAngle) * orbitDistance
+					local offsetZ = math.sin(orbitAngle) * orbitDistance
+					local targetPos = tHrp.Position
+					local newPos = Vector3.new(targetPos.X + offsetX, targetPos.Y, targetPos.Z + offsetZ)
+					hrp.CFrame = CFrame.new(newPos, Vector3.new(targetPos.X, newPos.Y, targetPos.Z))
+					hrp.AssemblyLinearVelocity = Vector3.zero
+				end
+			end)
+		else
+			fovOrbitActive = false
+		end
+	else
+		StopT("RedOrbit")
+		ResetCamToSelf()
+		currentFOVTarget = nil
+	end
+end
+
+Tabs.Target:AddKeybind("QuickOrbitKeybind", {
+    Title = "Quick Orbit Target in Red FOV (Phím Tắt)",
+    Mode = "Toggle",
+    Default = "G",
+    Callback = function()
+        ToggleFOVOrbit()
+    end
+})
+
 local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", {
     Title = "Select Target Player",
     Values = GetPlayerListNames(),
@@ -355,7 +494,7 @@ P.PlayerAdded:Connect(RefreshPlayerDropdowns)
 P.PlayerRemoving:Connect(RefreshPlayerDropdowns)
 
 Tabs.Target:AddToggle("OrbitToggle", {
-    Title = "Orbit Target Player",
+    Title = "Orbit Selected Target Player",
     Default = false,
     Callback = function(state)
 		if state then
@@ -611,6 +750,15 @@ local FlyToggle = Tabs.Misc:AddToggle("FlyMode", {
 			if hrp:FindFirstChild("QHubFlyVelocity") then hrp.QHubFlyVelocity:Destroy() end
 			if hrp:FindFirstChild("QHubFlyGyro") then hrp.QHubFlyGyro:Destroy() end
 		end
+    end
+})
+
+Tabs.Misc:AddKeybind("FlyKeybind", {
+    Title = "Fly Keybind (Đổi phím tắt)",
+    Mode = "Toggle",
+    Default = "F",
+    Callback = function()
+        FlyToggle:SetValue(not FlyToggle.Value)
     end
 })
 
