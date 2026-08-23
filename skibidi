@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-	Name = "⚡ Q HUB  - dan",
+	Name = "⚡ Q HUB  - LARGE UI",
 	LoadingTitle = "Q Hub Cyber Script",
 	LoadingSubtitle = "Created by Gemini & Quy",
 	ConfigurationSaving = { Enabled = false },
@@ -17,7 +17,7 @@ local Mouse = LP:GetMouse()
 local Cam = W.CurrentCamera
 local T = {}
 
-local tpDelay, walkSpeed, jumpPower, flySpeed = 0.05, 50, 50, 50
+local tpDelay, walkSpeed, jumpPower, flySpeed = 0.005, 50, 50, 50
 local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLimbsEnabled = false, false, false, false, false
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
 local SelectedTargetPlayer, autoNextTarget = nil, false
@@ -212,11 +212,11 @@ TabInfo:CreateParagraph({
 })
 TabInfo:CreateParagraph({
 	Title = "Version",
-	Content = "Q Hub Cyber V6.4 - JJS Test Limbs"
+	Content = "Q Hub Cyber V6.5 - Fast TP All 0.005s"
 })
 
 ---------------------------------------------------------
--- TAB 1: I AM BOT
+-- TAB 1: AIM SETTINGS
 ---------------------------------------------------------
 TabAim:CreateToggle({
 	Name = "Camera Aim Lock (Khóa Tâm Camera)",
@@ -312,10 +312,10 @@ RS.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- TAB 2: TP ALL [GOJO 0.2]
+-- TAB 2: TP ALL (MẶC ĐỊNH DELAY 0.005s)
 ---------------------------------------------------------
 local ToggleTPAll = TabTP:CreateToggle({
-	Name = "Teleport All Players (TP All)",
+	Name = "Teleport All Players (TP All - 0.005s)",
 	CurrentValue = false,
 	Flag = "TPAllToggle",
 	Callback = function(state)
@@ -335,25 +335,15 @@ local ToggleTPAll = TabTP:CreateToggle({
 						for _, targetHrp in ipairs(alivePlayers) do
 							if targetHrp and targetHrp.Parent then
 								myHrp.CFrame = targetHrp.CFrame
-								task.wait(tpDelay)
+								task.wait(0.005)
 							end
 						end
 					else
-						task.wait(0.5)
+						task.wait(0.1)
 					end
 				end
 			end)
 		else StopT("Teleport") end
-	end
-})
-
-TabTP:CreateInput({
-	Name = "TP Delay Speed",
-	PlaceholderText = "0.05",
-	RemoveTextAfterFocusLost = false,
-	Callback = function(txt)
-		local num = tonumber(txt)
-		if num then tpDelay = num end
 	end
 })
 
@@ -501,7 +491,7 @@ TabView:CreateSlider({
 })
 
 ---------------------------------------------------------
--- TAB 5: ESP 
+-- TAB 5: ESP VIP
 ---------------------------------------------------------
 local function CreateESPObj(plr)
 	if espObjects[plr] then return end
@@ -686,7 +676,6 @@ TabMisc:CreateKeybind({
 	end,
 })
 
--- TÍNH NĂNG THỬ NGHIỆM ĐỔI TRANSPARENCY TRỰC TIẾP
 TabMisc:CreateToggle({
 	Name = "Invisible Limbs (Server-Side Attempt)",
 	CurrentValue = false,
