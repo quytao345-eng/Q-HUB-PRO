@@ -64,9 +64,9 @@ if not successDrawing or not FOVCircle then
 	GuiCircle.Visible = false
 	GuiCircle.Parent = sg
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim2.new(1, 0)
-	corner.Parent = GuiCircle
+	local fovCorner = Instance.new("UICorner")
+	fovCorner.CornerRadius = UDim2.new(1, 0)
+	fovCorner.Parent = GuiCircle
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(255, 255, 255)
@@ -212,7 +212,7 @@ local Tabs = {
 ---------------------------------------------------------
 Tabs.Info:AddParagraph({
     Title = "Q HUB - eggchan",
-    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V8.0"
+    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V9.0"
 })
 
 ---------------------------------------------------------
@@ -614,45 +614,15 @@ local FlyToggle = Tabs.Misc:AddToggle("FlyMode", {
     end
 })
 
-Tabs.Misc:AddKeybind("FlyKeybind", {
-    Title = "Fly Toggle Keybind",
-    Mode = "Toggle",
-    Default = "F",
-    Callback = function()
-        FlyToggle:SetValue(not FlyToggle.Value)
-    end
-})
-
-Tabs.Misc:AddToggle("InvLimbs", {
-    Title = "Invisible Limbs (Server-Side Attempt)",
-    Default = false,
-    Callback = function(state)
-		invisibleLimbsEnabled = state
-		local char = LP.Character
-		if not char then return end
-		
-		local limbsToHide = {"Left Arm", "Right Arm", "Left Leg", "Right Leg", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm", "LeftUpperArm", "RightUpperArm", "LeftFoot", "RightFoot", "LeftLowerLeg", "RightLowerLeg", "LeftUpperLeg", "RightUpperLeg"}
-		
-		for _, partName in ipairs(limbsToHide) do
-			local part = char:FindFirstChild(partName)
-			if part and part:IsA("BasePart") then
-				if invisibleLimbsEnabled then
-					part.Transparency = 1
-				else
-					part.Transparency = 0
-				end
-			end
-		end
-    end
-})
-
-Tabs.Misc:AddSlider("FlySpeed", {
+Tabs.Misc:AddInput("InputFlySpeed", {
     Title = "Fly Speed",
-    Min = 10,
-    Max = 300,
-    Default = 50,
-    Rounding = 0,
-    Callback = function(val) flySpeed = val end
+    Default = "50",
+    Numeric = true,
+    Finished = true,
+    Callback = function(txt)
+        local num = tonumber(txt)
+		if num then flySpeed = num end
+    end
 })
 
 Tabs.Misc:AddToggle("EnableSpeed", {
@@ -665,22 +635,26 @@ Tabs.Misc:AddToggle("EnableSpeed", {
     end
 })
 
-Tabs.Misc:AddSlider("WalkSpeed", {
+Tabs.Misc:AddInput("InputWalkSpeed", {
     Title = "WalkSpeed",
-    Min = 16,
-    Max = 200,
-    Default = 50,
-    Rounding = 0,
-    Callback = function(val) walkSpeed = val end
+    Default = "50",
+    Numeric = true,
+    Finished = true,
+    Callback = function(txt)
+        local num = tonumber(txt)
+		if num then walkSpeed = num end
+    end
 })
 
-Tabs.Misc:AddSlider("JumpPower", {
+Tabs.Misc:AddInput("InputJumpPower", {
     Title = "JumpPower",
-    Min = 50,
-    Max = 300,
-    Default = 50,
-    Rounding = 0,
-    Callback = function(val) jumpPower = val end
+    Default = "50",
+    Numeric = true,
+    Finished = true,
+    Callback = function(txt)
+        local num = tonumber(txt)
+		if num then jumpPower = num end
+    end
 })
 
 Tabs.Misc:AddToggle("InfJump", {
@@ -709,6 +683,29 @@ Tabs.Misc:AddToggle("Noclip", {
 				end
 			end)
 		else StopT("Noclip") end
+    end
+})
+
+Tabs.Misc:AddToggle("InvLimbs", {
+    Title = "Invisible Limbs (Server-Side Attempt)",
+    Default = false,
+    Callback = function(state)
+		invisibleLimbsEnabled = state
+		local char = LP.Character
+		if not char then return end
+		
+		local limbsToHide = {"Left Arm", "Right Arm", "Left Leg", "Right Leg", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm", "LeftUpperArm", "RightUpperArm", "LeftFoot", "RightFoot", "LeftLowerLeg", "RightLowerLeg", "LeftUpperLeg", "RightUpperLeg"}
+		
+		for _, partName in ipairs(limbsToHide) do
+			local part = char:FindFirstChild(partName)
+			if part and part:IsA("BasePart") then
+				if invisibleLimbsEnabled then
+					part.Transparency = 1
+				else
+					part.Transparency = 0
+				end
+			end
+		end
     end
 })
 
