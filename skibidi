@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-	Name = "⚡ Q HUB VIP - LARGE UI",
+	Name = "⚡ Q HUB  - dan",
 	LoadingTitle = "Q Hub Cyber Script",
 	LoadingSubtitle = "Created by Gemini & Quy",
 	ConfigurationSaving = { Enabled = false },
@@ -212,7 +212,7 @@ TabInfo:CreateParagraph({
 })
 TabInfo:CreateParagraph({
 	Title = "Version",
-	Content = "Q Hub Cyber V6.3 - Local Invisible Limbs Added"
+	Content = "Q Hub Cyber V6.4 - JJS Test Limbs"
 })
 
 ---------------------------------------------------------
@@ -686,11 +686,11 @@ TabMisc:CreateKeybind({
 	end,
 })
 
--- TÍNH NĂNG MỚI: ẨN TAY CHÂN CỦA MÌNH (LOCAL INVISIBLE LIMBS)
+-- TÍNH NĂNG THỬ NGHIỆM ĐỔI TRANSPARENCY TRỰC TIẾP
 TabMisc:CreateToggle({
-	Name = "Local Invisible Limbs (Mất Tay Chân - Chỉ Mình Thấy)",
+	Name = "Invisible Limbs (Server-Side Attempt)",
 	CurrentValue = false,
-	Flag = "InvisibleLimbsToggle",
+	Flag = "ServerInvisibleLimbsToggle",
 	Callback = function(state)
 		invisibleLimbsEnabled = state
 		local char = LP.Character
@@ -702,9 +702,9 @@ TabMisc:CreateToggle({
 			local part = char:FindFirstChild(partName)
 			if part and part:IsA("BasePart") then
 				if invisibleLimbsEnabled then
-					part.LocalTransparencyModifier = 1 -- Ẩn đi đối với màn hình của bạn
+					part.Transparency = 1
 				else
-					part.LocalTransparencyModifier = 0 -- Trở lại bình thường
+					part.Transparency = 0
 				end
 			end
 		end
@@ -788,7 +788,7 @@ TabMisc:CreateButton({
 	Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end
 })
 
--- MAIN LOOP SPEED/JUMP & KEEP LOCAL INVISIBLE LIMBS UPDATED ON RESPAWN
+-- MAIN LOOP SPEED/JUMP & KEEP INVISIBLE LIMBS UPDATED
 RS.RenderStepped:Connect(function(dt)
 	local char = LP.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -805,13 +805,12 @@ RS.RenderStepped:Connect(function(dt)
 			hum.UseJumpPower, hum.JumpPower = true, jumpPower
 		end
 		
-		-- Duy trì tính năng ẩn tay chân nếu người chơi reset/spawn lại mà đang bật toggle
 		if invisibleLimbsEnabled then
 			local limbsToHide = {"Left Arm", "Right Arm", "Left Leg", "Right Leg", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm", "LeftUpperArm", "RightUpperArm", "LeftFoot", "RightFoot", "LeftLowerLeg", "RightLowerLeg", "LeftUpperLeg", "RightUpperLeg"}
 			for _, partName in ipairs(limbsToHide) do
 				local part = char:FindFirstChild(partName)
-				if part and part:IsA("BasePart") and part.LocalTransparencyModifier ~= 1 then
-					part.LocalTransparencyModifier = 1
+				if part and part:IsA("BasePart") and part.Transparency ~= 1 then
+					part.Transparency = 1
 				end
 			end
 		end
