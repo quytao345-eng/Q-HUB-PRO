@@ -28,6 +28,7 @@ local showTargetFOVCircle = false
 local targetFOVRadius = 150
 local currentFOVTarget = nil
 local fovOrbitActive = false
+local targetWallCheck = false -- WALL CHECK CHO TARGET FOV
 
 -- TP ALL BLACKLIST (ĐI CHỖ KHÁC)
 local tpBlacklist = {}
@@ -109,6 +110,7 @@ local espHighlight = false
 local espName = false
 local espHealth = false
 local espTracer = false
+local espBox = false
 local espObjects = {}
 
 local function StopT(n)
@@ -155,7 +157,20 @@ local function GetPlayerListNames()
 	return names
 end
 
--- HELPER: GET TARGET IN RED FOV
+-- HELPER: WALL CHECK GENERAL
+local function IsVisiblePart(targetPart, wallCheckEnabled)
+	if not wallCheckEnabled then return true end
+	local myChar = LP.Character
+	if not myChar or not targetPart then return false end
+	
+	local ignoreList = {myChar, targetPart.Parent}
+	local ray = Ray.new(Cam.CFrame.Position, (targetPart.Position - Cam.CFrame.Position).Unit * 500)
+	local hit, pos = W:FindPartOnRayWithIgnoreList(ray, ignoreList)
+	
+	return hit == nil or hit:IsDescendantOf(targetPart.Parent)
+end
+
+-- HELPER: GET TARGET IN RED FOV (WITH WALL CHECK)
 local function GetTargetInRedFOV()
 	local closestPlayer = nil
 	local shortestDistance = targetFOVRadius
@@ -170,27 +185,16 @@ local function GetTargetInRedFOV()
 				if onScreen then
 					local distFromMouse = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
 					if distFromMouse < shortestDistance then
-						shortestDistance = distFromMouse
-						closestPlayer = p
+						if IsVisiblePart(hrp, targetWallCheck) then
+							shortestDistance = distFromMouse
+							closestPlayer = p
+						end
 					end
 				end
 			end
 		end
 	end
 	return closestPlayer
-end
-
--- HELPER: WALL CHECK
-local function IsVisible(targetPart)
-	if not aimWallCheck then return true end
-	local myChar = LP.Character
-	if not myChar then return false end
-	
-	local ignoreList = {myChar, targetPart.Parent}
-	local ray = Ray.new(Cam.CFrame.Position, (targetPart.Position - Cam.CFrame.Position).Unit * 500)
-	local hit, pos = W:FindPartOnRayWithIgnoreList(ray, ignoreList)
-	
-	return hit == nil or hit:IsDescendantOf(targetPart.Parent)
 end
 
 -- HELPER: GET AIM TARGET
@@ -210,7 +214,7 @@ local function GetAimTarget()
 					if onScreen then
 						local distFromMouse = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
 						if distFromMouse < shortestDistance then
-							if IsVisible(part) then
+							if IsVisiblePart(part, aimWallCheck) then
 								shortestDistance = distFromMouse
 								closestPlayer = part
 							end
@@ -267,7 +271,7 @@ local Tabs = {
 ---------------------------------------------------------
 Tabs.Info:AddParagraph({
     Title = "Q HUB - eggchan",
-    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V10.0\n- Thêm Red FOV Orbit bằng phím tắt phím tắt"
+    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V11.0\n- Thêm ESP Box Hình Vuông\n- Thêm Wall Check cho Target POV"
 })
 
 ---------------------------------------------------------
@@ -399,12 +403,18 @@ local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", {
 })
 
 ---------------------------------------------------------
--- TAB 3: TARGET & ORBIT (CÓ THÊM RED FOV QUICK ORBIT)
+-- TAB 3: TARGET & ORBIT (RED FOV + WALL CHECK)
 ---------------------------------------------------------
 Tabs.Target:AddToggle("DrawRedFOV", {
     Title = "Draw Target FOV Circle (Vòng Tròn Đỏ)",
     Default = false,
     Callback = function(state) showTargetFOVCircle = state end
+})
+
+Tabs.Target:AddToggle("TargetWallCheckToggle", {
+    Title = "Target Wall Check (Chỉ Orbit người nhìn thấy)",
+    Default = false,
+    Callback = function(state) targetWallCheck = state end
 })
 
 Tabs.Target:AddSlider("RedFOVRadius", {
@@ -602,7 +612,7 @@ Tabs.View:AddSlider("CamMaxDist", {
 })
 
 ---------------------------------------------------------
--- TAB 5: ESP VIP
+-- TAB 5: ESP VIP (CÓ THÊM ESP BOX HÌNH VUÔNG)
 ---------------------------------------------------------
 local function CreateESPObj(plr)
 	if espObjects[plr] then return end
@@ -634,11 +644,20 @@ local function CreateESPObj(plr)
 		tracer.Visible = false
 	end
 
+	local box = Drawing and Drawing.new("Square") or nil
+	if box then
+		box.Color = Color3.fromRGB(255, 45, 85)
+		box.Thickness = 1.5
+		box.Filled = false
+		box.Visible = false
+	end
+
 	espObjects[plr] = {
 		Highlight = hl,
 		Billboard = bb,
 		TextLabel = txtLabel,
-		Tracer = tracer
+		Tracer = tracer,
+		Box = box
 	}
 end
 
@@ -647,6 +666,7 @@ local function RemoveESPObj(plr)
 		if espObjects[plr].Highlight then espObjects[plr].Highlight:Destroy() end
 		if espObjects[plr].Billboard then espObjects[plr].Billboard:Destroy() end
 		if espObjects[plr].Tracer then espObjects[plr].Tracer:Remove() end
+		if espObjects[plr].Box then espObjects[plr].Box:Remove() end
 		espObjects[plr] = nil
 	end
 end
@@ -679,8 +699,9 @@ RS.RenderStepped:Connect(function()
 					data.Billboard.Enabled = false
 				end
 
+				local screenPos, onScreen = Cam:WorldToViewportPoint(hrp.Position)
+
 				if espTracer and data.Tracer and Cam then
-					local screenPos, onScreen = Cam:WorldToViewportPoint(hrp.Position)
 					if onScreen then
 						data.Tracer.From = Vector2.new(Cam.ViewportSize.X / 2, Cam.ViewportSize.Y)
 						data.Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
@@ -691,10 +712,31 @@ RS.RenderStepped:Connect(function()
 				elseif data.Tracer then
 					data.Tracer.Visible = false
 				end
+
+				-- ESP BOX LOGIC
+				if espBox and data.Box and Cam then
+					if onScreen then
+						local head = char:FindFirstChild("Head")
+						local headPos = head and Cam:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0)) or screenPos
+						local legPos = Cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+						
+						local height = math.abs(headPos.Y - legPos.Y)
+						local width = height / 1.5
+
+						data.Box.Size = Vector2.new(width, height)
+						data.Box.Position = Vector2.new(screenPos.X - width / 2, screenPos.Y - height / 2)
+						data.Box.Visible = true
+					else
+						data.Box.Visible = false
+					end
+				elseif data.Box then
+					data.Box.Visible = false
+				end
 			else
 				if data.Highlight then data.Highlight.Enabled = false end
 				if data.Billboard then data.Billboard.Enabled = false end
 				if data.Tracer then data.Tracer.Visible = false end
+				if data.Box then data.Box.Visible = false end
 			end
 		else
 			RemoveESPObj(p)
@@ -703,6 +745,7 @@ RS.RenderStepped:Connect(function()
 end)
 
 Tabs.ESP:AddToggle("ESPHighlight", {Title = "ESP Highlight", Default = false}):OnChanged(function(v) espHighlight = v end)
+Tabs.ESP:AddToggle("ESPBox", {Title = "ESP Box (Khung hình vuông)", Default = false}):OnChanged(function(v) espBox = v end)
 Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name", Default = false}):OnChanged(function(v) espName = v end)
 Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v end)
 Tabs.ESP:AddToggle("ESPTracer", {Title = "ESP Tracers", Default = false}):OnChanged(function(v) espTracer = v end)
