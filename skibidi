@@ -17,7 +17,7 @@ local Mouse = LP:GetMouse()
 local Cam = W.CurrentCamera
 local T = {}
 
-local tpDelay, walkSpeed, jumpPower, flySpeed = 0.005, 50, 50, 50
+local tpDelay, walkSpeed, jumpPower, flySpeed = 0.004, 50, 50, 50
 local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLimbsEnabled = false, false, false, false, false
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
 local SelectedTargetPlayer, autoNextTarget = nil, false
@@ -271,7 +271,7 @@ local Tabs = {
 ---------------------------------------------------------
 Tabs.Info:AddParagraph({
     Title = "Q HUB - eggchan",
-    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V11.0\n- Thêm ESP Box Hình Vuông\n- Thêm Wall Check cho Target POV"
+    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V11.0\n- Tốc độ TP All: 0.004s"
 })
 
 ---------------------------------------------------------
@@ -353,10 +353,10 @@ RS.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- TAB 2: TP ALL
+-- TAB 2: TP ALL (0.004s)
 ---------------------------------------------------------
 Tabs.TP:AddToggle("TPAll", {
-    Title = "Teleport All Players (TP All - 0.005s)",
+    Title = "Teleport All Players (TP All - 0.004s)",
     Default = false,
     Callback = function(state)
 		if state then
@@ -375,7 +375,7 @@ Tabs.TP:AddToggle("TPAll", {
 						for _, targetHrp in ipairs(alivePlayers) do
 							if targetHrp and targetHrp.Parent then
 								myHrp.CFrame = targetHrp.CFrame
-								task.wait(0.005)
+								task.wait(0.004)
 							end
 						end
 					else
@@ -612,7 +612,7 @@ Tabs.View:AddSlider("CamMaxDist", {
 })
 
 ---------------------------------------------------------
--- TAB 5: ESP VIP (CÓ THÊM ESP BOX HÌNH VUÔNG)
+-- TAB 5: ESP VIP
 ---------------------------------------------------------
 local function CreateESPObj(plr)
 	if espObjects[plr] then return end
