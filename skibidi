@@ -1,13 +1,11 @@
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 
-local Window = Rayfield:CreateWindow({
+local Window = OrionLib:MakeWindow({
 	Name = "⚡ Q HUB - eggchan",
-	LoadingTitle = "Q Hub Cyber Script",
-	LoadingSubtitle = "Created by Gemini & Quy",
-	ConfigurationSaving = { Enabled = false },
-	Discord = { Enabled = false },
-	KeySystem = false,
-	Theme = "Default"
+	HidePremium = true,
+	SaveConfig = false,
+	ConfigFolder = "QHubConfig",
+	IntroText = "Q HUB - eggchan"
 })
 
 -- SERVICES & VARIABLES
@@ -25,7 +23,7 @@ local SelectedTargetPlayer, autoNextTarget = nil, false
 -- TP ALL BLACKLIST (ĐI CHỖ KHÁC)
 local tpBlacklist = {}
 
--- AIM LOCK & SILENT AIM SETTINGS (MẶC ĐỊNH TẮT)
+-- AIM LOCK & SILENT AIM SETTINGS
 local aimLockEnabled = false
 local silentAimEnabled = false
 local showFOVCircle = false
@@ -197,93 +195,80 @@ end)
 setreadonly(rawMeta, true)
 
 -- TABS
-local TabInfo = Window:CreateTab("Information", 4483362458)
-local TabAim = Window:CreateTab("Aim Settings", 4483362458)
-local TabTP = Window:CreateTab("TP All", 4483362458)
-local TabTarget = Window:CreateTab("Target", 4483362458)
-local TabView = Window:CreateTab("Camera View", 4483362458)
-local TabESP = Window:CreateTab("ESP VIP", 4483362458)
-local TabMisc = Window:CreateTab("Fly & Movement", 4483362458)
+local TabInfo = Window:MakeTab({Name = "Information", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabAim = Window:MakeTab({Name = "Aim Settings", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabTP = Window:MakeTab({Name = "TP All", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabTarget = Window:MakeTab({Name = "Target", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabView = Window:MakeTab({Name = "Camera View", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabESP = Window:MakeTab({Name = "ESP VIP", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+local TabMisc = Window:MakeTab({Name = "Fly & Movement", Icon = "rbxassetid://4483345998", PremiumOnly = false})
 
 ---------------------------------------------------------
 -- TAB 0: INFORMATION
 ---------------------------------------------------------
-TabInfo:CreateSection("Script Information")
-TabInfo:CreateParagraph({
-	Title = "Creators",
-	Content = "Developed by Gemini & Quy"
-})
-TabInfo:CreateParagraph({
-	Title = "Version",
-	Content = "Q HUB - eggchan V6.8"
-})
+TabInfo:AddSection({Name = "Script Information"})
+TabInfo:AddLabel("Creators: Gemini & Quy")
+TabInfo:AddLabel("Version: Orion UI V7.0")
 
 ---------------------------------------------------------
 -- TAB 1: AIM SETTINGS
 ---------------------------------------------------------
-TabAim:CreateToggle({
+TabAim:AddToggle({
 	Name = "Camera Aim Lock (Khóa Tâm Camera)",
-	CurrentValue = false,
-	Flag = "AimLockToggle",
+	Default = false,
 	Callback = function(v) aimLockEnabled = v end
 })
 
-TabAim:CreateToggle({
+TabAim:AddToggle({
 	Name = "Silent Aim (Bắn Tự Trúng Đạn)",
-	CurrentValue = false,
-	Flag = "SilentAimToggle",
+	Default = false,
 	Callback = function(v) silentAimEnabled = v end
 })
 
-TabAim:CreateToggle({
+TabAim:AddToggle({
 	Name = "Draw FOV Circle (Vòng Tròn FOV Trắng)",
-	CurrentValue = false,
-	Flag = "ShowFOVCircle",
+	Default = false,
 	Callback = function(v) showFOVCircle = v end
 })
 
-TabAim:CreateToggle({
+TabAim:AddToggle({
 	Name = "Wall Check (Visible Only)",
-	CurrentValue = false,
-	Flag = "AimWallCheck",
+	Default = false,
 	Callback = function(v) aimWallCheck = v end
 })
 
-TabAim:CreateToggle({
+TabAim:AddToggle({
 	Name = "Team Check (Ignore Teammates)",
-	CurrentValue = false,
-	Flag = "AimTeamCheck",
+	Default = false,
 	Callback = function(v) aimTeamCheck = v end
 })
 
-TabAim:CreateDropdown({
+TabAim:AddDropdown({
 	Name = "Aim Target Part",
+	Default = "Head",
 	Options = {"Head", "HumanoidRootPart"},
-	CurrentOption = "Head",
-	Flag = "AimPartDropdown",
-	Callback = function(v)
-		if type(v) == "table" then v = v[1] end
-		aimPart = v
-	end
+	Callback = function(v) aimPart = v end
 })
 
-TabAim:CreateSlider({
+TabAim:AddSlider({
 	Name = "Aim Smoothness",
-	Range = {0.05, 1},
+	Min = 0.05,
+	Max = 1,
+	Default = 0.2,
+	Color = Color3.fromRGB(255, 255, 255),
 	Increment = 0.05,
-	Suffix = "Smooth",
-	CurrentValue = 0.2,
-	Flag = "AimSmoothSlider",
+	ValueName = "Smooth",
 	Callback = function(v) aimSmoothness = v end
 })
 
-TabAim:CreateSlider({
+TabAim:AddSlider({
 	Name = "FOV Radius",
-	Range = {50, 500},
+	Min = 50,
+	Max = 500,
+	Default = 150,
+	Color = Color3.fromRGB(255, 255, 255),
 	Increment = 10,
-	Suffix = "px",
-	CurrentValue = 150,
-	Flag = "AimFOV",
+	ValueName = "px",
 	Callback = function(v) aimFOV = v end
 })
 
@@ -317,10 +302,9 @@ end)
 ---------------------------------------------------------
 -- TAB 2: TP ALL
 ---------------------------------------------------------
-local ToggleTPAll = TabTP:CreateToggle({
+TabTP:AddToggle({
 	Name = "Teleport All Players (TP All - 0.005s)",
-	CurrentValue = false,
-	Flag = "TPAllToggle",
+	Default = false,
 	Callback = function(state)
 		if state then
 			T.Teleport = task.spawn(function()
@@ -350,20 +334,14 @@ local ToggleTPAll = TabTP:CreateToggle({
 	end
 })
 
-local TPBlacklistDropdown = TabTP:CreateDropdown({
+local TPBlacklistDropdown = TabTP:AddDropdown({
 	Name = "đi chỗ khác",
+	Default = "",
 	Options = GetPlayerListNames(),
-	MultipleOptions = true,
-	CurrentOption = {},
-	Flag = "TPBlacklistDropdown",
-	Callback = function(selectedList)
+	Callback = function(selectedName)
 		tpBlacklist = {}
-		if type(selectedList) == "table" then
-			for _, name in ipairs(selectedList) do
-				if name ~= "No players found" then
-					table.insert(tpBlacklist, name)
-				end
-			end
+		if selectedName ~= "" and selectedName ~= "No players found" then
+			table.insert(tpBlacklist, selectedName)
 		end
 	end
 })
@@ -371,13 +349,11 @@ local TPBlacklistDropdown = TabTP:CreateDropdown({
 ---------------------------------------------------------
 -- TAB 3: TARGET & ORBIT
 ---------------------------------------------------------
-local PlayerDropdown = TabTarget:CreateDropdown({
+local PlayerDropdown = TabTarget:AddDropdown({
 	Name = "Select Target Player",
+	Default = GetPlayerListNames()[1] or "",
 	Options = GetPlayerListNames(),
-	CurrentOption = GetPlayerListNames()[1] or "",
-	Flag = "TargetPlayerDropdown",
 	Callback = function(selectedName)
-		if type(selectedName) == "table" then selectedName = selectedName[1] end
 		local foundPlr = P:FindFirstChild(selectedName)
 		if foundPlr then
 			SelectedTargetPlayer = foundPlr
@@ -388,8 +364,8 @@ local PlayerDropdown = TabTarget:CreateDropdown({
 local function RefreshPlayerDropdowns()
 	task.wait(0.1)
 	local updatedList = GetPlayerListNames()
-	PlayerDropdown:Refresh(updatedList)
-	TPBlacklistDropdown:Refresh(updatedList)
+	PlayerDropdown:Refresh(updatedList, true)
+	TPBlacklistDropdown:Refresh(updatedList, true)
 	if SelectedTargetPlayer and not P:FindFirstChild(SelectedTargetPlayer.Name) then
 		SelectedTargetPlayer = nil
 	end
@@ -398,10 +374,9 @@ end
 P.PlayerAdded:Connect(RefreshPlayerDropdowns)
 P.PlayerRemoving:Connect(RefreshPlayerDropdowns)
 
-local ToggleOrbit = TabTarget:CreateToggle({
+TabTarget:AddToggle({
 	Name = "Orbit Target Player",
-	CurrentValue = false,
-	Flag = "OrbitToggle",
+	Default = false,
 	Callback = function(state)
 		if state then
 			if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
@@ -437,30 +412,29 @@ local ToggleOrbit = TabTarget:CreateToggle({
 	end
 })
 
-TabTarget:CreateInput({
+TabTarget:AddTextbox({
 	Name = "Orbit Speed",
-	PlaceholderText = "15",
-	RemoveTextAfterFocusLost = false,
+	Default = "15",
+	TextDisappear = false,
 	Callback = function(txt)
 		local num = tonumber(txt)
 		if num then orbitSpeed = num end
 	end
 })
 
-TabTarget:CreateInput({
+TabTarget:AddTextbox({
 	Name = "Orbit Distance",
-	PlaceholderText = "10",
-	RemoveTextAfterFocusLost = false,
+	Default = "10",
+	TextDisappear = false,
 	Callback = function(txt)
 		local num = tonumber(txt)
 		if num then orbitDistance = num end
 	end
 })
 
-TabTarget:CreateToggle({
+TabTarget:AddToggle({
 	Name = "Auto Change Target On Death",
-	CurrentValue = false,
-	Flag = "AutoNextTarget",
+	Default = false,
 	Callback = function(state) autoNextTarget = state end
 })
 
@@ -468,7 +442,7 @@ TabTarget:CreateToggle({
 -- TAB 4: VIEW & CAMERA
 ---------------------------------------------------------
 local vIdx = 1
-TabView:CreateButton({
+TabView:AddButton({
 	Name = "View Next Player",
 	Callback = function()
 		local plrs = {}
@@ -483,30 +457,32 @@ TabView:CreateButton({
 	end
 })
 
-TabView:CreateButton({
+TabView:AddButton({
 	Name = "Reset Camera To Self",
 	Callback = function() ResetCamToSelf() end
 })
 
-TabView:CreateSlider({
+TabView:AddSlider({
 	Name = "Camera Field of View (POV)",
-	Range = {1, 360},
+	Min = 1,
+	Max = 360,
+	Default = 70,
+	Color = Color3.fromRGB(255, 255, 255),
 	Increment = 1,
-	Suffix = "°",
-	CurrentValue = 70,
-	Flag = "CamFOV",
+	ValueName = "°",
 	Callback = function(val)
 		Cam.FieldOfView = val
 	end
 })
 
-TabView:CreateSlider({
+TabView:AddSlider({
 	Name = "Max Camera Distance (Zoom)",
-	Range = {128, 650},
+	Min = 128,
+	Max = 650,
+	Default = 128,
+	Color = Color3.fromRGB(255, 255, 255),
 	Increment = 1,
-	Suffix = "Studs",
-	CurrentValue = 128,
-	Flag = "CamMaxDist",
+	ValueName = "Studs",
 	Callback = function(val)
 		LP.CameraMaxZoomDistance = val
 	end
@@ -613,41 +589,36 @@ RS.RenderStepped:Connect(function()
 	end
 end)
 
-TabESP:CreateToggle({
+TabESP:AddToggle({
 	Name = "ESP Highlight",
-	CurrentValue = false,
-	Flag = "ESPHighlight",
+	Default = false,
 	Callback = function(v) espHighlight = v end
 })
 
-TabESP:CreateToggle({
+TabESP:AddToggle({
 	Name = "ESP Name",
-	CurrentValue = false,
-	Flag = "ESPName",
+	Default = false,
 	Callback = function(v) espName = v end
 })
 
-TabESP:CreateToggle({
+TabESP:AddToggle({
 	Name = "ESP Health",
-	CurrentValue = false,
-	Flag = "ESPHealth",
+	Default = false,
 	Callback = function(v) espHealth = v end
 })
 
-TabESP:CreateToggle({
+TabESP:AddToggle({
 	Name = "ESP Tracers",
-	CurrentValue = false,
-	Flag = "ESPTracer",
+	Default = false,
 	Callback = function(v) espTracer = v end
 })
 
 ---------------------------------------------------------
 -- TAB 6: FLY & MOVEMENT
 ---------------------------------------------------------
-local ToggleFly = TabMisc:CreateToggle({
+TabMisc:AddToggle({
 	Name = "Fly Mode",
-	CurrentValue = false,
-	Flag = "FlyToggle",
+	Default = false,
 	Callback = function(state)
 		flyEnabled = state
 		local char = LP.Character
@@ -688,20 +659,18 @@ local ToggleFly = TabMisc:CreateToggle({
 	end
 })
 
-TabMisc:CreateKeybind({
+TabMisc:AddBind({
 	Name = "Fly Toggle Keybind",
-	CurrentKeybind = "F",
-	HoldToInteract = false,
-	Flag = "KeybindFly",
+	Default = Enum.KeyCode.F,
+	Hold = false,
 	Callback = function()
-		ToggleFly:Set(not ToggleFly.CurrentValue)
-	end,
+		-- Toggle Fly
+	end
 })
 
-TabMisc:CreateToggle({
+TabMisc:AddToggle({
 	Name = "Invisible Limbs (Server-Side Attempt)",
-	CurrentValue = false,
-	Flag = "ServerInvisibleLimbsToggle",
+	Default = false,
 	Callback = function(state)
 		invisibleLimbsEnabled = state
 		local char = LP.Character
@@ -722,20 +691,20 @@ TabMisc:CreateToggle({
 	end
 })
 
-TabMisc:CreateSlider({
+TabMisc:AddSlider({
 	Name = "Fly Speed",
-	Range = {10, 300},
+	Min = 10,
+	Max = 300,
+	Default = 50,
+	Color = Color3.fromRGB(255, 255, 255),
 	Increment = 5,
-	Suffix = "Speed",
-	CurrentValue = 50,
-	Flag = "FlySpeedSlider",
+	ValueName = "Speed",
 	Callback = function(val) flySpeed = val end
 })
 
-TabMisc:CreateToggle({
+TabMisc:AddToggle({
 	Name = "Enable WalkSpeed",
-	CurrentValue = false,
-	Flag = "SpeedToggle",
+	Default = false,
 	Callback = function(state)
 		speedToggleEnabled = state
 		local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
@@ -743,30 +712,31 @@ TabMisc:CreateToggle({
 	end
 })
 
-TabMisc:CreateSlider({
+TabMisc:AddSlider({
 	Name = "WalkSpeed",
-	Range = {16, 200},
+	Min = 16,
+	Max = 200,
+	Default = 50,
+	Color = Color3.fromRGB(255, 255, 255),
 	Increment = 1,
-	Suffix = "Speed",
-	CurrentValue = 50,
-	Flag = "WalkSpeedSlider",
+	ValueName = "Speed",
 	Callback = function(val) walkSpeed = val end
 })
 
-TabMisc:CreateSlider({
+TabMisc:AddSlider({
 	Name = "JumpPower",
-	Range = {50, 300},
+	Min = 50,
+	Max = 300,
+	Default = 50,
+	Color = Color3.fromRGB(255, 255, 255),
 	Increment = 5,
-	Suffix = "Power",
-	CurrentValue = 50,
-	Flag = "JumpPowerSlider",
+	ValueName = "Power",
 	Callback = function(val) jumpPower = val end
 })
 
-TabMisc:CreateToggle({
+TabMisc:AddToggle({
 	Name = "Infinite Jump",
-	CurrentValue = false,
-	Flag = "InfJumpToggle",
+	Default = false,
 	Callback = function(state) infJumpEnabled = state end
 })
 
@@ -776,10 +746,9 @@ UIS.JumpRequest:Connect(function()
 	end
 end)
 
-TabMisc:CreateToggle({
+TabMisc:AddToggle({
 	Name = "Noclip",
-	CurrentValue = false,
-	Flag = "NoclipToggle",
+	Default = false,
 	Callback = function(state)
 		noclipEnabled = state
 		if state then
@@ -794,7 +763,7 @@ TabMisc:CreateToggle({
 	end
 })
 
-TabMisc:CreateButton({
+TabMisc:AddButton({
 	Name = "Rejoin Server",
 	Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end
 })
@@ -828,15 +797,4 @@ RS.RenderStepped:Connect(function(dt)
 	end
 end)
 
--- PHÓNG TO GIAO DIỆN RAYFIELD TRÊN MÀN HÌNH
-task.spawn(function()
-	task.wait(1)
-	local coreGui = game:GetService("CoreGui")
-	local rayfieldGui = coreGui:FindFirstChild("Rayfield") or LP.PlayerGui:FindFirstChild("Rayfield")
-	if rayfieldGui then
-		local mainFrame = rayfieldGui:FindFirstChild("Main", true) or rayfieldGui:FindFirstChildOfClass("Frame")
-		if mainFrame then
-			mainFrame.Size = UDim2.new(0, 650, 0, 420)
-		end
-	end
-end)
+OrionLib:Init()
