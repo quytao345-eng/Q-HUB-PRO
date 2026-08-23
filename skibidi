@@ -216,7 +216,7 @@ TabInfo:CreateParagraph({
 })
 
 ---------------------------------------------------------
--- TAB 1: AIM SETTINGS
+-- TAB 1: I AM BOT
 ---------------------------------------------------------
 TabAim:CreateToggle({
 	Name = "Camera Aim Lock (Khóa Tâm Camera)",
@@ -312,7 +312,7 @@ RS.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- TAB 2: TP ALL
+-- TAB 2: TP ALL [GOJO 0.2]
 ---------------------------------------------------------
 local ToggleTPAll = TabTP:CreateToggle({
 	Name = "Teleport All Players (TP All)",
@@ -501,7 +501,7 @@ TabView:CreateSlider({
 })
 
 ---------------------------------------------------------
--- TAB 5: ESP VIP
+-- TAB 5: ESP 
 ---------------------------------------------------------
 local function CreateESPObj(plr)
 	if espObjects[plr] then return end
