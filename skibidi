@@ -22,15 +22,14 @@ local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLi
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
 local SelectedTargetPlayer, autoNextTarget = nil, false
 
--- FOV TARGET ORBIT SETTINGS (RED FOV)
-local targetFOVEnabled = false
+-- TARGET ORBIT & RED FOV SETTINGS
 local showTargetFOVCircle = false
 local targetFOVRadius = 150
 local currentFOVTarget = nil
 local fovOrbitActive = false
-local targetWallCheck = false -- WALL CHECK CHO TARGET FOV
+local targetWallCheck = false
 
--- TP ALL BLACKLIST (ĐI CHỖ KHÁC)
+-- TP ALL BLACKLIST
 local tpBlacklist = {}
 
 -- AIM LOCK & SILENT AIM SETTINGS
@@ -67,11 +66,11 @@ pcall(function()
 	TargetFOVCircle.Visible = false
 end)
 
--- GUI CIRCLES FALLBACK
+-- GUI CIRCLES FALLBACK (DÙNG CHO MOBILE / EXECUTOR KHÔNG HỖ TRỢ DRAWING.NEW)
 local GuiCircle = nil
 local TargetGuiCircle = nil
 
-if not successDrawing or not FOVCircle then
+if not successDrawing or not FOVCircle or not TargetFOVCircle then
 	local coreGui = game:GetService("CoreGui")
 	local sg = Instance.new("ScreenGui")
 	sg.Name = "QHubFOVCircleGui"
@@ -170,7 +169,7 @@ local function IsVisiblePart(targetPart, wallCheckEnabled)
 	return hit == nil or hit:IsDescendantOf(targetPart.Parent)
 end
 
--- HELPER: GET TARGET IN RED FOV (WITH WALL CHECK)
+-- HELPER: GET TARGET IN RED FOV
 local function GetTargetInRedFOV()
 	local closestPlayer = nil
 	local shortestDistance = targetFOVRadius
@@ -271,7 +270,7 @@ local Tabs = {
 ---------------------------------------------------------
 Tabs.Info:AddParagraph({
     Title = "Q HUB - eggchan",
-    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V11.0\n- Tốc độ TP All: 0.005s"
+    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V11.0\n- TP Speed: 0.005s\n- Fixed Target FOV Circle"
 })
 
 ---------------------------------------------------------
@@ -308,10 +307,11 @@ Tabs.Aim:AddSlider("AimFOV", {
     Callback = function(v) aimFOV = v end
 })
 
+-- RENDER LOOP CHO FOV CIRCLES VÀ AIM LOCK
 RS.RenderStepped:Connect(function()
 	local mousePos = UIS:GetMouseLocation()
 
-	-- WHITE FOV
+	-- WHITE FOV (AIM)
 	if showFOVCircle then
 		if FOVCircle then
 			FOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
@@ -327,7 +327,7 @@ RS.RenderStepped:Connect(function()
 		if GuiCircle then GuiCircle.Visible = false end
 	end
 
-	-- RED FOV (TARGET ORBIT)
+	-- RED FOV (TARGET ORBIT) - HIỂN THỊ CHÍNH XÁC
 	if showTargetFOVCircle then
 		if TargetFOVCircle then
 			TargetFOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
@@ -403,12 +403,14 @@ local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", {
 })
 
 ---------------------------------------------------------
--- TAB 3: TARGET & ORBIT (RED FOV + WALL CHECK)
+-- TAB 3: TARGET & ORBIT (RED FOV FIXED)
 ---------------------------------------------------------
 Tabs.Target:AddToggle("DrawRedFOV", {
     Title = "Draw Target FOV Circle (Vòng Tròn Đỏ)",
     Default = false,
-    Callback = function(state) showTargetFOVCircle = state end
+    Callback = function(state) 
+        showTargetFOVCircle = state 
+    end
 })
 
 Tabs.Target:AddToggle("TargetWallCheckToggle", {
@@ -713,7 +715,6 @@ RS.RenderStepped:Connect(function()
 					data.Tracer.Visible = false
 				end
 
-				-- ESP BOX LOGIC
 				if espBox and data.Box and Cam then
 					if onScreen then
 						local head = char:FindFirstChild("Head")
