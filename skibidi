@@ -1,7 +1,8 @@
+-- Q HUB - FAST EDITION
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "⚡ Q HUB - eggchan",
+    Title = "⚡ Q HUB - FAST EDITION",
     SubTitle = "by Gemini & Quy",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 420),
@@ -17,7 +18,8 @@ local Mouse = LP:GetMouse()
 local Cam = W.CurrentCamera
 local T = {}
 
-local tpDelay, walkSpeed, jumpPower, flySpeed = 0.005, 50, 50, 50
+local tpDelay = 0.001 -- SPEED UP TO 0.001s
+local walkSpeed, jumpPower, flySpeed = 50, 50, 50
 local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLimbsEnabled = false, false, false, false, false
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
 local SelectedTargetPlayer, autoNextTarget = nil, false
@@ -58,7 +60,7 @@ end)
 local TargetFOVCircle = nil
 pcall(function()
 	TargetFOVCircle = Drawing.new("Circle")
-	TargetFOVCircle.Color = Color3.fromRGB(255, 50, 50)
+	TargetFOVCircle.Color = Color3.fromRGB(255, 30, 30)
 	TargetFOVCircle.Thickness = 2
 	TargetFOVCircle.NumSides = 60
 	TargetFOVCircle.Filled = false
@@ -99,7 +101,7 @@ if not successDrawing or not FOVCircle or not TargetFOVCircle then
 	TargetGuiCircle.Parent = sg
 
 	local targetStroke = Instance.new("UIStroke")
-	targetStroke.Color = Color3.fromRGB(255, 50, 50)
+	targetStroke.Color = Color3.fromRGB(255, 30, 30)
 	targetStroke.Thickness = 2
 	targetStroke.Parent = TargetGuiCircle
 end
@@ -269,8 +271,8 @@ local Tabs = {
 -- TAB 0: INFORMATION
 ---------------------------------------------------------
 Tabs.Info:AddParagraph({
-    Title = "Q HUB - eggchan",
-    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V11.0\n- TP Speed: 0.005s\n- Fixed Target FOV Circle"
+    Title = "Q HUB - FAST EDITION",
+    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V12.0\n- Ultra Fast FOV Follow\n- Instant TP All: 0.001s"
 })
 
 ---------------------------------------------------------
@@ -307,14 +309,14 @@ Tabs.Aim:AddSlider("AimFOV", {
     Callback = function(v) aimFOV = v end
 })
 
--- RENDER LOOP CHO FOV CIRCLES VÀ AIM LOCK
+-- HIGH-SPEED RENDER STEPPED FOR FOV CIRCLE & MOUSE TRACKING
 RS.RenderStepped:Connect(function()
 	local mousePos = UIS:GetMouseLocation()
 
 	-- WHITE FOV (AIM)
 	if showFOVCircle then
 		if FOVCircle then
-			FOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
+			FOVCircle.Position = mousePos
 			FOVCircle.Radius = aimFOV
 			FOVCircle.Visible = true
 		elseif GuiCircle then
@@ -327,10 +329,10 @@ RS.RenderStepped:Connect(function()
 		if GuiCircle then GuiCircle.Visible = false end
 	end
 
-	-- RED FOV (TARGET ORBIT) - HIỂN THỊ CHÍNH XÁC
+	-- RED FOV (TARGET ORBIT) - CẬP NHẬT TỐC ĐỘ CAO THEO CON CHUỘT
 	if showTargetFOVCircle then
 		if TargetFOVCircle then
-			TargetFOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
+			TargetFOVCircle.Position = mousePos
 			TargetFOVCircle.Radius = targetFOVRadius
 			TargetFOVCircle.Visible = true
 		elseif TargetGuiCircle then
@@ -353,10 +355,10 @@ RS.RenderStepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- TAB 2: TP ALL (0.005s)
+-- TAB 2: TP ALL (0.001s ULTRA FAST)
 ---------------------------------------------------------
 Tabs.TP:AddToggle("TPAll", {
-    Title = "Teleport All Players (TP All - 0.005s)",
+    Title = "Teleport All Players (TP All - 0.001s)",
     Default = false,
     Callback = function(state)
 		if state then
@@ -375,11 +377,11 @@ Tabs.TP:AddToggle("TPAll", {
 						for _, targetHrp in ipairs(alivePlayers) do
 							if targetHrp and targetHrp.Parent then
 								myHrp.CFrame = targetHrp.CFrame
-								task.wait(0.005)
+								task.wait(0.001) -- SIÊU TỐC 0.001 GIÂY
 							end
 						end
 					else
-						task.wait(0.1)
+						task.wait(0.05)
 					end
 				end
 			end)
@@ -403,7 +405,7 @@ local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", {
 })
 
 ---------------------------------------------------------
--- TAB 3: TARGET & ORBIT (RED FOV FIXED)
+-- TAB 3: TARGET & ORBIT (RED FOV HIGH RESPONSIVE)
 ---------------------------------------------------------
 Tabs.Target:AddToggle("DrawRedFOV", {
     Title = "Draw Target FOV Circle (Vòng Tròn Đỏ)",
@@ -744,12 +746,6 @@ RS.RenderStepped:Connect(function()
 		end
 	end
 end)
-
-Tabs.ESP:AddToggle("ESPHighlight", {Title = "ESP Highlight", Default = false}):OnChanged(function(v) espHighlight = v end)
-Tabs.ESP:AddToggle("ESPBox", {Title = "ESP Box (Khung hình vuông)", Default = false}):OnChanged(function(v) espBox = v end)
-Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name", Default = false}):OnChanged(function(v) espName = v end)
-Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v end)
-Tabs.ESP:AddToggle("ESPTracer", {Title = "ESP Tracers", Default = false}):OnChanged(function(v) espTracer = v end)
 
 ---------------------------------------------------------
 -- TAB 6: FLY & MOVEMENT
