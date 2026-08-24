@@ -1,8 +1,8 @@
--- Q HUB - FAST EDITION
+-- Q HUB - FIX FULL ESP & FAST EDITION
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "⚡ Q HUB - FAST EDITION",
+    Title = "⚡ Q HUB - FIXED ESP",
     SubTitle = "by Gemini & Quy",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 420),
@@ -18,7 +18,7 @@ local Mouse = LP:GetMouse()
 local Cam = W.CurrentCamera
 local T = {}
 
-local tpDelay = 0.001 -- SPEED UP TO 0.001s
+local tpDelay = 0.001
 local walkSpeed, jumpPower, flySpeed = 50, 50, 50
 local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLimbsEnabled = false, false, false, false, false
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
@@ -44,9 +44,11 @@ local aimPart = "Head"
 local aimFOV = 150
 local aimSmoothness = 0.2
 
--- FOV CIRCLE (WHITE - AIM)
+-- FOV CIRCLES
 local FOVCircle = nil
-local successDrawing, _ = pcall(function()
+local TargetFOVCircle = nil
+
+pcall(function()
 	FOVCircle = Drawing.new("Circle")
 	FOVCircle.Color = Color3.fromRGB(255, 255, 255)
 	FOVCircle.Thickness = 2
@@ -54,11 +56,7 @@ local successDrawing, _ = pcall(function()
 	FOVCircle.Filled = false
 	FOVCircle.Transparency = 1
 	FOVCircle.Visible = false
-end)
 
--- FOV CIRCLE (RED - TARGET ORBIT)
-local TargetFOVCircle = nil
-pcall(function()
 	TargetFOVCircle = Drawing.new("Circle")
 	TargetFOVCircle.Color = Color3.fromRGB(255, 30, 30)
 	TargetFOVCircle.Thickness = 2
@@ -68,38 +66,32 @@ pcall(function()
 	TargetFOVCircle.Visible = false
 end)
 
--- GUI CIRCLES FALLBACK (DÙNG CHO MOBILE / EXECUTOR KHÔNG HỖ TRỢ DRAWING.NEW)
 local GuiCircle = nil
 local TargetGuiCircle = nil
 
-if not successDrawing or not FOVCircle or not TargetFOVCircle then
-	local coreGui = game:GetService("CoreGui")
+if not FOVCircle or not TargetFOVCircle then
 	local sg = Instance.new("ScreenGui")
 	sg.Name = "QHubFOVCircleGui"
 	sg.ResetOnSpawn = false
-	sg.Parent = coreGui
+	sg.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
 
 	GuiCircle = Instance.new("Frame")
-	GuiCircle.Name = "CircleFrame"
 	GuiCircle.AnchorPoint = Vector2.new(0.5, 0.5)
 	GuiCircle.BackgroundTransparency = 1
 	GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
 	GuiCircle.Visible = false
 	GuiCircle.Parent = sg
-
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(255, 255, 255)
 	stroke.Thickness = 2
 	stroke.Parent = GuiCircle
 
 	TargetGuiCircle = Instance.new("Frame")
-	TargetGuiCircle.Name = "TargetCircleFrame"
 	TargetGuiCircle.AnchorPoint = Vector2.new(0.5, 0.5)
 	TargetGuiCircle.BackgroundTransparency = 1
 	TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
 	TargetGuiCircle.Visible = false
 	TargetGuiCircle.Parent = sg
-
 	local targetStroke = Instance.new("UIStroke")
 	targetStroke.Color = Color3.fromRGB(255, 30, 30)
 	targetStroke.Thickness = 2
@@ -112,7 +104,9 @@ local espName = false
 local espHealth = false
 local espTracer = false
 local espBox = false
-local espObjects = {}
+local espFolder = Instance.new("Folder")
+espFolder.Name = "QHub_ESP_Folder"
+espFolder.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
 
 local function StopT(n)
 	if T[n] then
@@ -150,33 +144,26 @@ end
 local function GetPlayerListNames()
 	local names = {}
 	for _, p in ipairs(P:GetPlayers()) do
-		if p ~= LP then
-			table.insert(names, p.Name)
-		end
+		if p ~= LP then table.insert(names, p.Name) end
 	end
 	if #names == 0 then table.insert(names, "No players found") end
 	return names
 end
 
--- HELPER: WALL CHECK GENERAL
 local function IsVisiblePart(targetPart, wallCheckEnabled)
 	if not wallCheckEnabled then return true end
 	local myChar = LP.Character
 	if not myChar or not targetPart then return false end
-	
 	local ignoreList = {myChar, targetPart.Parent}
 	local ray = Ray.new(Cam.CFrame.Position, (targetPart.Position - Cam.CFrame.Position).Unit * 500)
 	local hit, pos = W:FindPartOnRayWithIgnoreList(ray, ignoreList)
-	
 	return hit == nil or hit:IsDescendantOf(targetPart.Parent)
 end
 
--- HELPER: GET TARGET IN RED FOV
 local function GetTargetInRedFOV()
 	local closestPlayer = nil
 	local shortestDistance = targetFOVRadius
 	local mousePos = UIS:GetMouseLocation()
-
 	for _, p in ipairs(P:GetPlayers()) do
 		if p ~= LP and p.Character then
 			local hum = p.Character:FindFirstChildOfClass("Humanoid")
@@ -198,18 +185,15 @@ local function GetTargetInRedFOV()
 	return closestPlayer
 end
 
--- HELPER: GET AIM TARGET
 local function GetAimTarget()
 	local closestPlayer = nil
 	local shortestDistance = aimFOV
 	local mousePos = UIS:GetMouseLocation()
-
 	for _, p in ipairs(P:GetPlayers()) do
 		if p ~= LP and p.Character then
 			if not (aimTeamCheck and p.Team == LP.Team) then
 				local hum = p.Character:FindFirstChildOfClass("Humanoid")
 				local part = p.Character:FindFirstChild(aimPart) or p.Character:FindFirstChild("HumanoidRootPart")
-				
 				if hum and hum.Health > 0 and part then
 					local screenPos, onScreen = Cam:WorldToViewportPoint(part.Position)
 					if onScreen then
@@ -232,22 +216,15 @@ end
 local rawMeta = getrawmetatable(game)
 local oldIndex = rawMeta.__index
 setreadonly(rawMeta, false)
-
 rawMeta.__index = newcclosure(function(self, key)
 	if not checkcaller() and silentAimEnabled then
 		if self == Mouse then
 			local targetPart = GetAimTarget()
 			if targetPart then
-				if key == "Hit" or key == "hit" then
-					return targetPart.CFrame
-				elseif key == "Target" or key == "target" then
-					return targetPart
-				elseif key == "X" or key == "x" then
-					local screenPos = Cam:WorldToViewportPoint(targetPart.Position)
-					return screenPos.X
-				elseif key == "Y" or key == "y" then
-					local screenPos = Cam:WorldToViewportPoint(targetPart.Position)
-					return screenPos.Y
+				if key == "Hit" or key == "hit" then return targetPart.CFrame
+				elseif key == "Target" or key == "target" then return targetPart
+				elseif key == "X" or key == "x" then return Cam:WorldToViewportPoint(targetPart.Position).X
+				elseif key == "Y" or key == "y" then return Cam:WorldToViewportPoint(targetPart.Position).Y
 				end
 			end
 		end
@@ -267,79 +244,31 @@ local Tabs = {
     Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
 }
 
----------------------------------------------------------
--- TAB 0: INFORMATION
----------------------------------------------------------
-Tabs.Info:AddParagraph({
-    Title = "Q HUB - FAST EDITION",
-    Content = "Developed by Gemini & Quy\nVersion: Fluent UI V12.0\n- Ultra Fast FOV Follow\n- Instant TP All: 0.001s"
-})
+Tabs.Info:AddParagraph({ Title = "Q HUB - FIXED ESP", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V13.0\n- Fixed All ESP Features\n- Instant TP All: 0.001s" })
 
----------------------------------------------------------
--- TAB 1: AIM SETTINGS
----------------------------------------------------------
-Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock (Khóa Tâm Camera)", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
-Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim (Bắn Tự Trúng Đạn)", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
-Tabs.Aim:AddToggle("DrawFOV", {Title = "Draw FOV Circle (Vòng Tròn FOV Trắng)", Default = false}):OnChanged(function(v) showFOVCircle = v end)
-Tabs.Aim:AddToggle("WallCheck", {Title = "Wall Check (Visible Only)", Default = false}):OnChanged(function(v) aimWallCheck = v end)
-Tabs.Aim:AddToggle("TeamCheck", {Title = "Team Check (Ignore Teammates)", Default = false}):OnChanged(function(v) aimTeamCheck = v end)
+Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
+Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
+Tabs.Aim:AddToggle("DrawFOV", {Title = "Draw FOV Circle", Default = false}):OnChanged(function(v) showFOVCircle = v end)
+Tabs.Aim:AddToggle("WallCheck", {Title = "Wall Check", Default = false}):OnChanged(function(v) aimWallCheck = v end)
+Tabs.Aim:AddToggle("TeamCheck", {Title = "Team Check", Default = false}):OnChanged(function(v) aimTeamCheck = v end)
 
-Tabs.Aim:AddDropdown("AimPart", {
-    Title = "Aim Target Part",
-    Values = {"Head", "HumanoidRootPart"},
-    Default = "Head",
-    Callback = function(v) aimPart = v end
-})
+Tabs.Aim:AddDropdown("AimPart", { Title = "Aim Part", Values = {"Head", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end })
+Tabs.Aim:AddSlider("AimSmooth", { Title = "Aim Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
+Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Radius", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
 
-Tabs.Aim:AddSlider("AimSmooth", {
-    Title = "Aim Smoothness",
-    Min = 0.05,
-    Max = 1,
-    Default = 0.2,
-    Rounding = 2,
-    Callback = function(v) aimSmoothness = v end
-})
-
-Tabs.Aim:AddSlider("AimFOV", {
-    Title = "FOV Radius",
-    Min = 50,
-    Max = 500,
-    Default = 150,
-    Rounding = 0,
-    Callback = function(v) aimFOV = v end
-})
-
--- HIGH-SPEED RENDER STEPPED FOR FOV CIRCLE & MOUSE TRACKING
 RS.RenderStepped:Connect(function()
 	local mousePos = UIS:GetMouseLocation()
-
-	-- WHITE FOV (AIM)
 	if showFOVCircle then
-		if FOVCircle then
-			FOVCircle.Position = mousePos
-			FOVCircle.Radius = aimFOV
-			FOVCircle.Visible = true
-		elseif GuiCircle then
-			GuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
-			GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
-			GuiCircle.Visible = true
-		end
+		if FOVCircle then FOVCircle.Position = mousePos FOVCircle.Radius = aimFOV FOVCircle.Visible = true
+		elseif GuiCircle then GuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y) GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2) GuiCircle.Visible = true end
 	else
 		if FOVCircle then FOVCircle.Visible = false end
 		if GuiCircle then GuiCircle.Visible = false end
 	end
 
-	-- RED FOV (TARGET ORBIT) - CẬP NHẬT TỐC ĐỘ CAO THEO CON CHUỘT
 	if showTargetFOVCircle then
-		if TargetFOVCircle then
-			TargetFOVCircle.Position = mousePos
-			TargetFOVCircle.Radius = targetFOVRadius
-			TargetFOVCircle.Visible = true
-		elseif TargetGuiCircle then
-			TargetGuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
-			TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
-			TargetGuiCircle.Visible = true
-		end
+		if TargetFOVCircle then TargetFOVCircle.Position = mousePos TargetFOVCircle.Radius = targetFOVRadius TargetFOVCircle.Visible = true
+		elseif TargetGuiCircle then TargetGuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y) TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2) TargetGuiCircle.Visible = true end
 	else
 		if TargetFOVCircle then TargetFOVCircle.Visible = false end
 		if TargetGuiCircle then TargetGuiCircle.Visible = false end
@@ -347,18 +276,12 @@ RS.RenderStepped:Connect(function()
 
 	if aimLockEnabled then
 		local target = GetAimTarget()
-		if target then
-			local targetCF = CFrame.new(Cam.CFrame.Position, target.Position)
-			Cam.CFrame = Cam.CFrame:Lerp(targetCF, aimSmoothness)
-		end
+		if target then Cam.CFrame = Cam.CFrame:Lerp(CFrame.new(Cam.CFrame.Position, target.Position), aimSmoothness) end
 	end
 end)
 
----------------------------------------------------------
--- TAB 2: TP ALL (0.001s ULTRA FAST)
----------------------------------------------------------
 Tabs.TP:AddToggle("TPAll", {
-    Title = "Teleport All Players (TP All - 0.001s)",
+    Title = "Teleport All Players (0.001s)",
     Default = false,
     Callback = function(state)
 		if state then
@@ -375,62 +298,21 @@ Tabs.TP:AddToggle("TPAll", {
 					local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
 					if #alivePlayers > 0 and myHrp then
 						for _, targetHrp in ipairs(alivePlayers) do
-							if targetHrp and targetHrp.Parent then
-								myHrp.CFrame = targetHrp.CFrame
-								task.wait(0.001) -- SIÊU TỐC 0.001 GIÂY
-							end
+							if targetHrp and targetHrp.Parent then myHrp.CFrame = targetHrp.CFrame task.wait(0.001) end
 						end
-					else
-						task.wait(0.05)
-					end
+					else task.wait(0.05) end
 				end
 			end)
 		else StopT("Teleport") end
     end
 })
 
-local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", {
-    Title = "đi chỗ khác",
-    Values = GetPlayerListNames(),
-    Multi = true,
-    Default = {},
-    Callback = function(selectedTable)
-        tpBlacklist = {}
-        for name, state in pairs(selectedTable) do
-            if state and name ~= "No players found" then
-                table.insert(tpBlacklist, name)
-            end
-        end
-    end
-})
+local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "đi chỗ khác", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, state in pairs(s) do if state and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
 
----------------------------------------------------------
--- TAB 3: TARGET & ORBIT (RED FOV HIGH RESPONSIVE)
----------------------------------------------------------
-Tabs.Target:AddToggle("DrawRedFOV", {
-    Title = "Draw Target FOV Circle (Vòng Tròn Đỏ)",
-    Default = false,
-    Callback = function(state) 
-        showTargetFOVCircle = state 
-    end
-})
+Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV Circle", Default = false, Callback = function(state) showTargetFOVCircle = state end })
+Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Target Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
+Tabs.Target:AddSlider("RedFOVRadius", { Title = "Target FOV Radius", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
 
-Tabs.Target:AddToggle("TargetWallCheckToggle", {
-    Title = "Target Wall Check (Chỉ Orbit người nhìn thấy)",
-    Default = false,
-    Callback = function(state) targetWallCheck = state end
-})
-
-Tabs.Target:AddSlider("RedFOVRadius", {
-    Title = "Target FOV Radius",
-    Min = 50,
-    Max = 500,
-    Default = 150,
-    Rounding = 0,
-    Callback = function(val) targetFOVRadius = val end
-})
-
--- LOGIC TOGGLE FOV ORBIT BẰNG PHÍM TẮT
 local function ToggleFOVOrbit()
 	fovOrbitActive = not fovOrbitActive
 	if fovOrbitActive then
@@ -443,306 +325,131 @@ local function ToggleFOVOrbit()
 				local tChar = currentFOVTarget and currentFOVTarget.Character
 				local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
 				local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-
 				if not currentFOVTarget or not tChar or not tHrp or not tHum or tHum.Health <= 0 or not fovOrbitActive then
-					StopT("RedOrbit")
-					ResetCamToSelf()
-					fovOrbitActive = false
-					currentFOVTarget = nil
-					return
+					StopT("RedOrbit") ResetCamToSelf() fovOrbitActive = false currentFOVTarget = nil return
 				end
-
 				if hrp and tHrp then
 					if Cam and Cam.CameraSubject ~= tHum then Cam.CameraSubject = tHum end
 					orbitAngle = orbitAngle + (orbitSpeed * dt)
-					local offsetX = math.cos(orbitAngle) * orbitDistance
-					local offsetZ = math.sin(orbitAngle) * orbitDistance
-					local targetPos = tHrp.Position
-					local newPos = Vector3.new(targetPos.X + offsetX, targetPos.Y, targetPos.Z + offsetZ)
-					hrp.CFrame = CFrame.new(newPos, Vector3.new(targetPos.X, newPos.Y, targetPos.Z))
+					local newPos = Vector3.new(tHrp.Position.X + math.cos(orbitAngle) * orbitDistance, tHrp.Position.Y, tHrp.Position.Z + math.sin(orbitAngle) * orbitDistance)
+					hrp.CFrame = CFrame.new(newPos, Vector3.new(tHrp.Position.X, newPos.Y, tHrp.Position.Z))
 					hrp.AssemblyLinearVelocity = Vector3.zero
 				end
 			end)
-		else
-			fovOrbitActive = false
-		end
-	else
-		StopT("RedOrbit")
-		ResetCamToSelf()
-		currentFOVTarget = nil
-	end
+		else fovOrbitActive = false end
+	else StopT("RedOrbit") ResetCamToSelf() currentFOVTarget = nil end
 end
 
-Tabs.Target:AddKeybind("QuickOrbitKeybind", {
-    Title = "Quick Orbit Target in Red FOV (Phím Tắt)",
-    Mode = "Toggle",
-    Default = "G",
-    Callback = function()
-        ToggleFOVOrbit()
-    end
-})
+Tabs.Target:AddKeybind("QuickOrbitKeybind", { Title = "Quick Orbit Target in Red FOV", Mode = "Toggle", Default = "G", Callback = function() ToggleFOVOrbit() end })
+local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target Player", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
 
-local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", {
-    Title = "Select Target Player",
-    Values = GetPlayerListNames(),
-    Default = GetPlayerListNames()[1] or "",
-    Callback = function(selectedName)
-        local foundPlr = P:FindFirstChild(selectedName)
-		if foundPlr then
-			SelectedTargetPlayer = foundPlr
-		end
-    end
-})
+P.PlayerAdded:Connect(function() task.wait(0.1) TargetPlayerDropdown:SetValues(GetPlayerListNames()) TPBlacklistDropdown:SetValues(GetPlayerListNames()) end)
+P.PlayerRemoving:Connect(function() task.wait(0.1) TargetPlayerDropdown:SetValues(GetPlayerListNames()) TPBlacklistDropdown:SetValues(GetPlayerListNames()) end)
 
-local function RefreshPlayerDropdowns()
-	task.wait(0.1)
-	local updatedList = GetPlayerListNames()
-	TargetPlayerDropdown:SetValues(updatedList)
-	TPBlacklistDropdown:SetValues(updatedList)
-	if SelectedTargetPlayer and not P:FindFirstChild(SelectedTargetPlayer.Name) then
-		SelectedTargetPlayer = nil
-	end
-end
-
-P.PlayerAdded:Connect(RefreshPlayerDropdowns)
-P.PlayerRemoving:Connect(RefreshPlayerDropdowns)
-
-Tabs.Target:AddToggle("OrbitToggle", {
-    Title = "Orbit Selected Target Player",
-    Default = false,
-    Callback = function(state)
-		if state then
-			if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
-			T.Orbit = RS.Heartbeat:Connect(function(dt)
-				local char = LP.Character
-				local hrp = char and char:FindFirstChild("HumanoidRootPart")
-				local tPlr = SelectedTargetPlayer
-				local tChar = tPlr and tPlr.Character
-				local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
-				local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-
-				if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then
-					ResetCamToSelf()
-					if autoNextTarget then SelectedTargetPlayer = GetNearestPlayer(500) end
-					return
-				end
-
-				if hrp and tHrp then
-					if Cam and Cam.CameraSubject ~= tHum then Cam.CameraSubject = tHum end
-					orbitAngle = orbitAngle + (orbitSpeed * dt)
-					local offsetX = math.cos(orbitAngle) * orbitDistance
-					local offsetZ = math.sin(orbitAngle) * orbitDistance
-					local targetPos = tHrp.Position
-					local newPos = Vector3.new(targetPos.X + offsetX, targetPos.Y, targetPos.Z + offsetZ)
-					hrp.CFrame = CFrame.new(newPos, Vector3.new(targetPos.X, newPos.Y, targetPos.Z))
-					hrp.AssemblyLinearVelocity = Vector3.zero
-				end
-			end)
-		else
-			StopT("Orbit")
-			ResetCamToSelf()
-		end
-    end
-})
-
-Tabs.Target:AddInput("OrbitSpeedInput", {
-    Title = "Orbit Speed",
-    Default = "15",
-    Numeric = true,
-    Finished = true,
-    Callback = function(txt)
-        local num = tonumber(txt)
-		if num then orbitSpeed = num end
-    end
-})
-
-Tabs.Target:AddInput("OrbitDistInput", {
-    Title = "Orbit Distance",
-    Default = "10",
-    Numeric = true,
-    Finished = true,
-    Callback = function(txt)
-        local num = tonumber(txt)
-		if num then orbitDistance = num end
-    end
-})
-
-Tabs.Target:AddToggle("AutoNextTarget", {
-    Title = "Auto Change Target On Death",
-    Default = false,
-    Callback = function(state) autoNextTarget = state end
-})
-
----------------------------------------------------------
--- TAB 4: VIEW & CAMERA
----------------------------------------------------------
-local vIdx = 1
-Tabs.View:AddButton({
-    Title = "View Next Player",
-    Callback = function()
-        local plrs = {}
-		for _, p in ipairs(P:GetPlayers()) do if p ~= LP then table.insert(plrs, p) end end
-		if #plrs == 0 then return end
-		if vIdx > #plrs then vIdx = 1 end
-		local p = plrs[vIdx]
-		if p and p.Character and p.Character:FindFirstChild("Humanoid") then
-			Cam.CameraSubject = p.Character.Humanoid
-		end
-		vIdx = vIdx + 1
-    end
-})
-
-Tabs.View:AddButton({
-    Title = "Reset Camera To Self",
-    Callback = function() ResetCamToSelf() end
-})
-
-Tabs.View:AddSlider("CamFOV", {
-    Title = "Camera Field of View (POV)",
-    Min = 1,
-    Max = 360,
-    Default = 70,
-    Rounding = 0,
-    Callback = function(val) Cam.FieldOfView = val end
-})
-
-Tabs.View:AddSlider("CamMaxDist", {
-    Title = "Max Camera Distance (Zoom)",
-    Min = 128,
-    Max = 650,
-    Default = 128,
-    Rounding = 0,
-    Callback = function(val) LP.CameraMaxZoomDistance = val end
-})
-
----------------------------------------------------------
--- TAB 5: ESP VIP
----------------------------------------------------------
-local function CreateESPObj(plr)
-	if espObjects[plr] then return end
-	
-	local hl = Instance.new("Highlight")
-	hl.FillTransparency = 1
-	hl.OutlineColor = Color3.fromRGB(255, 45, 85)
-	hl.OutlineTransparency = 0
-	hl.Enabled = false
-
-	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.new(0, 200, 0, 50)
-	bb.AlwaysOnTop = true
-	bb.ExtentsOffset = Vector3.new(0, 3, 0)
-	bb.Enabled = false
-
-	local txtLabel = Instance.new("TextLabel", bb)
-	txtLabel.Size = UDim2.new(1, 0, 1, 0)
-	txtLabel.BackgroundTransparency = 1
-	txtLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	txtLabel.TextSize = 16
-	txtLabel.Font = Enum.Font.GothamBold
-	txtLabel.TextStrokeTransparency = 0
-
-	local tracer = Drawing and Drawing.new("Line") or nil
-	if tracer then
-		tracer.Color = Color3.fromRGB(255, 45, 85)
-		tracer.Thickness = 1.5
-		tracer.Visible = false
-	end
-
-	local box = Drawing and Drawing.new("Square") or nil
-	if box then
-		box.Color = Color3.fromRGB(255, 45, 85)
-		box.Thickness = 1.5
-		box.Filled = false
-		box.Visible = false
-	end
-
-	espObjects[plr] = {
-		Highlight = hl,
-		Billboard = bb,
-		TextLabel = txtLabel,
-		Tracer = tracer,
-		Box = box
-	}
-end
-
-local function RemoveESPObj(plr)
-	if espObjects[plr] then
-		if espObjects[plr].Highlight then espObjects[plr].Highlight:Destroy() end
-		if espObjects[plr].Billboard then espObjects[plr].Billboard:Destroy() end
-		if espObjects[plr].Tracer then espObjects[plr].Tracer:Remove() end
-		if espObjects[plr].Box then espObjects[plr].Box:Remove() end
-		espObjects[plr] = nil
-	end
-end
-
-RS.RenderStepped:Connect(function()
-	for _, p in ipairs(P:GetPlayers()) do
-		if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-			CreateESPObj(p)
-			local data = espObjects[p]
-			local char = p.Character
-			local hrp = char:FindFirstChild("HumanoidRootPart")
-			local hum = char:FindFirstChildOfClass("Humanoid")
-
-			if hrp and hum and hum.Health > 0 then
-				if espHighlight then
-					data.Highlight.Parent = char
-					data.Highlight.Enabled = true
-				else
-					data.Highlight.Enabled = false
-				end
-
-				if espName or espHealth then
-					data.Billboard.Parent = hrp
-					data.Billboard.Enabled = true
-					local textStr = ""
-					if espName then textStr = textStr .. p.Name end
-					if espHealth then textStr = textStr .. " [" .. math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth) .. " HP]" end
-					data.TextLabel.Text = textStr
-				else
-					data.Billboard.Enabled = false
-				end
-
-				local screenPos, onScreen = Cam:WorldToViewportPoint(hrp.Position)
-
-				if espTracer and data.Tracer and Cam then
-					if onScreen then
-						data.Tracer.From = Vector2.new(Cam.ViewportSize.X / 2, Cam.ViewportSize.Y)
-						data.Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
-						data.Tracer.Visible = true
-					else
-						data.Tracer.Visible = false
-					end
-				elseif data.Tracer then
-					data.Tracer.Visible = false
-				end
-
-				if espBox and data.Box and Cam then
-					if onScreen then
-						local head = char:FindFirstChild("Head")
-						local headPos = head and Cam:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0)) or screenPos
-						local legPos = Cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-						
-						local height = math.abs(headPos.Y - legPos.Y)
-						local width = height / 1.5
-
-						data.Box.Size = Vector2.new(width, height)
-						data.Box.Position = Vector2.new(screenPos.X - width / 2, screenPos.Y - height / 2)
-						data.Box.Visible = true
-					else
-						data.Box.Visible = false
-					end
-				elseif data.Box then
-					data.Box.Visible = false
-				end
-			else
-				if data.Highlight then data.Highlight.Enabled = false end
-				if data.Billboard then data.Billboard.Enabled = false end
-				if data.Tracer then data.Tracer.Visible = false end
-				if data.Box then data.Box.Visible = false end
+Tabs.Target:AddToggle("OrbitToggle", { Title = "Orbit Selected Target", Default = false, Callback = function(state)
+	if state then
+		if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
+		T.Orbit = RS.Heartbeat:Connect(function(dt)
+			local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
+			if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then ResetCamToSelf() if autoNextTarget then SelectedTargetPlayer = GetNearestPlayer(500) end return end
+			if hrp and tHrp then
+				if Cam and Cam.CameraSubject ~= tHum then Cam.CameraSubject = tHum end
+				orbitAngle = orbitAngle + (orbitSpeed * dt)
+				local newPos = Vector3.new(tHrp.Position.X + math.cos(orbitAngle) * orbitDistance, tHrp.Position.Y, tHrp.Position.Z + math.sin(orbitAngle) * orbitDistance)
+				hrp.CFrame = CFrame.new(newPos, Vector3.new(tHrp.Position.X, newPos.Y, tHrp.Position.Z))
+				hrp.AssemblyLinearVelocity = Vector3.zero
 			end
-		else
-			RemoveESPObj(p)
+		end)
+	else StopT("Orbit") ResetCamToSelf() end
+end })
+
+Tabs.Target:AddInput("OrbitSpeedInput", { Title = "Orbit Speed", Default = "15", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then orbitSpeed = num end end })
+Tabs.Target:AddInput("OrbitDistInput", { Title = "Orbit Distance", Default = "10", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then orbitDistance = num end end })
+Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Change Target On Death", Default = false, Callback = function(state) autoNextTarget = state end })
+
+---------------------------------------------------------
+-- TAB 5: ESP VIP (SỬA HOÀN TOÀN HỆ THỐNG HIỂN THỊ)
+---------------------------------------------------------
+local function CreateESP(plr)
+	if plr == LP then return end
+	
+	local function SetupCharacter(char)
+		if not char then return end
+		local hrp = char:WaitForChild("HumanoidRootPart", 5)
+		local hum = char:WaitForChild("Humanoid", 5)
+		if not hrp or not hum then return end
+
+		-- Highlight ESP
+		local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
+		hl.Name = "QHub_Highlight"
+		hl.FillTransparency = 0.5
+		hl.FillColor = Color3.fromRGB(255, 45, 85)
+		hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+		hl.OutlineTransparency = 0
+		hl.Enabled = espHighlight
+		hl.Parent = char
+
+		-- Billboard ESP (Name & Health)
+		local bb = hrp:FindFirstChild("QHub_Billboard") or Instance.new("BillboardGui")
+		bb.Name = "QHub_Billboard"
+		bb.Size = UDim2.new(0, 200, 0, 50)
+		bb.AlwaysOnTop = true
+		bb.ExtentsOffset = Vector3.new(0, 3, 0)
+		bb.Enabled = (espName or espHealth)
+		bb.Parent = hrp
+
+		local txtLabel = bb:FindFirstChild("TextLabel") or Instance.new("TextLabel", bb)
+		txtLabel.Size = UDim2.new(1, 0, 1, 0)
+		txtLabel.BackgroundTransparency = 1
+		txtLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		txtLabel.TextSize = 14
+		txtLabel.Font = Enum.Font.SourceSansBold
+		txtLabel.TextStrokeTransparency = 0
+
+		-- Cập nhật chữ
+		local function updateText()
+			local t = ""
+			if espName then t = t .. plr.Name end
+			if espHealth then t = t .. " [" .. math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth) .. "]" end
+			txtLabel.Text = t
+		end
+
+		hum.HealthChanged:Connect(updateText)
+		updateText()
+	end
+
+	if plr.Character then SetupCharacter(plr.Character) end
+	plr.CharacterAdded:Connect(SetupCharacter)
+end
+
+for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
+P.PlayerAdded:Connect(CreateESP)
+
+-- Tải lại trạng thái Toggle cho ESP
+Tabs.ESP:AddToggle("ESPHighlight", {Title = "ESP Highlight (Nhìn xuyên tường)", Default = false}):OnChanged(function(v)
+	espHighlight = v
+	for _, p in ipairs(P:GetPlayers()) do
+		if p.Character and p.Character:FindFirstChild("QHub_Highlight") then
+			p.Character.QHub_Highlight.Enabled = v
+		end
+	end
+end)
+
+Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name (Tên)", Default = false}):OnChanged(function(v)
+	espName = v
+	for _, p in ipairs(P:GetPlayers()) do
+		if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.HumanoidRootPart:FindFirstChild("QHub_Billboard") then
+			p.Character.HumanoidRootPart.QHub_Billboard.Enabled = (espName or espHealth)
+		end
+	end
+end)
+
+Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health (Máu)", Default = false}):OnChanged(function(v)
+	espHealth = v
+	for _, p in ipairs(P:GetPlayers()) do
+		if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.HumanoidRootPart:FindFirstChild("QHub_Billboard") then
+			p.Character.HumanoidRootPart.QHub_Billboard.Enabled = (espName or espHealth)
 		end
 	end
 end)
@@ -750,106 +457,37 @@ end)
 ---------------------------------------------------------
 -- TAB 6: FLY & MOVEMENT
 ---------------------------------------------------------
-local FlyToggle = Tabs.Misc:AddToggle("FlyMode", {
-    Title = "Fly Mode",
-    Default = false,
-    Callback = function(state)
-		flyEnabled = state
-		local char = LP.Character
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
-		if not hrp then return end
+local FlyToggle = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state)
+	flyEnabled = state
+	local char = LP.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+	if flyEnabled then
+		local bv = Instance.new("BodyVelocity", hrp)
+		bv.Name = "QHubFlyVelocity"
+		bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+		local bg = Instance.new("BodyGyro", hrp)
+		bg.Name = "QHubFlyGyro"
+		bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+		T.Fly = RS.RenderStepped:Connect(function()
+			if not flyEnabled or not hrp or not hrp.Parent then StopT("Fly") return end
+			local moveDir = Vector3.zero
+			if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Cam.CFrame.LookVector end
+			if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Cam.CFrame.LookVector end
+			if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Cam.CFrame.RightVector end
+			if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Cam.CFrame.RightVector end
+			if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+			bv.Velocity = moveDir * flySpeed bg.CFrame = Cam.CFrame
+		end)
+	else StopT("Fly") if hrp:FindFirstChild("QHubFlyVelocity") then hrp.QHubFlyVelocity:Destroy() end if hrp:FindFirstChild("QHubFlyGyro") then hrp.QHubFlyGyro:Destroy() end end
+end })
 
-		if flyEnabled then
-			local bv = Instance.new("BodyVelocity")
-			bv.Name = "QHubFlyVelocity"
-			bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-			bv.Velocity = Vector3.zero
-			bv.Parent = hrp
-
-			local bg = Instance.new("BodyGyro")
-			bg.Name = "QHubFlyGyro"
-			bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-			bg.CFrame = hrp.CFrame
-			bg.Parent = hrp
-
-			T.Fly = RS.RenderStepped:Connect(function()
-				if not flyEnabled or not hrp or not hrp.Parent then StopT("Fly") return end
-				local moveDir = Vector3.zero
-
-				if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Cam.CFrame.LookVector end
-				if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Cam.CFrame.LookVector end
-				if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Cam.CFrame.RightVector end
-				if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Cam.CFrame.RightVector end
-				if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-
-				bv.Velocity = moveDir * flySpeed
-				bg.CFrame = Cam.CFrame
-			end)
-		else
-			StopT("Fly")
-			if hrp:FindFirstChild("QHubFlyVelocity") then hrp.QHubFlyVelocity:Destroy() end
-			if hrp:FindFirstChild("QHubFlyGyro") then hrp.QHubFlyGyro:Destroy() end
-		end
-    end
-})
-
-Tabs.Misc:AddKeybind("FlyKeybind", {
-    Title = "Fly Keybind (Đổi phím tắt)",
-    Mode = "Toggle",
-    Default = "F",
-    Callback = function()
-        FlyToggle:SetValue(not FlyToggle.Value)
-    end
-})
-
-Tabs.Misc:AddInput("InputFlySpeed", {
-    Title = "Fly Speed",
-    Default = "50",
-    Numeric = true,
-    Finished = true,
-    Callback = function(txt)
-        local num = tonumber(txt)
-		if num then flySpeed = num end
-    end
-})
-
-Tabs.Misc:AddToggle("EnableSpeed", {
-    Title = "Enable WalkSpeed",
-    Default = false,
-    Callback = function(state)
-		speedToggleEnabled = state
-		local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-		if hum and not state then hum.WalkSpeed = 16 end
-    end
-})
-
-Tabs.Misc:AddInput("InputWalkSpeed", {
-    Title = "WalkSpeed",
-    Default = "50",
-    Numeric = true,
-    Finished = true,
-    Callback = function(txt)
-        local num = tonumber(txt)
-		if num then walkSpeed = num end
-    end
-})
-
-Tabs.Misc:AddInput("InputJumpPower", {
-    Title = "JumpPower",
-    Default = "50",
-    Numeric = true,
-    Finished = true,
-    Callback = function(txt)
-        local num = tonumber(txt)
-		if num then jumpPower = num end
-    end
-})
-
-Tabs.Misc:AddToggle("InfJump", {
-    Title = "Infinite Jump",
-    Default = false,
-    Callback = function(state) infJumpEnabled = state end
-})
+Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
+Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
+Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable WalkSpeed", Default = false, Callback = function(state) speedToggleEnabled = state local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") if hum and not state then hum.WalkSpeed = 16 end end })
+Tabs.Misc:AddInput("InputWalkSpeed", { Title = "WalkSpeed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
+Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
+Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) infJumpEnabled = state end })
 
 UIS.JumpRequest:Connect(function()
 	if infJumpEnabled and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
@@ -857,77 +495,18 @@ UIS.JumpRequest:Connect(function()
 	end
 end)
 
-Tabs.Misc:AddToggle("Noclip", {
-    Title = "Noclip",
-    Default = false,
-    Callback = function(state)
-		noclipEnabled = state
-		if state then
-			T.Noclip = RS.Stepped:Connect(function()
-				if LP.Character and noclipEnabled then
-					for _, part in ipairs(LP.Character:GetDescendants()) do
-						if part:IsA("BasePart") then part.CanCollide = false end
-					end
-				end
-			end)
-		else StopT("Noclip") end
-    end
-})
+Tabs.Misc:AddToggle("Noclip", { Title = "Noclip", Default = false, Callback = function(state)
+	noclipEnabled = state
+	if state then T.Noclip = RS.Stepped:Connect(function() if LP.Character and noclipEnabled then for _, part in ipairs(LP.Character:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end end end) else StopT("Noclip") end
+end })
 
-Tabs.Misc:AddToggle("InvLimbs", {
-    Title = "Invisible Limbs (Server-Side Attempt)",
-    Default = false,
-    Callback = function(state)
-		invisibleLimbsEnabled = state
-		local char = LP.Character
-		if not char then return end
-		
-		local limbsToHide = {"Left Arm", "Right Arm", "Left Leg", "Right Leg", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm", "LeftUpperArm", "RightUpperArm", "LeftFoot", "RightFoot", "LeftLowerLeg", "RightLowerLeg", "LeftUpperLeg", "RightUpperLeg"}
-		
-		for _, partName in ipairs(limbsToHide) do
-			local part = char:FindFirstChild(partName)
-			if part and part:IsA("BasePart") then
-				if invisibleLimbsEnabled then
-					part.Transparency = 1
-				else
-					part.Transparency = 0
-				end
-			end
-		end
-    end
-})
+Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-Tabs.Misc:AddButton({
-    Title = "Rejoin Server",
-    Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end
-})
-
--- MAIN LOOP SPEED/JUMP & KEEP INVISIBLE LIMBS UPDATED
 RS.RenderStepped:Connect(function(dt)
-	local char = LP.Character
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	local char = LP.Character local hum = char and char:FindFirstChildOfClass("Humanoid") local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if hum and hrp and hum.Health > 0 then
-		if speedToggleEnabled then
-			hum.WalkSpeed = walkSpeed
-			if hum.MoveDirection.Magnitude > 0 then
-				local multiplier = (walkSpeed / 16) - 1
-				if multiplier > 0 then hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (multiplier * 16 * dt)) end
-			end
-		end
-		if hum.JumpPower ~= jumpPower then
-			hum.UseJumpPower, hum.JumpPower = true, jumpPower
-		end
-		
-		if invisibleLimbsEnabled then
-			local limbsToHide = {"Left Arm", "Right Arm", "Left Leg", "Right Leg", "LeftHand", "RightHand", "LeftLowerArm", "RightLowerArm", "LeftUpperArm", "RightUpperArm", "LeftFoot", "RightFoot", "LeftLowerLeg", "RightLowerLeg", "LeftUpperLeg", "RightUpperLeg"}
-			for _, partName in ipairs(limbsToHide) do
-				local part = char:FindFirstChild(partName)
-				if part and part:IsA("BasePart") and part.Transparency ~= 1 then
-					part.Transparency = 1
-				end
-			end
-		end
+		if speedToggleEnabled then hum.WalkSpeed = walkSpeed end
+		if hum.JumpPower ~= jumpPower then hum.UseJumpPower, hum.JumpPower = true, jumpPower end
 	end
 end)
 
