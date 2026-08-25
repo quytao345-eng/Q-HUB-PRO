@@ -1,4 +1,4 @@
--- Q HUB - MINIFIED EDITION
+-- Q HUB - ADVANCED EDITION (FIXED & EXPANDED)
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
@@ -22,6 +22,7 @@ local tpDelay = 0.001
 local walkSpeed, jumpPower, flySpeed = 50, 50, 50
 local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
 local antiVoidEnabled, flingEnabled, antiFlingEnabled = false, false, false
+local hitboxEnabled, hitboxSize = false, 10
 local lastSafeCFrame = nil
 
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
@@ -240,10 +241,11 @@ local Tabs = {
     Target = Window:AddTab({ Title = "Target", Icon = "target" }),
     View = Window:AddTab({ Title = "Camera View", Icon = "camera" }),
     ESP = Window:AddTab({ Title = "ESP VIP", Icon = "eye" }),
-    Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
+    Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" }),
+    Extra = Window:AddTab({ Title = "Extra Features", Icon = "plus" })
 }
 
-Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Developed by Gemini & Quy\n- Fixed Camera View\n- Anti-Void\n- Fling & Anti-Fling" })
+Tabs.Info:AddParagraph({ Title = "Q HUB V2", Content = "Developed by Gemini & Quy\n- Fixed WalkSpeed Bypass\n- Advanced Fling & Anti-Fling\n- Ultimate Anti-Void & Hitbox" })
 
 Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
 Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -306,7 +308,7 @@ Tabs.TP:AddToggle("TPAll", {
     end
 })
 
-local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "đi chỗ khác", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, state in pairs(s) do if state and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
+local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist TP", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, state in pairs(s) do if state and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
 
 Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV Circle", Default = false, Callback = function(state) showTargetFOVCircle = state end })
 Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Target Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
@@ -497,7 +499,7 @@ Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChang
 	end
 end)
 
--- FLY & MOVEMENT TAB
+-- FLY & MOVEMENT TAB (REWORKED & FIXED WALKSPEED)
 local FlyToggle = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state)
 	flyEnabled = state
 	local char = LP.Character
@@ -526,63 +528,72 @@ end })
 Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
 Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
 
-Tabs.Misc:AddToggle("AntiVoidToggle", { Title = "Anti-Void", Default = false, Callback = function(state)
+-- ANTI-VOID V2 (ULTRALIGHT PLATFORM + SAFE TELEPORT)
+local antiVoidPart = nil
+Tabs.Misc:AddToggle("AntiVoidToggle", { Title = "Anti-Void V2", Default = false, Callback = function(state)
 	antiVoidEnabled = state
 	if state then
+		if not antiVoidPart then
+			antiVoidPart = Instance.new("Part")
+			antiVoidPart.Name = "QHubAntiVoidPlate"
+			antiVoidPart.Size = Vector3.new(2000, 2, 2000)
+			antiVoidPart.Anchored = true
+			antiVoidPart.Transparency = 0.6
+			antiVoidPart.Color = Color3.fromRGB(0, 170, 255)
+			antiVoidPart.Position = Vector3.new(0, W.FallenPartsDestroyHeight + 10, 0)
+			antiVoidPart.Parent = W
+		end
 		T.AntiVoid = RS.Heartbeat:Connect(function()
 			local char = LP.Character
 			local hrp = char and char:FindFirstChild("HumanoidRootPart")
 			if hrp then
-				if hrp.Position.Y > -50 then
+				if hrp.Position.Y > W.FallenPartsDestroyHeight + 50 then
 					lastSafeCFrame = hrp.CFrame
-				elseif hrp.Position.Y < -100 then
+				elseif hrp.Position.Y <= W.FallenPartsDestroyHeight + 15 then
 					if lastSafeCFrame then
 						hrp.CFrame = lastSafeCFrame + Vector3.new(0, 5, 0)
 						hrp.AssemblyLinearVelocity = Vector3.zero
 					else
-						hrp.CFrame = CFrame.new(hrp.Position.X, 10, hrp.Position.Z)
+						hrp.CFrame = CFrame.new(hrp.Position.X, 20, hrp.Position.Z)
 					end
 				end
 			end
 		end)
-	else StopT("AntiVoid") end
+	else 
+		StopT("AntiVoid") 
+		if antiVoidPart then antiVoidPart:Destroy() antiVoidPart = nil end
+	end
 end })
 
-Tabs.Misc:AddToggle("FlingToggle", { Title = "Fling Player", Default = false, Callback = function(state)
+-- FLING V2 (ROTATIONAL ANGULAR VELOCITY ATTACHMENT)
+Tabs.Misc:AddToggle("FlingToggle", { Title = "Advanced Fling", Default = false, Callback = function(state)
 	flingEnabled = state
-	local char = LP.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-
-	if flingEnabled then
+	if state then
 		T.Fling = RS.Heartbeat:Connect(function()
-			local currentChar = LP.Character
-			local currentHrp = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
-			if not currentHrp or not flingEnabled then StopT("Fling") return end
+			local char = LP.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if not hrp or not flingEnabled then StopT("Fling") return end
 
-			local angVel = currentHrp:FindFirstChild("QHubFlingVelocity") or Instance.new("AngularVelocity")
-			angVel.Name = "QHubFlingVelocity"
-			angVel.MaxTorque = math.huge
-			angVel.AngularVelocity = Vector3.new(0, 99999, 0)
-			angVel.Attachment0 = currentHrp:FindFirstChildOfClass("Attachment") or Instance.new("Attachment", currentHrp)
-			angVel.Parent = currentHrp
-
+			hrp.AssemblyAngularVelocity = Vector3.new(0, 999999, 0)
 			for _, p in ipairs(P:GetPlayers()) do
 				if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
 					local pHrp = p.Character.HumanoidRootPart
-					if (currentHrp.Position - pHrp.Position).Magnitude < 5 then
-						pHrp.AssemblyLinearVelocity = Vector3.new(0, 1000, 0) + (pHrp.Position - currentHrp.Position).Unit * 1000
+					if (hrp.Position - pHrp.Position).Magnitude < 6 then
+						hrp.CFrame = pHrp.CFrame * CFrame.new(0, 0, 0)
 					end
 				end
 			end
 		end)
 	else
 		StopT("Fling")
-		if hrp:FindFirstChild("QHubFlingVelocity") then hrp.QHubFlingVelocity:Destroy() end
+		local char = LP.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		if hrp then hrp.AssemblyAngularVelocity = Vector3.zero end
 	end
 end })
 
-Tabs.Misc:AddToggle("AntiFlingToggle", { Title = "Anti-Fling", Default = false, Callback = function(state)
+-- ANTI-FLING V2 (NON-COLLIDE & ZERO VELOCITY LOCK)
+Tabs.Misc:AddToggle("AntiFlingToggle", { Title = "Anti-Fling V2", Default = false, Callback = function(state)
 	antiFlingEnabled = state
 	if state then
 		T.AntiFling = RS.Stepped:Connect(function()
@@ -591,9 +602,8 @@ Tabs.Misc:AddToggle("AntiFlingToggle", { Title = "Anti-Fling", Default = false, 
 			if char then
 				for _, part in ipairs(char:GetDescendants()) do
 					if part:IsA("BasePart") then
-						part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
 						part.AssemblyAngularVelocity = Vector3.zero
-						if part.AssemblyLinearVelocity.Magnitude > 250 then
+						if part.AssemblyLinearVelocity.Magnitude > 100 then
 							part.AssemblyLinearVelocity = Vector3.zero
 						end
 					end
@@ -612,9 +622,34 @@ Tabs.Misc:AddToggle("AntiFlingToggle", { Title = "Anti-Fling", Default = false, 
 	else StopT("AntiFling") end
 end })
 
-Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable WalkSpeed", Default = false, Callback = function(state) speedToggleEnabled = state local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") if hum and not state then hum.WalkSpeed = 16 end end })
-Tabs.Misc:AddInput("InputWalkSpeed", { Title = "WalkSpeed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
-Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
+-- WALKSPEED BYPASS (CFRAME METHOD - WORKS ON ALL GAMES)
+Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable Bypass WalkSpeed", Default = false, Callback = function(state)
+	speedToggleEnabled = state
+	if state then
+		T.SpeedBypass = RS.Heartbeat:Connect(function(dt)
+			local char = LP.Character
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hum and hrp and speedToggleEnabled and hum.MoveDirection.Magnitude > 0 then
+				hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (walkSpeed / 10) * dt * 10)
+			end
+		end)
+	else
+		StopT("SpeedBypass")
+	end
+end })
+
+Tabs.Misc:AddInput("InputWalkSpeed", { Title = "WalkSpeed Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
+Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
+
+-- JUMPPOWER APPLY
+RS.RenderStepped:Connect(function()
+	local char = LP.Character local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum and hum.Health > 0 then
+		if hum.JumpPower ~= jumpPower then hum.UseJumpPower, hum.JumpPower = true, jumpPower end
+	end
+end)
+
 Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) infJumpEnabled = state end })
 
 UIS.JumpRequest:Connect(function()
@@ -630,12 +665,32 @@ end })
 
 Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-RS.RenderStepped:Connect(function(dt)
-	local char = LP.Character local hum = char and char:FindFirstChildOfClass("Humanoid") local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if hum and hrp and hum.Health > 0 then
-		if speedToggleEnabled then hum.WalkSpeed = walkSpeed end
-		if hum.JumpPower ~= jumpPower then hum.UseJumpPower, hum.JumpPower = true, jumpPower end
+-- EXTRA TAB FEATURES (HITBOX & FOG)
+Tabs.Extra:AddToggle("HitboxToggle", { Title = "Hitbox Extender (Big Head)", Default = false, Callback = function(state)
+	hitboxEnabled = state
+	T.HitboxLoop = RS.RenderStepped:Connect(function()
+		if not hitboxEnabled then StopT("HitboxLoop") return end
+		for _, p in ipairs(P:GetPlayers()) do
+			if p ~= LP and p.Character then
+				local head = p.Character:FindFirstChild("Head")
+				if head then
+					head.Size = hitboxEnabled and Vector3.new(hitboxSize, hitboxSize, hitboxSize) or Vector3.new(2, 1, 1)
+					head.Transparency = 0.6
+					head.CanCollide = false
+				end
+			end
+		end
+	end)
+end })
+
+Tabs.Extra:AddSlider("HitboxSlider", { Title = "Hitbox Size", Min = 2, Max = 30, Default = 10, Rounding = 0, Callback = function(val) hitboxSize = val end })
+
+Tabs.Extra:AddButton({ Title = "Remove Fog (FPS Boost)", Callback = function()
+	local lighting = game:GetService("Lighting")
+	lighting.FogEnd = 9e9
+	for _, v in ipairs(lighting:GetDescendants()) do
+		if v:IsA("Atmosphere") then v:Destroy() end
 	end
-end)
+end })
 
 Window:SelectTab(1)
