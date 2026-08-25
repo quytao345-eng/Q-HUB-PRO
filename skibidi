@@ -1,4 +1,4 @@
--- Q HUB - Xưa & COMBAT DASH-FRIENDLY SPEED BYPASS
+-- Q HUB - Xưa & FIXED FLY & SPEED
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V16.0\n- Combat Dash-Friendly Speed Bypass" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V16.1\n- Fixed Fly & Speed Toggle" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -457,7 +457,7 @@ local success, err = pcall(function()
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
 
     -- FLY & MOVEMENT
-    local FlyToggle = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state)
+    Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state)
         flyEnabled = state
         local char = LP.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -485,21 +485,23 @@ local success, err = pcall(function()
         end
     end })
 
-    Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- COMBAT DASH-FRIENDLY SPEED CONTROLS
+    -- SPEED CONTROLS
     Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable Dash-Safe Speed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
     end })
     
     Tabs.Misc:AddInput("InputWalkSpeed", { Title = "Speed Multiplier", Default = "2", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
     Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
-    Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) infJumpEnabled = state end })
+    
+    Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) 
+        infJumpEnabled = state 
+    end })
 
     UIS.JumpRequest:Connect(function()
         if infJumpEnabled and LP.Character then
-            val hum = LP.Character:FindFirstChildOfClass("Humanoid")
+            local hum = LP.Character:FindFirstChildOfClass("Humanoid")
             if hum then hum:ChangeState("Jumping") end
         end
     end)
@@ -519,7 +521,7 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- DASH-FRIENDLY VELOCITY MULTIPLIER LOOP (Không bóp lực Dash game đánh nhau)
+    -- SPEED MULTIPLIER LOOP
     RS.RenderStepped:Connect(function()
         local char = LP.Character
         if char then
@@ -531,11 +533,9 @@ local success, err = pcall(function()
                 hum.JumpPower = jumpPower
 
                 if speedToggleEnabled and hum.MoveDirection.Magnitude > 0 then
-                    -- Lấy vận tốc hiện tại của nhân vật theo trục Ngang (tránh ảnh hưởng trọng lực trục Y)
                     local currentVel = hrp.AssemblyLinearVelocity
                     local targetSpeed = math.clamp(walkSpeed, 1, 150)
                     
-                    -- Nếu game đang kích hoạt lực Dash (vận tốc ngang lớn hơn bình thường), cho phép giữ nguyên hoặc cộng dồn nhẹ thay vì kìm lại
                     if currentVel.Magnitude < 50 then
                         hrp.AssemblyLinearVelocity = Vector3.new(hum.MoveDirection.X * targetSpeed, currentVel.Y, hum.MoveDirection.Z * targetSpeed)
                     end
