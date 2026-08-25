@@ -1,4 +1,4 @@
--- Q HUB - FIXED ESP & FAST EDITION (OPTIMIZED)
+-- Q HUB - FIXED ESP & FAST EDITION (FULL OPTIMIZED)
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
@@ -202,7 +202,7 @@ RS.RenderStepped:Connect(function()
     end
 end)
 
--- GIỮ NGUYÊN HOÀN TOÀN TÍNH NĂNG TP ALL TỪ CODE GỐC
+-- TP ALL PLAYERS
 Tabs.TP:AddToggle("TPAll", {
     Title = "Teleport All Players (0.001s)",
     Default = false,
@@ -298,30 +298,49 @@ Tabs.Target:AddInput("OrbitDistInput", { Title = "Orbit Distance", Default = "10
 Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Change Target On Death", Default = false, Callback = function(state) autoNextTarget = state end })
 
 ---------------------------------------------------------
--- ESP VIP OPTIMIZED
+-- TAB 5: ESP VIP (FIX SÓT NGƯỜI CHƠI)
 ---------------------------------------------------------
 local function CreateESP(plr)
     if plr == LP then return end
 
     local function SetupCharacter(char)
         if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart", 5)
-        local hum = char:WaitForChild("Humanoid", 5)
+
+        local hrp = char:WaitForChild("HumanoidRootPart", 10)
+        local hum = char:WaitForChild("Humanoid", 10)
         if not hrp or not hum then return end
 
         local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
-        hl.Name, hl.FillTransparency, hl.FillColor, hl.OutlineColor, hl.OutlineTransparency, hl.Enabled, hl.Parent = "QHub_Highlight", 0.5, Color3.fromRGB(255, 45, 85), Color3.fromRGB(255, 255, 255), 0, espHighlight, char
+        hl.Name = "QHub_Highlight"
+        hl.FillTransparency = 0.5
+        hl.FillColor = Color3.fromRGB(255, 45, 85)
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.OutlineTransparency = 0
+        hl.Enabled = espHighlight
+        hl.Parent = char
 
         local bb = hrp:FindFirstChild("QHub_Billboard") or Instance.new("BillboardGui")
-        bb.Name, bb.Size, bb.AlwaysOnTop, bb.ExtentsOffset, bb.Enabled, bb.Parent = "QHub_Billboard", UDim2.new(0, 200, 0, 50), true, Vector3.new(0, 3, 0), (espName or espHealth), hrp
+        bb.Name = "QHub_Billboard"
+        bb.Size = UDim2.new(0, 200, 0, 50)
+        bb.AlwaysOnTop = true
+        bb.ExtentsOffset = Vector3.new(0, 3, 0)
+        bb.Enabled = (espName or espHealth)
+        bb.Parent = hrp
 
-        local txtLabel = bb:FindFirstChild("TextLabel") or Instance.new("TextLabel", bb)
-        txtLabel.Size, txtLabel.BackgroundTransparency, txtLabel.TextColor3, txtLabel.TextSize, txtLabel.Font, txtLabel.TextStrokeTransparency = UDim2.new(1, 0, 1, 0), 1, Color3.fromRGB(255, 255, 255), 14, Enum.Font.SourceSansBold, 0
+        local txtLabel = bb:FindFirstChild("TextLabel") or Instance.new("TextLabel")
+        txtLabel.Parent = bb
+        txtLabel.Size = UDim2.new(1, 0, 1, 0)
+        txtLabel.BackgroundTransparency = 1
+        txtLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        txtLabel.TextSize = 14
+        txtLabel.Font = Enum.Font.SourceSansBold
+        txtLabel.TextStrokeTransparency = 0
 
         local function UpdateText()
+            if not hum or not hum.Parent then return end
             local t = ""
             if espName then t = t .. plr.Name end
-            if espHealth then t = t .. " [" .. math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth) .. "]" end
+            if espHealth then t = t .. " [" .. math.floor(math.max(0, hum.Health)) .. "/" .. math.floor(hum.MaxHealth) .. "]" end
             txtLabel.Text = t
         end
 
@@ -329,16 +348,33 @@ local function CreateESP(plr)
         UpdateText()
     end
 
-    if plr.Character then SetupCharacter(plr.Character) end
-    plr.CharacterAdded:Connect(SetupCharacter)
+    if plr.Character then 
+        task.spawn(function() SetupCharacter(plr.Character) end) 
+    end
+    plr.CharacterAdded:Connect(function(newChar)
+        task.spawn(function() SetupCharacter(newChar) end)
+    end)
 end
 
 for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
 P.PlayerAdded:Connect(CreateESP)
 
+task.spawn(function()
+    while task.wait(3) do
+        for _, p in ipairs(P:GetPlayers()) do
+            if p ~= LP and p.Character then
+                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and not p.Character:FindFirstChild("QHub_Highlight") then
+                    CreateESP(p)
+                end
+            end
+        end
+    end
+end)
+
 local function UpdateESPStates()
     for _, p in ipairs(P:GetPlayers()) do
-        if p.Character then
+        if p ~= LP and p.Character then
             local hl = p.Character:FindFirstChild("QHub_Highlight")
             if hl then hl.Enabled = espHighlight end
             
@@ -351,7 +387,7 @@ local function UpdateESPStates()
                 if txtLabel and hum then
                     local t = ""
                     if espName then t = t .. p.Name end
-                    if espHealth then t = t .. " [" .. math.floor(hum.Health) .. "/" .. math.floor(hum.MaxHealth) .. "]" end
+                    if espHealth then t = t .. " [" .. math.floor(math.max(0, hum.Health)) .. "/" .. math.floor(hum.MaxHealth) .. "]" end
                     txtLabel.Text = t
                 end
             end
@@ -364,7 +400,7 @@ Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name", Default = false}):OnChanged(f
 Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
 
 ---------------------------------------------------------
--- FLY & MOVEMENT
+-- TAB 6: FLY & MOVEMENT
 ---------------------------------------------------------
 local FlyToggle = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state)
     flyEnabled = state
