@@ -1,4 +1,4 @@
--- Q HUB - FIXED ESP & FAST EDITION (FULL OPTIMIZED & FIXED FOV)
+-- Q HUB - FIXED ESP & FAST EDITION (AUTO SKY FALL WHEN NO ALIVE PLAYERS)
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
@@ -12,13 +12,12 @@ local Window = Fluent:CreateWindow({
 })
 
 -- SERVICES & VARIABLES
-local P, W, RS, TS, UIS, GS = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("TweenService"), game:GetService("UserInputService"), game:GetService("GuiService")
+local P, W, RS, UIS, GS = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("UserInputService"), game:GetService("GuiService")
 local LP = P.LocalPlayer
 local Mouse = LP:GetMouse()
 local Cam = W.CurrentCamera
 local T = {}
 
-local tpDelay = 0.001
 local walkSpeed, jumpPower, flySpeed = 50, 50, 50
 local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
@@ -37,9 +36,7 @@ local aimPart, aimFOV, aimSmoothness = "Head", 150, 0.2
 -- ESP SETTINGS
 local espHighlight, espName, espHealth = false, false, false
 
--- ==========================================
--- SỬA LỖI TẠO VÒNG TRÒN FOV (DRAWING & GUI)
--- ==========================================
+-- DRAWING & GUI FOV SETUP
 local FOVCircle, TargetFOVCircle = nil, nil
 local GuiCircle, TargetGuiCircle = nil, nil
 
@@ -244,24 +241,47 @@ Tabs.TP:AddToggle("TPAll", {
     Callback = function(state)
         if state then
             T.Teleport = task.spawn(function()
+                local isSkyFalling = false
+
                 while true do
                     local alivePlayers = {}
                     for _, p in ipairs(P:GetPlayers()) do
                         if p ~= LP and not table.find(tpBlacklist, p.Name) and p.Character then
                             local tr = p.Character:FindFirstChild("HumanoidRootPart")
                             local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                            if tr and hum and hum.Health > 0 then table.insert(alivePlayers, tr) end
+                            if tr and hum and hum.Health > 0 then 
+                                table.insert(alivePlayers, tr) 
+                            end
                         end
                     end
+
                     local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                    if #alivePlayers > 0 and myHrp then
-                        for _, targetHrp in ipairs(alivePlayers) do
-                            if targetHrp and targetHrp.Parent then myHrp.CFrame = targetHrp.CFrame task.wait(0.001) end
+
+                    if myHrp then
+                        if #alivePlayers > 0 then
+                            isSkyFalling = false 
+                            for _, targetHrp in ipairs(alivePlayers) do
+                                if targetHrp and targetHrp.Parent then 
+                                    myHrp.CFrame = targetHrp.CFrame 
+                                    task.wait(0.001) 
+                                end
+                            end
+                        else
+                            if not isSkyFalling then
+                                isSkyFalling = true
+                                myHrp.CFrame = myHrp.CFrame + Vector3.new(0, 500, 0)
+                                myHrp.AssemblyLinearVelocity = Vector3.zero
+                            end
+                            task.wait(0.1)
                         end
-                    else task.wait(0.05) end
+                    else
+                        task.wait(0.05)
+                    end
                 end
             end)
-        else StopT("Teleport") end
+        else 
+            StopT("Teleport") 
+        end
     end
 })
 
@@ -481,7 +501,7 @@ Tabs.Misc:AddToggle("Noclip", { Title = "Noclip", Default = false, Callback = fu
         T.Noclip = RS.Stepped:Connect(function() 
             if LP.Character and noclipEnabled then 
                 for _, part in ipairs(LP.Character:GetDescendants()) do 
-                    if part:IsA("BasePart") then part.CanCollide = false end 
+                    if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end 
                 end 
             end 
         end) 
