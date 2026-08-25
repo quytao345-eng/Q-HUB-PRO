@@ -1,4 +1,4 @@
--- Q HUB - Xưa & FIXED WALKSPEED BYPASS
+-- Q HUB - Xưa & SUPER FAST WALKSPEED
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -19,7 +19,7 @@ local success, err = pcall(function()
     local Cam = W.CurrentCamera
     local T = {}
 
-    local walkSpeed, jumpPower, flySpeed = 50, 50, 50
+    local walkSpeed, jumpPower, flySpeed = 100, 50, 50
     local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
     local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
     local SelectedTargetPlayer, autoNextTarget = nil, false
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V13.0\n- Added Sky Fall when no alive players\n- Ultimate WalkSpeed Bypass" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V13.0\n- Super Fast WalkSpeed Boost Enabled" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -238,7 +238,7 @@ local success, err = pcall(function()
         end
     end)
 
-    -- TP ALL PLAYERS (AUTO SKY FALL WHEN NO ALIVE PLAYERS)
+    -- TP ALL PLAYERS
     Tabs.TP:AddToggle("TPAll", {
         Title = "Teleport All Players (0.001s)",
         Default = false,
@@ -488,14 +488,14 @@ local success, err = pcall(function()
     Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- WALKSPEED & JUMPPOWER CONTROLS
+    -- SUPER FAST WALKSPEED CONTROLS
     Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable WalkSpeed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
         local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") 
         if hum and not state then hum.WalkSpeed = 16 end 
     end })
     
-    Tabs.Misc:AddInput("InputWalkSpeed", { Title = "WalkSpeed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
+    Tabs.Misc:AddInput("InputWalkSpeed", { Title = "WalkSpeed", Default = "100", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
     Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
     Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) infJumpEnabled = state end })
 
@@ -521,32 +521,16 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- ULTIMATE WALKSPEED & JUMPPOWER BYPASS
-    local function SetupCharacterSpeed(char)
-        local hum = char:WaitForChild("Humanoid", 10)
-        if not hum then return end
-        
-        hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-            if speedToggleEnabled and hum.WalkSpeed ~= walkSpeed then
-                hum.WalkSpeed = walkSpeed
-            end
-        end)
-    end
-
-    if LP.Character then task.spawn(function() SetupCharacterSpeed(LP.Character) end) end
-    LP.CharacterAdded:Connect(function(char) task.spawn(function() SetupCharacterSpeed(char) end) end)
-
-    RS.Heartbeat:Connect(function()
+    -- SUPER FAST BYPASS & SPEED OVERRIDE
+    RS.Stepped:Connect(function()
         local char = LP.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum and hum.Health > 0 then
-            if speedToggleEnabled and hum.WalkSpeed ~= walkSpeed then
+            if speedToggleEnabled then
                 hum.WalkSpeed = walkSpeed
             end
-            if hum.JumpPower ~= jumpPower then
-                hum.UseJumpPower = true
-                hum.JumpPower = jumpPower
-            end
+            hum.UseJumpPower = true
+            hum.JumpPower = jumpPower
         end
     end)
 
