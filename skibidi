@@ -1,4 +1,4 @@
--- Q HUB - Xưa & CFRAME SPEED (Bypass mọi game)
+-- Q HUB - Xưa & SMOOTH CFRAME SPEED (Đã giảm giật)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: CFrame Speed Mode" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Smooth CFrame Speed" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -488,8 +488,8 @@ local success, err = pcall(function()
     Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- CFRAME SPEED CONTROLS
-    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable CFrame Speed", Default = false, Callback = function(state) 
+    -- SMOOTH CFRAME SPEED CONTROLS
+    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable Smooth Speed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
     end })
     
@@ -519,8 +519,8 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- CFRAME SPEED LOOP (Bypass Anti-Cheat WalkSpeed)
-    RS.RenderStepped:Connect(function(dt)
+    -- ULTRA SMOOTH CFRAME SPEED LOOP (Chống giật, mượt như tay)
+    RS.Heartbeat:Connect(function(dt)
         local char = LP.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
@@ -531,7 +531,10 @@ local success, err = pcall(function()
                 hum.JumpPower = jumpPower
 
                 if speedToggleEnabled and hum.MoveDirection.Magnitude > 0 then
-                    hrp.CFrame = hrp.CFrame + (hum.MoveDirection * walkSpeed * dt)
+                    -- Nội suy mượt theo Heartbeat và khóa vận tốc thừa để không bị giật lùi
+                    local currentVelocity = hrp.AssemblyLinearVelocity
+                    hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (walkSpeed * dt))
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, currentVelocity.Y, 0)
                 end
             end
         end
