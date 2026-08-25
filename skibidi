@@ -1,9 +1,9 @@
--- Q HUB - FIXED WALKSPEED & ALL FEATURES
+-- Q HUB - Xưa & FIXED WALKSPEED BYPASS
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
     local Window = Fluent:CreateWindow({
-        Title = "⚡ Q HUB - FIXED ESP & FOV",
+        Title = "⚡ Q HUB - Xưa",
         SubTitle = "by Gemini & Quy",
         TabWidth = 160,
         Size = UDim2.fromOffset(580, 420),
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - FIXED ESP", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V13.0\n- Fixed All ESP & FOV Features\n- Instant TP All: 0.001s" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V13.0\n- Added Sky Fall when no alive players\n- Ultimate WalkSpeed Bypass" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -488,7 +488,7 @@ local success, err = pcall(function()
     Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- WALKSPEED & JUMPPOWER TOGGLES
+    -- WALKSPEED & JUMPPOWER CONTROLS
     Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable WalkSpeed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
         local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") 
@@ -521,15 +521,27 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- FIXED WALKSPEED & JUMPPOWER BYPASS LOOP
+    -- ULTIMATE WALKSPEED & JUMPPOWER BYPASS
+    local function SetupCharacterSpeed(char)
+        local hum = char:WaitForChild("Humanoid", 10)
+        if not hum then return end
+        
+        hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            if speedToggleEnabled and hum.WalkSpeed ~= walkSpeed then
+                hum.WalkSpeed = walkSpeed
+            end
+        end)
+    end
+
+    if LP.Character then task.spawn(function() SetupCharacterSpeed(LP.Character) end) end
+    LP.CharacterAdded:Connect(function(char) task.spawn(function() SetupCharacterSpeed(char) end) end)
+
     RS.Heartbeat:Connect(function()
         local char = LP.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum and hum.Health > 0 then
-            if speedToggleEnabled then
-                if hum.WalkSpeed ~= walkSpeed then
-                    hum.WalkSpeed = walkSpeed
-                end
+            if speedToggleEnabled and hum.WalkSpeed ~= walkSpeed then
+                hum.WalkSpeed = walkSpeed
             end
             if hum.JumpPower ~= jumpPower then
                 hum.UseJumpPower = true
@@ -542,5 +554,5 @@ local success, err = pcall(function()
 end)
 
 if not success then
-    warn("Q HUB Execution Error: " .. tostring(err))
+    warn("Q HUB Error: " .. tostring(err))
 end
