@@ -1,4 +1,4 @@
--- Q HUB - Xưa & LERP TELEPORT SPEED (Siêu mượt, không giật lag)
+-- Q HUB - Xưa & OPTIMIZED VELOCITY SPEED (Cực mượt trên Mobile)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V16.0\n- Smooth Lerp Teleport Speed Enabled" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V17.0\n- Optimized Mobile Velocity Speed" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -488,8 +488,8 @@ local success, err = pcall(function()
     Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- LERP TELEPORT SPEED CONTROLS
-    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable Smooth Teleport Speed", Default = false, Callback = function(state) 
+    -- OPTIMIZED VELOCITY SPEED CONTROLS
+    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable Fast Speed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
     end })
     
@@ -519,8 +519,8 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- SMOOTH LERP TELEPORT LOOP (Không giật lag)
-    RS.RenderStepped:Connect(function(dt)
+    -- SMOOTH VELOCITY SPEED LOOP (Chống giật lag tối đa)
+    RS.RenderStepped:Connect(function()
         local char = LP.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
@@ -531,9 +531,8 @@ local success, err = pcall(function()
                 hum.JumpPower = jumpPower
 
                 if speedToggleEnabled and hum.MoveDirection.Magnitude > 0 then
-                    local targetPos = hrp.Position + (hum.MoveDirection * walkSpeed * dt)
-                    hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(targetPos, targetPos + hrp.CFrame.LookVector), 0.8)
-                    hrp.AssemblyLinearVelocity = Vector3.zero
+                    local currentVel = hrp.AssemblyLinearVelocity
+                    hrp.AssemblyLinearVelocity = Vector3.new(hum.MoveDirection.X * walkSpeed, currentVel.Y, hum.MoveDirection.Z * walkSpeed)
                 end
             end
         end
