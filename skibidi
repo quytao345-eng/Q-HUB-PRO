@@ -2,7 +2,7 @@
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "⚡ Q HUB - FIXED ESP & FOV",
+    Title = "⚡ Q HUB",
     SubTitle = "by Gemini & Quy",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 420),
