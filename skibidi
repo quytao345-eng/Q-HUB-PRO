@@ -1,4 +1,4 @@
--- Q HUB - ADVANCED EDITION (FIXED & EXPANDED)
+-- Q HUB - ULTIMATE MOBILE & PC EDITION
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
@@ -18,16 +18,13 @@ local Mouse = LP:GetMouse()
 local Cam = W.CurrentCamera
 local T = {}
 
-local tpDelay = 0.001
-local walkSpeed, jumpPower, flySpeed = 50, 50, 50
+local walkSpeed, jumpPower, flySpeed = 50, 50, 16
 local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
 local antiVoidEnabled, flingEnabled, antiFlingEnabled = false, false, false
-local hitboxEnabled, hitboxSize = false, 10
 local lastSafeCFrame = nil
 
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
 local SelectedTargetPlayer, autoNextTarget = nil, false
-local SelectedViewPlayer, viewEnabled = nil, false
 
 -- TARGET ORBIT & RED FOV SETTINGS
 local showTargetFOVCircle = false
@@ -239,13 +236,11 @@ local Tabs = {
     Aim = Window:AddTab({ Title = "Aim Settings", Icon = "crosshair" }),
     TP = Window:AddTab({ Title = "TP All", Icon = "user-check" }),
     Target = Window:AddTab({ Title = "Target", Icon = "target" }),
-    View = Window:AddTab({ Title = "Camera View", Icon = "camera" }),
     ESP = Window:AddTab({ Title = "ESP VIP", Icon = "eye" }),
-    Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" }),
-    Extra = Window:AddTab({ Title = "Extra Features", Icon = "plus" })
+    Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
 }
 
-Tabs.Info:AddParagraph({ Title = "Q HUB V2", Content = "Developed by Gemini & Quy\n- Fixed WalkSpeed Bypass\n- Advanced Fling & Anti-Fling\n- Ultimate Anti-Void & Hitbox" })
+Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Developed by Gemini & Quy\n- Fixed Universal Fly V4 (WASD/Joystick Support)\n- WalkSpeed Bypass V3\n- Advanced Fling & Anti-Fling\n- Universal Anti-Void" })
 
 Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
 Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -344,61 +339,14 @@ end
 Tabs.Target:AddKeybind("QuickOrbitKeybind", { Title = "Quick Orbit Target in Red FOV", Mode = "Toggle", Default = "G", Callback = function() ToggleFOVOrbit() end })
 local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target Player", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
 
--- CAMERA VIEW TAB
-local ViewPlayerDropdown = Tabs.View:AddDropdown("ViewSelect", {
-	Title = "Select Player To View",
-	Values = GetPlayerListNames(),
-	Default = GetPlayerListNames()[1] or "",
-	Callback = function(s)
-		local foundPlr = P:FindFirstChild(s)
-		if foundPlr then SelectedViewPlayer = foundPlr end
-	end
-})
-
-Tabs.View:AddToggle("SpectateToggle", {
-	Title = "Spectate Player",
-	Default = false,
-	Callback = function(state)
-		viewEnabled = state
-		if state then
-			T.SpectateLoop = RS.RenderStepped:Connect(function()
-				if not viewEnabled or not SelectedViewPlayer then ResetCamToSelf() return end
-				local vChar = SelectedViewPlayer.Character
-				local vHum = vChar and vChar:FindFirstChildOfClass("Humanoid")
-				if vHum and vHum.Health > 0 then
-					Cam.CameraSubject = vHum
-				else
-					ResetCamToSelf()
-				end
-			end)
-		else
-			StopT("SpectateLoop")
-			ResetCamToSelf()
-		end
-	end
-})
-
-Tabs.View:AddButton({
-	Title = "Reset View",
-	Callback = function()
-		viewEnabled = false
-		StopT("SpectateLoop")
-		ResetCamToSelf()
-	end
-})
-
 local function UpdatePlayerDropdowns()
 	local names = GetPlayerListNames()
 	TargetPlayerDropdown:SetValues(names)
 	TPBlacklistDropdown:SetValues(names)
-	ViewPlayerDropdown:SetValues(names)
 end
 
 P.PlayerAdded:Connect(function() task.wait(0.1) UpdatePlayerDropdowns() end)
-P.PlayerRemoving:Connect(function(plr)
-	if plr == SelectedViewPlayer then viewEnabled = false ResetCamToSelf() end
-	task.wait(0.1) UpdatePlayerDropdowns()
-end)
+P.PlayerRemoving:Connect(function(plr) task.wait(0.1) UpdatePlayerDropdowns() end)
 
 Tabs.Target:AddToggle("OrbitToggle", { Title = "Orbit Selected Target", Default = false, Callback = function(state)
 	if state then
@@ -499,44 +447,78 @@ Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChang
 	end
 end)
 
--- FLY & MOVEMENT TAB (REWORKED & FIXED WALKSPEED)
-local FlyToggle = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state)
-	flyEnabled = state
-	local char = LP.Character
-	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if not hrp then return end
-	if flyEnabled then
-		local bv = Instance.new("BodyVelocity", hrp)
-		bv.Name = "QHubFlyVelocity"
-		bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-		local bg = Instance.new("BodyGyro", hrp)
-		bg.Name = "QHubFlyGyro"
-		bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-		T.Fly = RS.RenderStepped:Connect(function()
-			if not flyEnabled or not hrp or not hrp.Parent then StopT("Fly") return end
-			local moveDir = Vector3.zero
-			if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Cam.CFrame.LookVector end
-			if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Cam.CFrame.LookVector end
-			if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Cam.CFrame.RightVector end
-			if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Cam.CFrame.RightVector end
-			if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-			bv.Velocity = moveDir * flySpeed bg.CFrame = Cam.CFrame
-		end)
-	else StopT("Fly") if hrp:FindFirstChild("QHubFlyVelocity") then hrp.QHubFlyVelocity:Destroy() end if hrp:FindFirstChild("QHubFlyGyro") then hrp.QHubFlyGyro:Destroy() end end
-end })
+-- FLY V4 (REWORKED: WASD / JOYSTICK MOVEMENT, REMOVED SHIFT, SLOWER DEFAULT)
+local flyUp = false
+local flyTouchGui = nil
 
-Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
-Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
+local function SetupMobileFlyGui()
+	if flyTouchGui then flyTouchGui:Destroy() end
+	flyTouchGui = Instance.new("ScreenGui")
+	flyTouchGui.Name = "QHubFlyMobileGui"
+	flyTouchGui.ResetOnSpawn = false
+	flyTouchGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
 
--- ANTI-VOID V2 (ULTRALIGHT PLATFORM + SAFE TELEPORT)
+	local btnUp = Instance.new("TextButton", flyTouchGui)
+	btnUp.Size = UDim2.new(0, 70, 0, 70)
+	btnUp.Position = UDim2.new(0.85, 0, 0.5, 0)
+	btnUp.Text = "▲ FLY"
+	btnUp.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+	btnUp.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btnUp.Font = Enum.Font.SourceSansBold
+	btnUp.TextSize = 18
+
+	btnUp.MouseButton1Down:Connect(function() flyUp = true end)
+	btnUp.MouseButton1Up:Connect(function() flyUp = false end)
+end
+
+local FlyToggle = Tabs.Misc:AddToggle("FlyMode", { 
+    Title = "Fly Mode Universal", 
+    Default = false, 
+    Callback = function(state)
+        flyEnabled = state
+        local char = LP.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not hum then return end
+
+        if flyEnabled then
+            hum.PlatformStand = true
+            if UIS.TouchEnabled then SetupMobileFlyGui() end
+
+            T.FlyLoop = RS.Heartbeat:Connect(function(dt)
+                if not flyEnabled or not hrp or not hum then StopT("FlyLoop") return end
+                
+                local moveDir = hum.MoveDirection
+                local flyVector = moveDir * (flySpeed * dt * 5)
+                local vertical = 0
+
+                if UIS:IsKeyDown(Enum.KeyCode.Space) or flyUp then 
+                    vertical = flySpeed * dt * 5 
+                end
+
+                hrp.CFrame = hrp.CFrame + flyVector + Vector3.new(0, vertical, 0)
+                hrp.AssemblyLinearVelocity = Vector3.zero
+            end)
+        else
+            StopT("FlyLoop")
+            if hum then hum.PlatformStand = false end
+            if flyTouchGui then flyTouchGui:Destroy() flyTouchGui = nil end
+        end
+    end 
+})
+
+Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind (PC)", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
+Tabs.Misc:AddSlider("FlySpeedSlider", { Title = "Fly Speed", Min = 1, Max = 100, Default = 16, Rounding = 0, Callback = function(val) flySpeed = val end })
+
+-- ANTI-VOID V3
 local antiVoidPart = nil
-Tabs.Misc:AddToggle("AntiVoidToggle", { Title = "Anti-Void V2", Default = false, Callback = function(state)
+Tabs.Misc:AddToggle("AntiVoidToggle", { Title = "Anti-Void V3", Default = false, Callback = function(state)
 	antiVoidEnabled = state
 	if state then
 		if not antiVoidPart then
 			antiVoidPart = Instance.new("Part")
 			antiVoidPart.Name = "QHubAntiVoidPlate"
-			antiVoidPart.Size = Vector3.new(2000, 2, 2000)
+			antiVoidPart.Size = Vector3.new(3000, 2, 3000)
 			antiVoidPart.Anchored = true
 			antiVoidPart.Transparency = 0.6
 			antiVoidPart.Color = Color3.fromRGB(0, 170, 255)
@@ -547,7 +529,7 @@ Tabs.Misc:AddToggle("AntiVoidToggle", { Title = "Anti-Void V2", Default = false,
 			local char = LP.Character
 			local hrp = char and char:FindFirstChild("HumanoidRootPart")
 			if hrp then
-				if hrp.Position.Y > W.FallenPartsDestroyHeight + 50 then
+				if hrp.Position.Y > W.FallenPartsDestroyHeight + 40 then
 					lastSafeCFrame = hrp.CFrame
 				elseif hrp.Position.Y <= W.FallenPartsDestroyHeight + 15 then
 					if lastSafeCFrame then
@@ -565,8 +547,8 @@ Tabs.Misc:AddToggle("AntiVoidToggle", { Title = "Anti-Void V2", Default = false,
 	end
 end })
 
--- FLING V2 (ROTATIONAL ANGULAR VELOCITY ATTACHMENT)
-Tabs.Misc:AddToggle("FlingToggle", { Title = "Advanced Fling", Default = false, Callback = function(state)
+-- FLING V3 (SUPER ROTATION FLING)
+Tabs.Misc:AddToggle("FlingToggle", { Title = "Advanced Fling V3", Default = false, Callback = function(state)
 	flingEnabled = state
 	if state then
 		T.Fling = RS.Heartbeat:Connect(function()
@@ -574,11 +556,11 @@ Tabs.Misc:AddToggle("FlingToggle", { Title = "Advanced Fling", Default = false, 
 			local hrp = char and char:FindFirstChild("HumanoidRootPart")
 			if not hrp or not flingEnabled then StopT("Fling") return end
 
-			hrp.AssemblyAngularVelocity = Vector3.new(0, 999999, 0)
+			hrp.AssemblyAngularVelocity = Vector3.new(0, 9999999, 0)
 			for _, p in ipairs(P:GetPlayers()) do
 				if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
 					local pHrp = p.Character.HumanoidRootPart
-					if (hrp.Position - pHrp.Position).Magnitude < 6 then
+					if (hrp.Position - pHrp.Position).Magnitude < 7 then
 						hrp.CFrame = pHrp.CFrame * CFrame.new(0, 0, 0)
 					end
 				end
@@ -592,8 +574,8 @@ Tabs.Misc:AddToggle("FlingToggle", { Title = "Advanced Fling", Default = false, 
 	end
 end })
 
--- ANTI-FLING V2 (NON-COLLIDE & ZERO VELOCITY LOCK)
-Tabs.Misc:AddToggle("AntiFlingToggle", { Title = "Anti-Fling V2", Default = false, Callback = function(state)
+-- ANTI-FLING V3
+Tabs.Misc:AddToggle("AntiFlingToggle", { Title = "Anti-Fling V3", Default = false, Callback = function(state)
 	antiFlingEnabled = state
 	if state then
 		T.AntiFling = RS.Stepped:Connect(function()
@@ -622,7 +604,7 @@ Tabs.Misc:AddToggle("AntiFlingToggle", { Title = "Anti-Fling V2", Default = fals
 	else StopT("AntiFling") end
 end })
 
--- WALKSPEED BYPASS (CFRAME METHOD - WORKS ON ALL GAMES)
+-- WALKSPEED BYPASS V3 (CFRAME POSITION METHOD)
 Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable Bypass WalkSpeed", Default = false, Callback = function(state)
 	speedToggleEnabled = state
 	if state then
@@ -642,7 +624,6 @@ end })
 Tabs.Misc:AddInput("InputWalkSpeed", { Title = "WalkSpeed Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
 Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
 
--- JUMPPOWER APPLY
 RS.RenderStepped:Connect(function()
 	local char = LP.Character local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if hum and hum.Health > 0 then
@@ -664,33 +645,5 @@ Tabs.Misc:AddToggle("Noclip", { Title = "Noclip", Default = false, Callback = fu
 end })
 
 Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
-
--- EXTRA TAB FEATURES (HITBOX & FOG)
-Tabs.Extra:AddToggle("HitboxToggle", { Title = "Hitbox Extender (Big Head)", Default = false, Callback = function(state)
-	hitboxEnabled = state
-	T.HitboxLoop = RS.RenderStepped:Connect(function()
-		if not hitboxEnabled then StopT("HitboxLoop") return end
-		for _, p in ipairs(P:GetPlayers()) do
-			if p ~= LP and p.Character then
-				local head = p.Character:FindFirstChild("Head")
-				if head then
-					head.Size = hitboxEnabled and Vector3.new(hitboxSize, hitboxSize, hitboxSize) or Vector3.new(2, 1, 1)
-					head.Transparency = 0.6
-					head.CanCollide = false
-				end
-			end
-		end
-	end)
-end })
-
-Tabs.Extra:AddSlider("HitboxSlider", { Title = "Hitbox Size", Min = 2, Max = 30, Default = 10, Rounding = 0, Callback = function(val) hitboxSize = val end })
-
-Tabs.Extra:AddButton({ Title = "Remove Fog (FPS Boost)", Callback = function()
-	local lighting = game:GetService("Lighting")
-	lighting.FogEnd = 9e9
-	for _, v in ipairs(lighting:GetDescendants()) do
-		if v:IsA("Atmosphere") then v:Destroy() end
-	end
-end })
 
 Window:SelectTab(1)
