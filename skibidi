@@ -1,4 +1,4 @@
--- Q HUB - Xưa & DIRECT CFRAME SPEED BYPASS (Chạy bất chấp Anti-Cheat WalkSpeed)
+-- Q HUB - Xưa & LINEAR VELOCITY SPEED BYPASS (Chạy mượt, không giật lag)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V14.0\n- CFrame Speed Bypass Enabled" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V15.0\n- Smooth LinearVelocity Speed Bypass" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -488,9 +488,14 @@ local success, err = pcall(function()
     Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- CFRAME SPEED BYPASS CONTROLS
-    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable CFrame Speed", Default = false, Callback = function(state) 
+    -- SMOOTH VELOCITY SPEED CONTROLS
+    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable Smooth Speed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
+        local char = LP.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp:FindFirstChild("QHubVelocityBypass") then
+            hrp.QHubVelocityBypass:Destroy()
+        end
     end })
     
     Tabs.Misc:AddInput("InputWalkSpeed", { Title = "Speed Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
@@ -519,25 +524,34 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- CFRAME MOVEMENT LOOP (Bypass Anti-Cheat WalkSpeed)
-    RS.RenderStepped:Connect(function(dt)
-        if speedToggleEnabled then
-            local char = LP.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                if hum and hrp and hum.MoveDirection.Magnitude > 0 then
-                    hrp.CFrame = hrp.CFrame + (hum.MoveDirection * walkSpeed * dt)
-                end
-            end
-        end
-        
+    -- SMOOTH VELOCITY LOOP
+    RS.RenderStepped:Connect(function()
         local char = LP.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            
+            if hum and hrp then
                 hum.UseJumpPower = true
                 hum.JumpPower = jumpPower
+
+                local bv = hrp:FindFirstChild("QHubVelocityBypass")
+                if speedToggleEnabled then
+                    if not bv then
+                        bv = Instance.new("BodyVelocity")
+                        bv.Name = "QHubVelocityBypass"
+                        bv.MaxForce = Vector3.new(1e5, 0, 1e5) -- Chỉ tác động phương ngang X và Z để không bị lỗi trọng lực trục Y
+                        bv.Parent = hrp
+                    end
+
+                    if hum.MoveDirection.Magnitude > 0 then
+                        bv.Velocity = hum.MoveDirection * walkSpeed
+                    else
+                        bv.Velocity = Vector3.zero
+                    end
+                else
+                    if bv then bv:Destroy() end
+                end
             end
         end
     end)
