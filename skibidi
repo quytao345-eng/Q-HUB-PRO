@@ -1,4 +1,4 @@
--- Q HUB - FIXED ESP & FAST EDITION (FULL OPTIMIZED + BOOST & SERVER)
+-- Q HUB - FIXED ESP & FAST EDITION (FULL OPTIMIZED & FIXED FOV)
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
@@ -12,7 +12,7 @@ local Window = Fluent:CreateWindow({
 })
 
 -- SERVICES & VARIABLES
-local P, W, RS, TS, UIS, GS, TPS, HttpService = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("TweenService"), game:GetService("UserInputService"), game:GetService("GuiService"), game:GetService("TeleportService"), game:GetService("HttpService")
+local P, W, RS, TS, UIS, GS = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("TweenService"), game:GetService("UserInputService"), game:GetService("GuiService")
 local LP = P.LocalPlayer
 local Mouse = LP:GetMouse()
 local Cam = W.CurrentCamera
@@ -38,7 +38,7 @@ local aimPart, aimFOV, aimSmoothness = "Head", 150, 0.2
 local espHighlight, espName, espHealth = false, false, false
 
 -- ==========================================
--- VÒNG TRÒN FOV (DRAWING & GUI FALLBACK)
+-- SỬA LỖI TẠO VÒNG TRÒN FOV (DRAWING & GUI)
 -- ==========================================
 local FOVCircle, TargetFOVCircle = nil, nil
 local GuiCircle, TargetGuiCircle = nil, nil
@@ -197,11 +197,10 @@ local Tabs = {
     TP = Window:AddTab({ Title = "TP All", Icon = "user-check" }),
     Target = Window:AddTab({ Title = "Target", Icon = "target" }),
     ESP = Window:AddTab({ Title = "ESP VIP", Icon = "eye" }),
-    Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" }),
-    Boost = Window:AddTab({ Title = "Boost & Server", Icon = "zap" })
+    Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
 }
 
-Tabs.Info:AddParagraph({ Title = "Q HUB - FIXED ESP", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V13.0\n- Full Anti-AFK & Low Graphics\n- Server Hop (Low Player Server)" })
+Tabs.Info:AddParagraph({ Title = "Q HUB - FIXED ESP", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V13.0\n- Fixed All ESP & FOV Features\n- Instant TP All: 0.001s" })
 
 Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
 Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -489,87 +488,7 @@ Tabs.Misc:AddToggle("Noclip", { Title = "Noclip", Default = false, Callback = fu
     else StopT("Noclip") end
 end })
 
-Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() TPS:Teleport(game.PlaceId, LP) end })
-
--- ==========================================
--- TAB BOOST & SERVER (LỰA CHỌN 4, 3, 5)
--- ==========================================
-
--- 4. LOW GRAPHICS & FPS BOOSTER
-Tabs.Boost:AddButton({
-    Title = "Enable Low Graphics (FPS Boost)",
-    Callback = function()
-        pcall(function()
-            local Terrain = W:FindFirstChildOfClass("Terrain")
-            if Terrain then
-                Terrain.WaterWaveSize = 0
-                Terrain.WaterWaveSpeed = 0
-                Terrain.WaterReflectance = 0
-                Terrain.WaterTransparency = 0
-            end
-            local Lighting = game:GetService("Lighting")
-            Lighting.GlobalShadows = false
-            Lighting.FogEnd = 9e9
-            for _, v in ipairs(Lighting:GetChildren()) do
-                if v:IsA("PostEffect") or v:IsA("Atmosphere") then v.Enabled = false end
-            end
-            for _, obj in ipairs(game:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    obj.Material = Enum.Material.Plastic
-                    obj.Reflectance = 0
-                elseif obj:IsA("Decal") or obj:IsA("Texture") then
-                    obj.Transparency = 1
-                elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") then
-                    obj.Enabled = false
-                end
-            end
-        end)
-    end
-})
-
--- 3. ANTI-AFK (CHỐNG VĂNG GAME)
-local antiAfkConn = nil
-Tabs.Boost:AddToggle("AntiAFK", {
-    Title = "Anti-AFK (Prevent Kick)",
-    Default = true,
-    Callback = function(state)
-        if state then
-            local vu = game:GetService("VirtualUser")
-            antiAfkConn = LP.Idled:Connect(function()
-                vu:Button2Down(Vector2.new(0, 0), Cam.CFrame)
-                task.wait(1)
-                vu:Button2Up(Vector2.new(0, 0), Cam.CFrame)
-            end)
-        elseif antiAfkConn then
-            antiAfkConn:Disconnect()
-            antiAfkConn = nil
-        end
-    end
-})
-
--- 5. SERVER HOP (SEARCH LOW PLAYER SERVER)
-Tabs.Boost:AddButton({
-    Title = "Server Hop (Low Players)",
-    Callback = function()
-        task.spawn(function()
-            local placeId = game.PlaceId
-            local reqUrl = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
-            local success, result = pcall(function()
-                return HttpService:JSONDecode(game:HttpGet(reqUrl))
-            end)
-            if success and result and result.data then
-                for _, server in ipairs(result.data) do
-                    if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                        TPS:TeleportToPlaceInstance(placeId, server.id, LP)
-                        break
-                    end
-                end
-            else
-                TPS:Teleport(placeId, LP)
-            end
-        end)
-    end
-})
+Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
 RS.RenderStepped:Connect(function()
     local char = LP.Character
