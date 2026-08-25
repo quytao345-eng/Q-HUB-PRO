@@ -1,8 +1,8 @@
--- Q HUB - FIX FULL ESP & FAST EDITION
+-- Q HUB - MINIFIED EDITION
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
 local Window = Fluent:CreateWindow({
-    Title = "⚡ Q HUB - FIXED ESP",
+    Title = "Q HUB",
     SubTitle = "by Gemini & Quy",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 420),
@@ -20,9 +20,13 @@ local T = {}
 
 local tpDelay = 0.001
 local walkSpeed, jumpPower, flySpeed = 50, 50, 50
-local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLimbsEnabled = false, false, false, false, false
+local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
+local antiVoidEnabled, flingEnabled, antiFlingEnabled = false, false, false
+local lastSafeCFrame = nil
+
 local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
 local SelectedTargetPlayer, autoNextTarget = nil, false
+local SelectedViewPlayer, viewEnabled = nil, false
 
 -- TARGET ORBIT & RED FOV SETTINGS
 local showTargetFOVCircle = false
@@ -102,11 +106,6 @@ end
 local espHighlight = false
 local espName = false
 local espHealth = false
-local espTracer = false
-local espBox = false
-local espFolder = Instance.new("Folder")
-espFolder.Name = "QHub_ESP_Folder"
-espFolder.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
 
 local function StopT(n)
 	if T[n] then
@@ -244,7 +243,7 @@ local Tabs = {
     Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
 }
 
-Tabs.Info:AddParagraph({ Title = "Q HUB - FIXED ESP", Content = "Developed by Gemini & Quy\nVersion: Fluent UI V13.0\n- Fixed All ESP Features\n- Instant TP All: 0.001s" })
+Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Developed by Gemini & Quy\n- Fixed Camera View\n- Anti-Void\n- Fling & Anti-Fling" })
 
 Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
 Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -343,8 +342,61 @@ end
 Tabs.Target:AddKeybind("QuickOrbitKeybind", { Title = "Quick Orbit Target in Red FOV", Mode = "Toggle", Default = "G", Callback = function() ToggleFOVOrbit() end })
 local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target Player", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
 
-P.PlayerAdded:Connect(function() task.wait(0.1) TargetPlayerDropdown:SetValues(GetPlayerListNames()) TPBlacklistDropdown:SetValues(GetPlayerListNames()) end)
-P.PlayerRemoving:Connect(function() task.wait(0.1) TargetPlayerDropdown:SetValues(GetPlayerListNames()) TPBlacklistDropdown:SetValues(GetPlayerListNames()) end)
+-- CAMERA VIEW TAB
+local ViewPlayerDropdown = Tabs.View:AddDropdown("ViewSelect", {
+	Title = "Select Player To View",
+	Values = GetPlayerListNames(),
+	Default = GetPlayerListNames()[1] or "",
+	Callback = function(s)
+		local foundPlr = P:FindFirstChild(s)
+		if foundPlr then SelectedViewPlayer = foundPlr end
+	end
+})
+
+Tabs.View:AddToggle("SpectateToggle", {
+	Title = "Spectate Player",
+	Default = false,
+	Callback = function(state)
+		viewEnabled = state
+		if state then
+			T.SpectateLoop = RS.RenderStepped:Connect(function()
+				if not viewEnabled or not SelectedViewPlayer then ResetCamToSelf() return end
+				local vChar = SelectedViewPlayer.Character
+				local vHum = vChar and vChar:FindFirstChildOfClass("Humanoid")
+				if vHum and vHum.Health > 0 then
+					Cam.CameraSubject = vHum
+				else
+					ResetCamToSelf()
+				end
+			end)
+		else
+			StopT("SpectateLoop")
+			ResetCamToSelf()
+		end
+	end
+})
+
+Tabs.View:AddButton({
+	Title = "Reset View",
+	Callback = function()
+		viewEnabled = false
+		StopT("SpectateLoop")
+		ResetCamToSelf()
+	end
+})
+
+local function UpdatePlayerDropdowns()
+	local names = GetPlayerListNames()
+	TargetPlayerDropdown:SetValues(names)
+	TPBlacklistDropdown:SetValues(names)
+	ViewPlayerDropdown:SetValues(names)
+end
+
+P.PlayerAdded:Connect(function() task.wait(0.1) UpdatePlayerDropdowns() end)
+P.PlayerRemoving:Connect(function(plr)
+	if plr == SelectedViewPlayer then viewEnabled = false ResetCamToSelf() end
+	task.wait(0.1) UpdatePlayerDropdowns()
+end)
 
 Tabs.Target:AddToggle("OrbitToggle", { Title = "Orbit Selected Target", Default = false, Callback = function(state)
 	if state then
@@ -368,19 +420,15 @@ Tabs.Target:AddInput("OrbitSpeedInput", { Title = "Orbit Speed", Default = "15",
 Tabs.Target:AddInput("OrbitDistInput", { Title = "Orbit Distance", Default = "10", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then orbitDistance = num end end })
 Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Change Target On Death", Default = false, Callback = function(state) autoNextTarget = state end })
 
----------------------------------------------------------
--- TAB 5: ESP VIP (SỬA HOÀN TOÀN HỆ THỐNG HIỂN THỊ)
----------------------------------------------------------
+-- ESP SYSTEM
 local function CreateESP(plr)
 	if plr == LP then return end
-	
 	local function SetupCharacter(char)
 		if not char then return end
 		local hrp = char:WaitForChild("HumanoidRootPart", 5)
 		local hum = char:WaitForChild("Humanoid", 5)
 		if not hrp or not hum then return end
 
-		-- Highlight ESP
 		local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
 		hl.Name = "QHub_Highlight"
 		hl.FillTransparency = 0.5
@@ -390,7 +438,6 @@ local function CreateESP(plr)
 		hl.Enabled = espHighlight
 		hl.Parent = char
 
-		-- Billboard ESP (Name & Health)
 		local bb = hrp:FindFirstChild("QHub_Billboard") or Instance.new("BillboardGui")
 		bb.Name = "QHub_Billboard"
 		bb.Size = UDim2.new(0, 200, 0, 50)
@@ -407,7 +454,6 @@ local function CreateESP(plr)
 		txtLabel.Font = Enum.Font.SourceSansBold
 		txtLabel.TextStrokeTransparency = 0
 
-		-- Cập nhật chữ
 		local function updateText()
 			local t = ""
 			if espName then t = t .. plr.Name end
@@ -426,17 +472,14 @@ end
 for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
 P.PlayerAdded:Connect(CreateESP)
 
--- Tải lại trạng thái Toggle cho ESP
-Tabs.ESP:AddToggle("ESPHighlight", {Title = "ESP Highlight (Nhìn xuyên tường)", Default = false}):OnChanged(function(v)
+Tabs.ESP:AddToggle("ESPHighlight", {Title = "ESP Highlight", Default = false}):OnChanged(function(v)
 	espHighlight = v
 	for _, p in ipairs(P:GetPlayers()) do
-		if p.Character and p.Character:FindFirstChild("QHub_Highlight") then
-			p.Character.QHub_Highlight.Enabled = v
-		end
+		if p.Character and p.Character:FindFirstChild("QHub_Highlight") then p.Character.QHub_Highlight.Enabled = v end
 	end
 end)
 
-Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name (Tên)", Default = false}):OnChanged(function(v)
+Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name", Default = false}):OnChanged(function(v)
 	espName = v
 	for _, p in ipairs(P:GetPlayers()) do
 		if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.HumanoidRootPart:FindFirstChild("QHub_Billboard") then
@@ -445,7 +488,7 @@ Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name (Tên)", Default = false}):OnCh
 	end
 end)
 
-Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health (Máu)", Default = false}):OnChanged(function(v)
+Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v)
 	espHealth = v
 	for _, p in ipairs(P:GetPlayers()) do
 		if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.HumanoidRootPart:FindFirstChild("QHub_Billboard") then
@@ -454,9 +497,7 @@ Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health (Máu)", Default = false}):
 	end
 end)
 
----------------------------------------------------------
--- TAB 6: FLY & MOVEMENT
----------------------------------------------------------
+-- FLY & MOVEMENT TAB
 local FlyToggle = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state)
 	flyEnabled = state
 	local char = LP.Character
@@ -484,6 +525,93 @@ end })
 
 Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
 Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
+
+Tabs.Misc:AddToggle("AntiVoidToggle", { Title = "Anti-Void", Default = false, Callback = function(state)
+	antiVoidEnabled = state
+	if state then
+		T.AntiVoid = RS.Heartbeat:Connect(function()
+			local char = LP.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				if hrp.Position.Y > -50 then
+					lastSafeCFrame = hrp.CFrame
+				elseif hrp.Position.Y < -100 then
+					if lastSafeCFrame then
+						hrp.CFrame = lastSafeCFrame + Vector3.new(0, 5, 0)
+						hrp.AssemblyLinearVelocity = Vector3.zero
+					else
+						hrp.CFrame = CFrame.new(hrp.Position.X, 10, hrp.Position.Z)
+					end
+				end
+			end
+		end)
+	else StopT("AntiVoid") end
+end })
+
+Tabs.Misc:AddToggle("FlingToggle", { Title = "Fling Player", Default = false, Callback = function(state)
+	flingEnabled = state
+	local char = LP.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	if flingEnabled then
+		T.Fling = RS.Heartbeat:Connect(function()
+			local currentChar = LP.Character
+			local currentHrp = currentChar and currentChar:FindFirstChild("HumanoidRootPart")
+			if not currentHrp or not flingEnabled then StopT("Fling") return end
+
+			local angVel = currentHrp:FindFirstChild("QHubFlingVelocity") or Instance.new("AngularVelocity")
+			angVel.Name = "QHubFlingVelocity"
+			angVel.MaxTorque = math.huge
+			angVel.AngularVelocity = Vector3.new(0, 99999, 0)
+			angVel.Attachment0 = currentHrp:FindFirstChildOfClass("Attachment") or Instance.new("Attachment", currentHrp)
+			angVel.Parent = currentHrp
+
+			for _, p in ipairs(P:GetPlayers()) do
+				if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+					local pHrp = p.Character.HumanoidRootPart
+					if (currentHrp.Position - pHrp.Position).Magnitude < 5 then
+						pHrp.AssemblyLinearVelocity = Vector3.new(0, 1000, 0) + (pHrp.Position - currentHrp.Position).Unit * 1000
+					end
+				end
+			end
+		end)
+	else
+		StopT("Fling")
+		if hrp:FindFirstChild("QHubFlingVelocity") then hrp.QHubFlingVelocity:Destroy() end
+	end
+end })
+
+Tabs.Misc:AddToggle("AntiFlingToggle", { Title = "Anti-Fling", Default = false, Callback = function(state)
+	antiFlingEnabled = state
+	if state then
+		T.AntiFling = RS.Stepped:Connect(function()
+			if not antiFlingEnabled then StopT("AntiFling") return end
+			local char = LP.Character
+			if char then
+				for _, part in ipairs(char:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+						part.AssemblyAngularVelocity = Vector3.zero
+						if part.AssemblyLinearVelocity.Magnitude > 250 then
+							part.AssemblyLinearVelocity = Vector3.zero
+						end
+					end
+				end
+			end
+			for _, p in ipairs(P:GetPlayers()) do
+				if p ~= LP and p.Character then
+					for _, otherPart in ipairs(p.Character:GetDescendants()) do
+						if otherPart:IsA("BasePart") then
+							otherPart.CanCollide = false
+						end
+					end
+				end
+			end
+		end)
+	else StopT("AntiFling") end
+end })
+
 Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable WalkSpeed", Default = false, Callback = function(state) speedToggleEnabled = state local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") if hum and not state then hum.WalkSpeed = 16 end end })
 Tabs.Misc:AddInput("InputWalkSpeed", { Title = "WalkSpeed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
 Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
