@@ -1,4 +1,4 @@
--- Q HUB - Xưa & WALK SPEED (Bản gốc)
+-- Q HUB - Xưa & WALK SPEED (Theo mẫu TurboLite)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Original WalkSpeed Mode" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TurboLite Style Speed" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -488,7 +488,7 @@ local success, err = pcall(function()
     Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- ORIGINAL WALK SPEED CONTROLS
+    -- TURBOLITE STYLE SPEED CONTROLS
     Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable WalkSpeed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
         if not state and LP.Character then
@@ -523,8 +523,8 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- ORIGINAL WALK SPEED LOOP
-    RS.RenderStepped:Connect(function()
+    -- TURBOLITE STYLE SPEED LOOP
+    RS.Stepped:Connect(function()
         local char = LP.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
