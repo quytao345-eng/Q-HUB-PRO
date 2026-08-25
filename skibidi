@@ -1,4 +1,4 @@
--- Q HUB - Xưa & WALK SPEED (Theo mẫu TurboLite)
+-- Q HUB - Xưa & CFRAME SPEED (Bypass mọi game)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -19,7 +19,7 @@ local success, err = pcall(function()
     local Cam = W.CurrentCamera
     local T = {}
 
-    local walkSpeed, jumpPower, flySpeed = 16, 50, 50
+    local walkSpeed, jumpPower, flySpeed = 50, 50, 50
     local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
     local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
     local SelectedTargetPlayer, autoNextTarget = nil, false
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TurboLite Style Speed" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: CFrame Speed Mode" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -488,16 +488,12 @@ local success, err = pcall(function()
     Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- TURBOLITE STYLE SPEED CONTROLS
-    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable WalkSpeed", Default = false, Callback = function(state) 
+    -- CFRAME SPEED CONTROLS
+    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable CFrame Speed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
-        if not state and LP.Character then
-            local hum = LP.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum.WalkSpeed = 16 end
-        end
     end })
     
-    Tabs.Misc:AddInput("InputWalkSpeed", { Title = "WalkSpeed Value", Default = "16", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
+    Tabs.Misc:AddInput("InputWalkSpeed", { Title = "Speed Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
     Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
     Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) infJumpEnabled = state end })
 
@@ -523,17 +519,19 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- TURBOLITE STYLE SPEED LOOP
-    RS.Stepped:Connect(function()
+    -- CFRAME SPEED LOOP (Bypass Anti-Cheat WalkSpeed)
+    RS.RenderStepped:Connect(function(dt)
         local char = LP.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            
+            if hum and hrp then
                 hum.UseJumpPower = true
                 hum.JumpPower = jumpPower
 
-                if speedToggleEnabled then
-                    hum.WalkSpeed = walkSpeed
+                if speedToggleEnabled and hum.MoveDirection.Magnitude > 0 then
+                    hrp.CFrame = hrp.CFrame + (hum.MoveDirection * walkSpeed * dt)
                 end
             end
         end
