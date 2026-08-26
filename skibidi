@@ -1,4 +1,4 @@
--- Q HUB - Xưa & TP ALL 0.0005s (Optimized Speed)
+-- Q HUB - Xưa & TP ALL 0.0005s + ESP Auto Update
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0005s + Optimized Speed" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0005s + ESP Auto Update" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -356,7 +356,7 @@ local success, err = pcall(function()
     Tabs.Target:AddInput("OrbitDistInput", { Title = "Orbit Distance", Default = "10", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then orbitDistance = num end end })
     Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Change Target On Death", Default = false, Callback = function(state) autoNextTarget = state end })
 
-    -- ESP VIP
+    -- ESP VIP (AUTO UPDATE REAL-TIME)
     local function CreateESP(plr)
         if plr == LP then return end
 
@@ -367,6 +367,7 @@ local success, err = pcall(function()
             local hum = char:WaitForChild("Humanoid", 10)
             if not hrp or not hum then return end
 
+            -- Highlight (Wallhack color)
             local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
             hl.Name = "QHub_Highlight"
             hl.FillTransparency = 0.5
@@ -376,6 +377,7 @@ local success, err = pcall(function()
             hl.Enabled = espHighlight
             hl.Parent = char
 
+            -- BillboardGui (Name & Health)
             local bb = hrp:FindFirstChild("QHub_Billboard") or Instance.new("BillboardGui")
             bb.Name = "QHub_Billboard"
             bb.Size = UDim2.new(0, 200, 0, 50)
@@ -408,6 +410,8 @@ local success, err = pcall(function()
         if plr.Character then 
             task.spawn(function() SetupCharacter(plr.Character) end) 
         end
+        
+        -- Auto Update khi player reset / chết và sống lại
         plr.CharacterAdded:Connect(function(newChar)
             task.spawn(function() SetupCharacter(newChar) end)
         end)
@@ -416,12 +420,14 @@ local success, err = pcall(function()
     for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
     P.PlayerAdded:Connect(CreateESP)
 
+    -- Auto Update liên tục kiểm tra nếu có player mới join hoặc mất ESP
     task.spawn(function()
-        while task.wait(3) do
+        while task.wait(1) do
             for _, p in ipairs(P:GetPlayers()) do
                 if p ~= LP and p.Character then
                     local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp and not p.Character:FindFirstChild("QHub_Highlight") then
+                    local hl = p.Character:FindFirstChild("QHub_Highlight")
+                    if hrp and not hl then
                         CreateESP(p)
                     end
                 end
