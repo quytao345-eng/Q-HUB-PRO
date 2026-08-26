@@ -1,4 +1,4 @@
--- Q HUB - Xưa & TP ALL 0.0005s + ESP Auto Update
+-- Q HUB - Xưa & TP ALL 0.0002s + ESP Auto Update
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0005s + ESP Auto Update" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0002s + ESP Auto Update" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -238,9 +238,9 @@ local success, err = pcall(function()
         end
     end)
 
-    -- TP ALL PLAYERS (0.0005s)
+    -- TP ALL PLAYERS (0.0002s)
     Tabs.TP:AddToggle("TPAll", {
-        Title = "Teleport All Players (0.0005s)",
+        Title = "Teleport All Players (0.0002s)",
         Default = false,
         Callback = function(state)
             if state then
@@ -267,7 +267,7 @@ local success, err = pcall(function()
                                 for _, targetHrp in ipairs(alivePlayers) do
                                     if targetHrp and targetHrp.Parent then 
                                         myHrp.CFrame = targetHrp.CFrame 
-                                        task.wait(0.0005) 
+                                        task.wait(0.0002) 
                                     end
                                 end
                             else
@@ -411,7 +411,6 @@ local success, err = pcall(function()
             task.spawn(function() SetupCharacter(plr.Character) end) 
         end
         
-        -- Auto Update khi player reset / chết và sống lại
         plr.CharacterAdded:Connect(function(newChar)
             task.spawn(function() SetupCharacter(newChar) end)
         end)
@@ -420,7 +419,6 @@ local success, err = pcall(function()
     for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
     P.PlayerAdded:Connect(CreateESP)
 
-    -- Auto Update liên tục kiểm tra nếu có player mới join hoặc mất ESP
     task.spawn(function()
         while task.wait(1) do
             for _, p in ipairs(P:GetPlayers()) do
@@ -525,7 +523,7 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- OPTIMIZED SMOOTH CFRAME SPEED LOOP (Hết lag)
+    -- OPTIMIZED SMOOTH CFRAME SPEED LOOP
     RS.Heartbeat:Connect(function(dt)
         local char = LP.Character
         if char then
