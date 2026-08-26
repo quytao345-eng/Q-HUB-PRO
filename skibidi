@@ -1,4 +1,4 @@
--- Q HUB - Xưa & SMOOTH CFRAME SPEED (Đã giảm giật)
+-- Q HUB - Xưa & TP ALL 0.0005s (Optimized Speed)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: Smooth CFrame Speed" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0005s + Optimized Speed" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -238,9 +238,9 @@ local success, err = pcall(function()
         end
     end)
 
-    -- TP ALL PLAYERS
+    -- TP ALL PLAYERS (0.0005s)
     Tabs.TP:AddToggle("TPAll", {
-        Title = "Teleport All Players (0.001s)",
+        Title = "Teleport All Players (0.0005s)",
         Default = false,
         Callback = function(state)
             if state then
@@ -267,7 +267,7 @@ local success, err = pcall(function()
                                 for _, targetHrp in ipairs(alivePlayers) do
                                     if targetHrp and targetHrp.Parent then 
                                         myHrp.CFrame = targetHrp.CFrame 
-                                        task.wait(0.001) 
+                                        task.wait(0.0005) 
                                     end
                                 end
                             else
@@ -519,7 +519,7 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- ULTRA SMOOTH CFRAME SPEED LOOP (Chống giật, mượt như tay)
+    -- OPTIMIZED SMOOTH CFRAME SPEED LOOP (Hết lag)
     RS.Heartbeat:Connect(function(dt)
         local char = LP.Character
         if char then
@@ -530,11 +530,14 @@ local success, err = pcall(function()
                 hum.UseJumpPower = true
                 hum.JumpPower = jumpPower
 
-                if speedToggleEnabled and hum.MoveDirection.Magnitude > 0 then
-                    -- Nội suy mượt theo Heartbeat và khóa vận tốc thừa để không bị giật lùi
-                    local currentVelocity = hrp.AssemblyLinearVelocity
-                    hrp.CFrame = hrp.CFrame + (hum.MoveDirection * (walkSpeed * dt))
-                    hrp.AssemblyLinearVelocity = Vector3.new(0, currentVelocity.Y, 0)
+                if speedToggleEnabled then
+                    if hum.MoveDirection.Magnitude > 0 then
+                        local targetVelocity = hum.MoveDirection * walkSpeed
+                        hrp.CFrame = hrp.CFrame + (targetVelocity * dt)
+                        hrp.AssemblyLinearVelocity = Vector3.new(targetVelocity.X, hrp.AssemblyLinearVelocity.Y, targetVelocity.Z)
+                    else
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, hrp.AssemblyLinearVelocity.Y, 0)
+                    end
                 end
             end
         end
