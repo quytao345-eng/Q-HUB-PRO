@@ -1,12 +1,12 @@
--- Q HUB - Xưa & TP ALL 0.0002s + ESP Auto Update + Custom Teleport Behind Input
+-- Q HUB - Xưa & TP ALL 0.0002s + Teleport Behind Input
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
     local Window = Fluent:CreateWindow({
-        Title = "⚡ Q HUB - Xưa",
+        Title = "⚡ Q HUB",
         SubTitle = "by Gemini & Quy",
-        TabWidth = 160,
-        Size = UDim2.fromOffset(580, 420),
+        TabWidth = 140,
+        Size = UDim2.fromOffset(560, 400),
         Acrylic = false,
         Theme = "Dark",
         MinimizeKey = Enum.KeyCode.LeftControl
@@ -193,24 +193,24 @@ local success, err = pcall(function()
 
     -- TABS
     local Tabs = {
-        Info = Window:AddTab({ Title = "Information", Icon = "info" }),
-        Aim = Window:AddTab({ Title = "Aim Settings", Icon = "crosshair" }),
+        Info = Window:AddTab({ Title = "Info", Icon = "info" }),
+        Aim = Window:AddTab({ Title = "Aim", Icon = "crosshair" }),
         TP = Window:AddTab({ Title = "TP All", Icon = "user-check" }),
         Target = Window:AddTab({ Title = "Target", Icon = "target" }),
-        ESP = Window:AddTab({ Title = "ESP VIP", Icon = "eye" }),
-        Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
+        ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
+        Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0002s + Teleport Behind Input" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: VIP Mobile Clean" })
 
-    Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
+    Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
-    Tabs.Aim:AddToggle("DrawFOV", {Title = "Draw FOV Circle", Default = false}):OnChanged(function(v) showFOVCircle = v end)
+    Tabs.Aim:AddToggle("DrawFOV", {Title = "Draw FOV", Default = false}):OnChanged(function(v) showFOVCircle = v end)
     Tabs.Aim:AddToggle("WallCheck", {Title = "Wall Check", Default = false}):OnChanged(function(v) aimWallCheck = v end)
     Tabs.Aim:AddToggle("TeamCheck", {Title = "Team Check", Default = false}):OnChanged(function(v) aimTeamCheck = v end)
     Tabs.Aim:AddDropdown("AimPart", { Title = "Aim Part", Values = {"Head", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end })
-    Tabs.Aim:AddSlider("AimSmooth", { Title = "Aim Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
-    Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Radius", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
+    Tabs.Aim:AddSlider("AimSmooth", { Title = "Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
+    Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
 
     RS.RenderStepped:Connect(function()
         local mousePos = UIS:GetMouseLocation()
@@ -240,7 +240,7 @@ local success, err = pcall(function()
 
     -- TP ALL PLAYERS (0.0002s)
     Tabs.TP:AddToggle("TPAll", {
-        Title = "Teleport All Players (0.0002s)",
+        Title = "TP All (0.0002s)",
         Default = false,
         Callback = function(state)
             if state then
@@ -289,11 +289,11 @@ local success, err = pcall(function()
         end
     })
 
-    local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "đi chỗ khác", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
+    local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
 
-    Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV Circle", Default = false, Callback = function(state) showTargetFOVCircle = state end })
-    Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Target Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
-    Tabs.Target:AddSlider("RedFOVRadius", { Title = "Target FOV Radius", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
+    Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV", Default = false, Callback = function(state) showTargetFOVCircle = state end })
+    Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
+    Tabs.Target:AddSlider("RedFOVRadius", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
 
     -- QUICK TELEPORT BEHIND (RED FOV)
     local function ToggleFOVBehind()
@@ -320,8 +320,8 @@ local success, err = pcall(function()
         else StopT("RedBehind") ResetCamToSelf() currentFOVTarget = nil end
     end
 
-    Tabs.Target:AddKeybind("QuickBehindKeybind", { Title = "Quick TP Behind Target in Red FOV", Mode = "Toggle", Default = "G", Callback = function() ToggleFOVBehind() end })
-    local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target Player", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
+    Tabs.Target:AddKeybind("QuickBehindKeybind", { Title = "TP Behind (FOV Key)", Mode = "Toggle", Default = "G", Callback = function() ToggleFOVBehind() end })
+    local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
 
     local function UpdateDropdowns()
         task.wait(0.1)
@@ -333,7 +333,7 @@ local success, err = pcall(function()
     P.PlayerRemoving:Connect(UpdateDropdowns)
 
     -- TELEPORT BEHIND SELECTED TARGET (TOGGLE)
-    Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Selected Target", Default = false, Callback = function(state)
+    Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Target", Default = false, Callback = function(state)
         if state then
             if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
             T.Behind = RS.Heartbeat:Connect(function()
@@ -348,8 +348,8 @@ local success, err = pcall(function()
         else StopT("Behind") ResetCamToSelf() end
     end })
 
-    Tabs.Target:AddInput("BehindDistInput", { Title = "Behind Distance (Min 1 - Max Vô Hạn)", Default = "5", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end })
-    Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Change Target On Death", Default = false, Callback = function(state) autoNextTarget = state end })
+    Tabs.Target:AddInput("BehindDistInput", { Title = "Distance", Default = "5", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end })
+    Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Switch Target", Default = false, Callback = function(state) autoNextTarget = state end })
 
     -- ESP VIP (AUTO UPDATE REAL-TIME)
     local function CreateESP(plr)
@@ -362,7 +362,6 @@ local success, err = pcall(function()
             local hum = char:WaitForChild("Humanoid", 10)
             if not hrp or not hum then return end
 
-            -- Highlight (Wallhack color)
             local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
             hl.Name = "QHub_Highlight"
             hl.FillTransparency = 0.5
@@ -372,7 +371,6 @@ local success, err = pcall(function()
             hl.Enabled = espHighlight
             hl.Parent = char
 
-            -- BillboardGui (Name & Health)
             local bb = hrp:FindFirstChild("QHub_Billboard") or Instance.new("BillboardGui")
             bb.Name = "QHub_Billboard"
             bb.Size = UDim2.new(0, 200, 0, 50)
@@ -484,16 +482,15 @@ local success, err = pcall(function()
         end
     end })
 
-    Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Keybind", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
+    Tabs.Misc:AddKeybind("FlyKeybind", { Title = "Fly Key", Mode = "Toggle", Default = "F", Callback = function() FlyToggle:SetValue(not FlyToggle.Value) end })
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
     
-    -- SMOOTH CFRAME SPEED CONTROLS
-    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Enable Smooth Speed", Default = false, Callback = function(state) 
+    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Smooth Speed", Default = false, Callback = function(state) 
         speedToggleEnabled = state 
     end })
     
     Tabs.Misc:AddInput("InputWalkSpeed", { Title = "Speed Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
-    Tabs.Misc:AddInput("InputJumpPower", { Title = "JumpPower", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
+    Tabs.Misc:AddInput("InputJumpPower", { Title = "Jump Power", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
     Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) infJumpEnabled = state end })
 
     UIS.JumpRequest:Connect(function()
@@ -516,9 +513,8 @@ local success, err = pcall(function()
         else StopT("Noclip") end
     end })
 
-    Tabs.Misc:AddButton({ Title = "Rejoin Server", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
+    Tabs.Misc:AddButton({ Title = "Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- OPTIMIZED SMOOTH CFRAME SPEED LOOP
     RS.Heartbeat:Connect(function(dt)
         local char = LP.Character
         if char then
