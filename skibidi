@@ -1,4 +1,4 @@
--- Q HUB - Xưa & TP ALL 0.0002s + ESP Auto Update
+-- Q HUB - Xưa & TP ALL 0.0002s + ESP Auto Update + Custom Teleport Behind Target
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -21,11 +21,11 @@ local success, err = pcall(function()
 
     local walkSpeed, jumpPower, flySpeed = 50, 50, 50
     local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
-    local orbitDistance, orbitSpeed, orbitAngle = 10, 15, 0
+    local behindDistance, targetBehindActive = 5, false
     local SelectedTargetPlayer, autoNextTarget = nil, false
 
-    -- TARGET ORBIT & RED FOV SETTINGS
-    local showTargetFOVCircle, targetFOVRadius, currentFOVTarget, fovOrbitActive, targetWallCheck = false, 150, nil, false, false
+    -- TARGET & RED FOV SETTINGS
+    local showTargetFOVCircle, targetFOVRadius, currentFOVTarget, fovBehindActive, targetWallCheck = false, 150, nil, false, false
     local tpBlacklist = {}
 
     -- AIM LOCK & SILENT AIM SETTINGS
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0002s + ESP Auto Update" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0002s + Teleport Behind Target" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -295,34 +295,33 @@ local success, err = pcall(function()
     Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Target Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
     Tabs.Target:AddSlider("RedFOVRadius", { Title = "Target FOV Radius", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
 
-    local function ToggleFOVOrbit()
-        fovOrbitActive = not fovOrbitActive
-        if fovOrbitActive then
+    -- QUICK TELEPORT BEHIND (RED FOV)
+    local function ToggleFOVBehind()
+        fovBehindActive = not fovBehindActive
+        if fovBehindActive then
             local _, target = GetClosestTargetInFOV(targetFOVRadius, targetWallCheck, false, nil)
             if target then
                 currentFOVTarget = target
-                T.RedOrbit = RS.Heartbeat:Connect(function(dt)
+                T.RedBehind = RS.Heartbeat:Connect(function()
                     local char = LP.Character
                     local hrp = char and char:FindFirstChild("HumanoidRootPart")
                     local tChar = currentFOVTarget and currentFOVTarget.Character
                     local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
                     local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-                    if not currentFOVTarget or not tChar or not tHrp or not tHum or tHum.Health <= 0 or not fovOrbitActive then
-                        StopT("RedOrbit") ResetCamToSelf() fovOrbitActive = false currentFOVTarget = nil return
+                    if not currentFOVTarget or not tChar or not tHrp or not tHum or tHum.Health <= 0 or not fovBehindActive then
+                        StopT("RedBehind") ResetCamToSelf() fovBehindActive = false currentFOVTarget = nil return
                     end
                     if hrp and tHrp then
-                        if Cam and Cam.CameraSubject ~= tHum then Cam.CameraSubject = tHum end
-                        orbitAngle = orbitAngle + (orbitSpeed * dt)
-                        local newPos = Vector3.new(tHrp.Position.X + math.cos(orbitAngle) * orbitDistance, tHrp.Position.Y, tHrp.Position.Z + math.sin(orbitAngle) * orbitDistance)
-                        hrp.CFrame = CFrame.new(newPos, Vector3.new(tHrp.Position.X, newPos.Y, tHrp.Position.Z))
+                        -- Teleport trực tiếp sau lưng mục tiêu mà không làm giật màn hình
+                        hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
                         hrp.AssemblyLinearVelocity = Vector3.zero
                     end
                 end)
-            else fovOrbitActive = false end
-        else StopT("RedOrbit") ResetCamToSelf() currentFOVTarget = nil end
+            else fovBehindActive = false end
+        else StopT("RedBehind") ResetCamToSelf() currentFOVTarget = nil end
     end
 
-    Tabs.Target:AddKeybind("QuickOrbitKeybind", { Title = "Quick Orbit Target in Red FOV", Mode = "Toggle", Default = "G", Callback = function() ToggleFOVOrbit() end })
+    Tabs.Target:AddKeybind("QuickBehindKeybind", { Title = "Quick TP Behind Target in Red FOV", Mode = "Toggle", Default = "G", Callback = function() ToggleFOVBehind() end })
     local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target Player", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
 
     local function UpdateDropdowns()
@@ -334,26 +333,23 @@ local success, err = pcall(function()
     P.PlayerAdded:Connect(UpdateDropdowns)
     P.PlayerRemoving:Connect(UpdateDropdowns)
 
-    Tabs.Target:AddToggle("OrbitToggle", { Title = "Orbit Selected Target", Default = false, Callback = function(state)
+    -- TELEPORT BEHIND SELECTED TARGET (TOGGLE)
+    Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Selected Target", Default = false, Callback = function(state)
         if state then
             if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
-            T.Orbit = RS.Heartbeat:Connect(function(dt)
+            T.Behind = RS.Heartbeat:Connect(function()
                 local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
                 if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then ResetCamToSelf() if autoNextTarget then SelectedTargetPlayer = GetNearestPlayer(500) end return end
                 if hrp and tHrp then
-                    if Cam and Cam.CameraSubject ~= tHum then Cam.CameraSubject = tHum end
-                    orbitAngle = orbitAngle + (orbitSpeed * dt)
-                    local newPos = Vector3.new(tHrp.Position.X + math.cos(orbitAngle) * orbitDistance, tHrp.Position.Y, tHrp.Position.Z + math.sin(orbitAngle) * orbitDistance)
-                    hrp.CFrame = CFrame.new(newPos, Vector3.new(tHrp.Position.X, newPos.Y, tHrp.Position.Z))
+                    hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
                     hrp.AssemblyLinearVelocity = Vector3.zero
                 end
             end)
-        else StopT("Orbit") ResetCamToSelf() end
+        else StopT("Behind") ResetCamToSelf() end
     end })
 
-    Tabs.Target:AddInput("OrbitSpeedInput", { Title = "Orbit Speed", Default = "15", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then orbitSpeed = num end end })
-    Tabs.Target:AddInput("OrbitDistInput", { Title = "Orbit Distance", Default = "10", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then orbitDistance = num end end })
+    Tabs.Target:AddSlider("BehindDistSlider", { Title = "Behind Distance (Min 1 - Max 500)", Min = 1, Max = 500, Default = 5, Rounding = 0, Callback = function(val) behindDistance = val end })
     Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Change Target On Death", Default = false, Callback = function(state) autoNextTarget = state end })
 
     -- ESP VIP (AUTO UPDATE REAL-TIME)
