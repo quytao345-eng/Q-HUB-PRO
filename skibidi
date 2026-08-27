@@ -1,4 +1,4 @@
--- Q HUB - Xưa & TP ALL 0.0002s + ESP Auto Update + Custom Teleport Behind Target
+-- Q HUB - Xưa & TP ALL 0.0002s + ESP Auto Update + Custom Teleport Behind Input
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -201,7 +201,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Fly & Movement", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0002s + Teleport Behind Target" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB - Xưa", Content = "Developed by Gemini & Quy\nVersion: TP All 0.0002s + Teleport Behind Input" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Camera Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -312,7 +312,6 @@ local success, err = pcall(function()
                         StopT("RedBehind") ResetCamToSelf() fovBehindActive = false currentFOVTarget = nil return
                     end
                     if hrp and tHrp then
-                        -- Teleport trực tiếp sau lưng mục tiêu mà không làm giật màn hình
                         hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
                         hrp.AssemblyLinearVelocity = Vector3.zero
                     end
@@ -349,7 +348,7 @@ local success, err = pcall(function()
         else StopT("Behind") ResetCamToSelf() end
     end })
 
-    Tabs.Target:AddSlider("BehindDistSlider", { Title = "Behind Distance (Min 1 - Max 500)", Min = 1, Max = 500, Default = 5, Rounding = 0, Callback = function(val) behindDistance = val end })
+    Tabs.Target:AddInput("BehindDistInput", { Title = "Behind Distance (Min 1 - Max Vô Hạn)", Default = "5", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end })
     Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Change Target On Death", Default = false, Callback = function(state) autoNextTarget = state end })
 
     -- ESP VIP (AUTO UPDATE REAL-TIME)
