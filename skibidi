@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (ESP Box + Distance & No Invis)
+-- Q HUB - Fluent UI (Easy Fly - Space to Fly Up)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -246,7 +246,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: ESP VIP Box & Distance" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: Universal Space-Fly Control" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -385,7 +385,7 @@ local success, err = pcall(function()
     Tabs.Target:AddInput("BehindDistInput", { Title = "Distance", Default = "5", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end })
     Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Switch Target", Default = false, Callback = function(state) autoNextTarget = state end })
 
-    -- ENHANCED ESP SYSTEM (SMOOTH BOX & DISTANCE)
+    -- ENHANCED ESP SYSTEM
     local function CreateESP(plr)
         if plr == LP then return end
 
@@ -396,7 +396,6 @@ local success, err = pcall(function()
             local hum = char:WaitForChild("Humanoid", 10)
             if not hrp or not hum then return end
 
-            -- Highlight
             local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
             hl.Name = "QHub_Highlight"
             hl.FillTransparency = 0.5
@@ -406,7 +405,6 @@ local success, err = pcall(function()
             hl.Enabled = espHighlight
             hl.Parent = char
 
-            -- Billboard info (Name, Health, Distance)
             local bb = hrp:FindFirstChild("QHub_Billboard") or Instance.new("BillboardGui")
             bb.Name = "QHub_Billboard"
             bb.Size = UDim2.new(0, 200, 0, 60)
@@ -424,7 +422,6 @@ local success, err = pcall(function()
             txtLabel.Font = Enum.Font.SourceSansBold
             txtLabel.TextStrokeTransparency = 0
 
-            -- Smooth ESP Box GUI
             local boxBb = hrp:FindFirstChild("QHub_BoxGui") or Instance.new("BillboardGui")
             boxBb.Name = "QHub_BoxGui"
             boxBb.Size = UDim2.new(4.5, 0, 6, 0)
@@ -449,11 +446,9 @@ local success, err = pcall(function()
 
             local function UpdateESP()
                 if not hum or not hum.Parent or not hrp or not hrp.Parent then return end
-                
                 local infoText = ""
                 if espName then infoText = infoText .. plr.Name .. "\n" end
                 if espHealth then infoText = infoText .. "[" .. math.floor(math.max(0, hum.Health)) .. "/" .. math.floor(hum.MaxHealth) .. " HP] " end
-                
                 if espDistance then
                     local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
                     if myHrp then
@@ -461,7 +456,6 @@ local success, err = pcall(function()
                         infoText = infoText .. "[" .. dist .. "m]"
                     end
                 end
-
                 txtLabel.Text = infoText
             end
 
@@ -506,11 +500,9 @@ local success, err = pcall(function()
             if p ~= LP and p.Character then
                 local hl = p.Character:FindFirstChild("QHub_Highlight")
                 if hl then hl.Enabled = espHighlight end
-                
                 local hrp = p.Character:FindFirstChild("HumanoidRootPart")
                 local bb = hrp and hrp:FindFirstChild("QHub_Billboard")
                 if bb then bb.Enabled = (espName or espHealth or espDistance) end
-
                 local boxBb = hrp and hrp:FindFirstChild("QHub_BoxGui")
                 if boxBb then boxBb.Enabled = espBox end
             end
@@ -523,8 +515,8 @@ local success, err = pcall(function()
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
 
-    -- MISC TAB (MOBILE CFRAME FLY & MOVEMENT)
-    Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mobile", Default = false, Callback = function(state)
+    -- UNIVERSAL EASY FLY (SPACE TO FLY UP)
+    Tabs.Misc:AddToggle("FlyMode", { Title = "Fly (PC & Mobile)", Default = false, Callback = function(state)
         flyEnabled = state
         local char = LP.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -534,13 +526,31 @@ local success, err = pcall(function()
         if flyEnabled then
             T.Fly = RS.RenderStepped:Connect(function(dt)
                 if not flyEnabled or not hrp or not hrp.Parent then StopT("Fly") return end
-                
+
                 hrp.AssemblyLinearVelocity = Vector3.zero
-                local moveDir = hum.MoveDirection
-                if moveDir.Magnitude > 0 then
-                    local camCF = Cam.CFrame
-                    local flyVector = (camCF.LookVector * moveDir.Z * -1) + (camCF.RightVector * moveDir.X)
-                    hrp.CFrame = hrp.CFrame + (flyVector * (flySpeed * dt))
+                local moveVector = Vector3.zero
+                local camCF = Cam.CFrame
+
+                -- 1. Directional Movement (WASD on PC)
+                if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
+
+                -- 2. Space / Jump Button to Fly Up (PC & Mobile)
+                if UIS:IsKeyDown(Enum.KeyCode.Space) or hum.Jump then
+                    moveVector = moveVector + Vector3.new(0, 1, 0)
+                end
+
+                -- 3. Mobile Joystick Controls
+                local joystickDir = hum.MoveDirection
+                if joystickDir.Magnitude > 0 and moveVector.Magnitude == 0 then
+                    moveVector = (camCF.LookVector * joystickDir.Z * -1) + (camCF.RightVector * joystickDir.X)
+                end
+
+                -- Apply Smooth Flying Movement
+                if moveVector.Magnitude > 0 then
+                    hrp.CFrame = hrp.CFrame + (moveVector.Unit * (flySpeed * dt))
                 end
             end)
         else 
