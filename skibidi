@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Fixed Center Aim & Fixed Mobile Fly & Mobile Toggle Button)
+-- Q HUB - Fluent UI (Universal CoreGui Fix for Mobile & PC)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -24,7 +24,7 @@ local success, err = pcall(function()
     local behindDistance, targetBehindActive = 5, false
     local SelectedTargetPlayer, autoNextTarget = nil, false
 
-    -- AIM LOCK & SILENT AIM SETTINGS (CENTER SCREEN)
+    -- AIM LOCK & SILENT AIM SETTINGS
     local aimLockEnabled, silentAimEnabled, showFOVCircle, aimWallCheck, aimTeamCheck = false, false, false, false, false
     local aimPart, aimFOV, aimSmoothness = "Head", 150, 0.2
     local showTargetFOVCircle, targetFOVRadius, currentFOVTarget, targetWallCheck = false, 150, nil, false
@@ -33,7 +33,7 @@ local success, err = pcall(function()
     -- ESP SETTINGS
     local espHighlight, espName, espHealth = false, false, false
 
-    -- DRAWING / GUI FOV SETUP (ALWAYS CENTER SCREEN)
+    -- DRAWING / GUI FOV SETUP
     local FOVCircle, TargetFOVCircle = nil, nil
     local GuiCircle, TargetGuiCircle = nil, nil
 
@@ -95,7 +95,10 @@ local success, err = pcall(function()
         TargetGuiCircle = CreateGuiCircle(Color3.fromRGB(255, 30, 30))
     end
 
-    -- MOBILE TOGGLE BUTTON FOR FLUENT UI
+    -- FIXED UNIVERSAL TOGGLE BUTTON FOR MOBILE & PC
+    local oldToggle = game:GetService("CoreGui"):FindFirstChild("QHubMobileToggleFluent") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubMobileToggleFluent")
+    if oldToggle then oldToggle:Destroy() end
+
     local ScreenGui = Instance.new("ScreenGui")
     local ToggleBtn = Instance.new("TextButton")
     local UICorner = Instance.new("UICorner")
@@ -106,25 +109,40 @@ local success, err = pcall(function()
 
     ToggleBtn.Name = "ToggleBtn"
     ToggleBtn.Parent = ScreenGui
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
     ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
     ToggleBtn.Font = Enum.Font.SourceSansBold
     ToggleBtn.Text = "Q"
     ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleBtn.TextSize = 25
+    ToggleBtn.TextSize = 24
     ToggleBtn.Active = true
     ToggleBtn.Draggable = true
 
     UICorner.CornerRadius = UDim.new(0.5, 0)
     UICorner.Parent = ToggleBtn
 
-    ToggleBtn.MouseButton1Click:Connect(function()
-        local fluentApp = game:GetService("CoreGui"):FindFirstChild("Fluent") or LP:WaitForChild("PlayerGui"):FindFirstChild("Fluent")
-        if fluentApp then 
-            fluentApp.Enabled = not fluentApp.Enabled 
+    -- Tự động tìm Main Frame của Fluent bất kể Executor nào
+    local function ToggleUI()
+        if Window and Window.Root then
+            Window.Root.Visible = not Window.Root.Visible
+        else
+            local coreGui = game:GetService("CoreGui")
+            local playerGui = LP:FindFirstChild("PlayerGui")
+            
+            for _, parent in ipairs({coreGui, playerGui}) do
+                if parent then
+                    for _, child in ipairs(parent:GetChildren()) do
+                        if child:IsA("ScreenGui") and (child.Name:find("Fluent") or child:FindFirstChild("Main") or child:FindFirstChild("Frame")) then
+                            child.Enabled = not child.Enabled
+                        end
+                    end
+                end
+            end
         end
-    end)
+    end
+
+    ToggleBtn.MouseButton1Click:Connect(ToggleUI)
 
     -- HELPER FUNCTIONS
     local function StopT(n)
@@ -175,7 +193,6 @@ local success, err = pcall(function()
         return hit == nil or hit:IsDescendantOf(targetPart.Parent)
     end
 
-    -- GET CLOSEST TO CENTER OF SCREEN
     local function GetClosestTargetInFOV(radius, wallCheck, teamCheck, specificPart)
         local closestPart, closestPlayer, shortestDistance = nil, nil, radius
         local centerPos = Vector2.new(Cam.ViewportSize.X / 2, Cam.ViewportSize.Y / 2)
@@ -231,7 +248,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: VIP Mobile Clean (Fluent)" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: VIP Mobile & PC Universal" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -324,7 +341,7 @@ local success, err = pcall(function()
     Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
     Tabs.Target:AddSlider("RedFOVRadius", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
 
-    -- QUICK TELEPORT BEHIND (RED FOV)
+    -- QUICK TELEPORT BEHIND
     Tabs.Target:AddToggle("BehindFOVToggle", { Title = "TP Behind (Target FOV)", Default = false, Callback = function(state)
         fovBehindActive = state
         if fovBehindActive then
@@ -360,7 +377,6 @@ local success, err = pcall(function()
     P.PlayerAdded:Connect(UpdateDropdowns)
     P.PlayerRemoving:Connect(UpdateDropdowns)
 
-    -- TELEPORT BEHIND SELECTED TARGET (TOGGLE)
     Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Target", Default = false, Callback = function(state)
         if state then
             if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
