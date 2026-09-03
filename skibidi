@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Universal CoreGui Fix for Mobile & PC)
+-- Q HUB - Fluent UI (ESP Box + Distance & No Invis)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -20,7 +20,7 @@ local success, err = pcall(function()
     local T = {}
 
     local walkSpeed, jumpPower, flySpeed = 50, 50, 50
-    local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled, invisibleLayEnabled = false, false, false, false, false
+    local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
     local behindDistance, targetBehindActive = 5, false
     local SelectedTargetPlayer, autoNextTarget = nil, false
 
@@ -31,7 +31,7 @@ local success, err = pcall(function()
     local tpBlacklist = {}
 
     -- ESP SETTINGS
-    local espHighlight, espName, espHealth = false, false, false
+    local espHighlight, espName, espHealth, espDistance, espBox = false, false, false, false, false
 
     -- DRAWING / GUI FOV SETUP
     local FOVCircle, TargetFOVCircle = nil, nil
@@ -95,7 +95,7 @@ local success, err = pcall(function()
         TargetGuiCircle = CreateGuiCircle(Color3.fromRGB(255, 30, 30))
     end
 
-    -- FIXED UNIVERSAL TOGGLE BUTTON FOR MOBILE & PC
+    -- TOGGLE BUTTON FOR MOBILE & PC
     local oldToggle = game:GetService("CoreGui"):FindFirstChild("QHubMobileToggleFluent") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubMobileToggleFluent")
     if oldToggle then oldToggle:Destroy() end
 
@@ -122,14 +122,12 @@ local success, err = pcall(function()
     UICorner.CornerRadius = UDim.new(0.5, 0)
     UICorner.Parent = ToggleBtn
 
-    -- Tự động tìm Main Frame của Fluent bất kể Executor nào
     local function ToggleUI()
         if Window and Window.Root then
             Window.Root.Visible = not Window.Root.Visible
         else
             local coreGui = game:GetService("CoreGui")
             local playerGui = LP:FindFirstChild("PlayerGui")
-            
             for _, parent in ipairs({coreGui, playerGui}) do
                 if parent then
                     for _, child in ipairs(parent:GetChildren()) do
@@ -248,7 +246,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: VIP Mobile & PC Universal" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: ESP VIP Box & Distance" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -284,7 +282,7 @@ local success, err = pcall(function()
         end
     end)
 
-    -- TP ALL PLAYERS (0.0002s)
+    -- TP ALL PLAYERS
     Tabs.TP:AddToggle("TPAll", {
         Title = "TP All (0.0002s)",
         Default = false,
@@ -292,21 +290,17 @@ local success, err = pcall(function()
             if state then
                 T.Teleport = task.spawn(function()
                     local isSkyFalling = false
-
                     while true do
                         local alivePlayers = {}
                         for _, p in ipairs(P:GetPlayers()) do
                             if p ~= LP and not table.find(tpBlacklist, p.Name) and p.Character then
                                 local tr = p.Character:FindFirstChild("HumanoidRootPart")
                                 local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                                if tr and hum and hum.Health > 0 then 
-                                    table.insert(alivePlayers, tr) 
-                                end
+                                if tr and hum and hum.Health > 0 then table.insert(alivePlayers, tr) end
                             end
                         end
 
                         local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-
                         if myHrp then
                             if #alivePlayers > 0 then
                                 isSkyFalling = false 
@@ -324,14 +318,10 @@ local success, err = pcall(function()
                                 end
                                 task.wait(0.1)
                             end
-                        else
-                            task.wait(0.05)
-                        end
+                        else task.wait(0.05) end
                     end
                 end)
-            else 
-                StopT("Teleport") 
-            end
+            else StopT("Teleport") end
         end
     })
 
@@ -395,7 +385,7 @@ local success, err = pcall(function()
     Tabs.Target:AddInput("BehindDistInput", { Title = "Distance", Default = "5", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end })
     Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Switch Target", Default = false, Callback = function(state) autoNextTarget = state end })
 
-    -- ESP VIP
+    -- ENHANCED ESP SYSTEM (SMOOTH BOX & DISTANCE)
     local function CreateESP(plr)
         if plr == LP then return end
 
@@ -406,6 +396,7 @@ local success, err = pcall(function()
             local hum = char:WaitForChild("Humanoid", 10)
             if not hrp or not hum then return end
 
+            -- Highlight
             local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
             hl.Name = "QHub_Highlight"
             hl.FillTransparency = 0.5
@@ -415,12 +406,13 @@ local success, err = pcall(function()
             hl.Enabled = espHighlight
             hl.Parent = char
 
+            -- Billboard info (Name, Health, Distance)
             local bb = hrp:FindFirstChild("QHub_Billboard") or Instance.new("BillboardGui")
             bb.Name = "QHub_Billboard"
-            bb.Size = UDim2.new(0, 200, 0, 50)
+            bb.Size = UDim2.new(0, 200, 0, 60)
             bb.AlwaysOnTop = true
-            bb.ExtentsOffset = Vector3.new(0, 3, 0)
-            bb.Enabled = (espName or espHealth)
+            bb.ExtentsOffset = Vector3.new(0, 3.5, 0)
+            bb.Enabled = (espName or espHealth or espDistance)
             bb.Parent = hrp
 
             local txtLabel = bb:FindFirstChild("TextLabel") or Instance.new("TextLabel")
@@ -428,33 +420,86 @@ local success, err = pcall(function()
             txtLabel.Size = UDim2.new(1, 0, 1, 0)
             txtLabel.BackgroundTransparency = 1
             txtLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            txtLabel.TextSize = 14
+            txtLabel.TextSize = 13
             txtLabel.Font = Enum.Font.SourceSansBold
             txtLabel.TextStrokeTransparency = 0
 
-            local function UpdateText()
-                if not hum or not hum.Parent then return end
-                local t = ""
-                if espName then t = t .. plr.Name end
-                if espHealth then t = t .. " [" .. math.floor(math.max(0, hum.Health)) .. "/" .. math.floor(hum.MaxHealth) .. "]" end
-                txtLabel.Text = t
+            -- Smooth ESP Box GUI
+            local boxBb = hrp:FindFirstChild("QHub_BoxGui") or Instance.new("BillboardGui")
+            boxBb.Name = "QHub_BoxGui"
+            boxBb.Size = UDim2.new(4.5, 0, 6, 0)
+            boxBb.AlwaysOnTop = true
+            boxBb.Enabled = espBox
+            boxBb.Parent = hrp
+
+            local boxFrame = boxBb:FindFirstChild("BoxFrame") or Instance.new("Frame")
+            boxFrame.Name = "BoxFrame"
+            boxFrame.Size = UDim2.new(1, 0, 1, 0)
+            boxFrame.BackgroundTransparency = 1
+            boxFrame.Parent = boxBb
+
+            local stroke = boxFrame:FindFirstChild("UIStroke") or Instance.new("UIStroke")
+            stroke.Color = Color3.fromRGB(255, 45, 85)
+            stroke.Thickness = 1.8
+            stroke.Parent = boxFrame
+
+            local corner = boxFrame:FindFirstChild("UICorner") or Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 4)
+            corner.Parent = boxFrame
+
+            local function UpdateESP()
+                if not hum or not hum.Parent or not hrp or not hrp.Parent then return end
+                
+                local infoText = ""
+                if espName then infoText = infoText .. plr.Name .. "\n" end
+                if espHealth then infoText = infoText .. "[" .. math.floor(math.max(0, hum.Health)) .. "/" .. math.floor(hum.MaxHealth) .. " HP] " end
+                
+                if espDistance then
+                    local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp then
+                        local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
+                        infoText = infoText .. "[" .. dist .. "m]"
+                    end
+                end
+
+                txtLabel.Text = infoText
             end
 
-            hum.HealthChanged:Connect(UpdateText)
-            UpdateText()
+            hum.HealthChanged:Connect(UpdateESP)
+            UpdateESP()
         end
 
-        if plr.Character then 
-            task.spawn(function() SetupCharacter(plr.Character) end) 
-        end
-        
-        plr.CharacterAdded:Connect(function(newChar)
-            task.spawn(function() SetupCharacter(newChar) end)
-        end)
+        if plr.Character then task.spawn(function() SetupCharacter(plr.Character) end) end
+        plr.CharacterAdded:Connect(function(newChar) task.spawn(function() SetupCharacter(newChar) end) end)
     end
 
     for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
     P.PlayerAdded:Connect(CreateESP)
+
+    RS.RenderStepped:Connect(function()
+        for _, p in ipairs(P:GetPlayers()) do
+            if p ~= LP and p.Character then
+                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                local bb = hrp and hrp:FindFirstChild("QHub_Billboard")
+                local txtLabel = bb and bb:FindFirstChild("TextLabel")
+                
+                if hrp and hum and bb and txtLabel and (espName or espHealth or espDistance) then
+                    local infoText = ""
+                    if espName then infoText = infoText .. p.Name .. " " end
+                    if espHealth then infoText = infoText .. "[" .. math.floor(math.max(0, hum.Health)) .. " HP] " end
+                    if espDistance then
+                        local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                        if myHrp then
+                            local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
+                            infoText = infoText .. "[" .. dist .. "m]"
+                        end
+                    end
+                    txtLabel.Text = infoText
+                end
+            end
+        end
+    end)
 
     local function UpdateESPStates()
         for _, p in ipairs(P:GetPlayers()) do
@@ -464,53 +509,21 @@ local success, err = pcall(function()
                 
                 local hrp = p.Character:FindFirstChild("HumanoidRootPart")
                 local bb = hrp and hrp:FindFirstChild("QHub_Billboard")
-                if bb then 
-                    bb.Enabled = (espName or espHealth)
-                    local txtLabel = bb:FindFirstChild("TextLabel")
-                    local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                    if txtLabel and hum then
-                        local t = ""
-                        if espName then t = t .. p.Name end
-                        if espHealth then t = t .. " [" .. math.floor(math.max(0, hum.Health)) .. "/" .. math.floor(hum.MaxHealth) .. "]" end
-                        txtLabel.Text = t
-                    end
-                end
+                if bb then bb.Enabled = (espName or espHealth or espDistance) end
+
+                local boxBb = hrp and hrp:FindFirstChild("QHub_BoxGui")
+                if boxBb then boxBb.Enabled = espBox end
             end
         end
     end
 
     Tabs.ESP:AddToggle("ESPHighlight", {Title = "ESP Highlight", Default = false}):OnChanged(function(v) espHighlight = v UpdateESPStates() end)
+    Tabs.ESP:AddToggle("ESPBox", {Title = "ESP Box (Smooth)", Default = false}):OnChanged(function(v) espBox = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name", Default = false}):OnChanged(function(v) espName = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
+    Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
 
-    -- UNDERGROUND INVISIBILITY
-    Tabs.Misc:AddToggle("UndergroundInvis", { Title = "Invis Lay Down", Default = false, Callback = function(state)
-        invisibleLayEnabled = state
-        if state then
-            T.UndergroundInvis = RS.Stepped:Connect(function()
-                local char = LP.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                
-                if char and hrp and hum and invisibleLayEnabled then
-                    for _, part in ipairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-                    hum.CameraOffset = Vector3.new(0, 3.5, 0)
-                    local currentRot = hrp.CFrame - hrp.CFrame.Position
-                    hrp.CFrame = CFrame.new(hrp.Position.X, hrp.Position.Y, hrp.Position.Z) * CFrame.new(0, -3.5, 0) * currentRot * CFrame.Angles(math.rad(-90), 0, 0)
-                end
-            end)
-        else
-            StopT("UndergroundInvis")
-            if LP.Character then
-                local hum = LP.Character:FindFirstChildOfClass("Humanoid")
-                if hum then hum.CameraOffset = Vector3.zero end
-            end
-        end
-    end })
-
-    -- MOBILE FIXED CFRAME FLY
+    -- MISC TAB (MOBILE CFRAME FLY & MOVEMENT)
     Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mobile", Default = false, Callback = function(state)
         flyEnabled = state
         local char = LP.Character
@@ -523,7 +536,6 @@ local success, err = pcall(function()
                 if not flyEnabled or not hrp or not hrp.Parent then StopT("Fly") return end
                 
                 hrp.AssemblyLinearVelocity = Vector3.zero
-                
                 local moveDir = hum.MoveDirection
                 if moveDir.Magnitude > 0 then
                     local camCF = Cam.CFrame
@@ -577,7 +589,7 @@ local success, err = pcall(function()
                 if speedToggleEnabled then
                     if hum.MoveDirection.Magnitude > 0 then
                         local targetVelocity = hum.MoveDirection * walkSpeed
-                        if not invisibleLayEnabled and not flyEnabled then
+                        if not flyEnabled then
                             hrp.CFrame = hrp.CFrame + (targetVelocity * dt)
                         end
                         hrp.AssemblyLinearVelocity = Vector3.new(targetVelocity.X, hrp.AssemblyLinearVelocity.Y, targetVelocity.Z)
