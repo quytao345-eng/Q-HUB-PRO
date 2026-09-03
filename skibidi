@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Classic Camera Fly)
+-- Q HUB - Fluent UI (PC Fly WASD Only)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -246,7 +246,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: Classic Fly Restored" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: PC Fly (WASD Only)" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -515,8 +515,8 @@ local success, err = pcall(function()
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
 
-    -- RESTORED CLASSIC FLY (CAMERA DIRECTION FLY)
-    Tabs.Misc:AddToggle("FlyMode", { Title = "Fly (Classic)", Default = false, Callback = function(state)
+    -- FLY WASD ONLY (CAMERA DIRECTION)
+    Tabs.Misc:AddToggle("FlyMode", { Title = "Fly (WASD Only)", Default = false, Callback = function(state)
         flyEnabled = state
         local char = LP.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -529,22 +529,16 @@ local success, err = pcall(function()
 
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 local moveVector = Vector3.zero
+                local camCF = Cam.CFrame
 
-                -- 1. PC Keyboard Controls
-                if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Cam.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Cam.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Cam.CFrame.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Cam.CFrame.RightVector end
+                -- WASD Controls only
+                if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
 
-                -- 2. Mobile Joystick Controls
-                local joystickDir = hum.MoveDirection
-                if joystickDir.Magnitude > 0 and moveVector.Magnitude == 0 then
-                    moveVector = (Cam.CFrame.LookVector * joystickDir.Z * -1) + (Cam.CFrame.RightVector * joystickDir.X)
-                end
-
-                -- Apply Velocity
                 if moveVector.Magnitude > 0 then
-                    hrp.AssemblyLinearVelocity = moveVector.Unit * flySpeed
+                    hrp.CFrame = hrp.CFrame + (moveVector.Unit * (flySpeed * dt))
                 end
             end)
         else 
