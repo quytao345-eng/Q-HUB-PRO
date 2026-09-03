@@ -113,9 +113,9 @@ local success, err = pcall(function()
     ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
     ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
     ToggleBtn.Font = Enum.Font.SourceSansBold
-    ToggleBtn.Text = "Q"
+    ToggleBtn.Text = "ctrl"
     ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleBtn.TextSize = 24
+    ToggleBtn.TextSize = 15
     ToggleBtn.Active = true
     ToggleBtn.Draggable = true
 
