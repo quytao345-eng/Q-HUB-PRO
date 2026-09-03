@@ -1,7 +1,16 @@
--- Q HUB - Orion UI (Mobile Support & Fix Fly & Center Aim)
+-- Q HUB - Fluent UI (Fixed Center Aim & Fixed Mobile Fly & Mobile Toggle Button)
 local success, err = pcall(function()
-    local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
-    local Window = OrionLib:MakeWindow({Name = "⚡ Q HUB - Mobile Edition", HidePremium = true, SaveConfig = false, ConfigFolder = "QHubConfig"})
+    local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+
+    local Window = Fluent:CreateWindow({
+        Title = "⚡ Q HUB",
+        SubTitle = "by Gemini & Quy",
+        TabWidth = 140,
+        Size = UDim2.fromOffset(560, 400),
+        Acrylic = false,
+        Theme = "Dark",
+        MinimizeKey = Enum.KeyCode.LeftControl
+    })
 
     -- SERVICES & VARIABLES
     local P, W, RS, UIS, GS = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("UserInputService"), game:GetService("GuiService")
@@ -15,7 +24,7 @@ local success, err = pcall(function()
     local behindDistance, targetBehindActive = 5, false
     local SelectedTargetPlayer, autoNextTarget = nil, false
 
-    -- AIM & FOV SETTINGS (CENTER SCREEN)
+    -- AIM LOCK & SILENT AIM SETTINGS (CENTER SCREEN)
     local aimLockEnabled, silentAimEnabled, showFOVCircle, aimWallCheck, aimTeamCheck = false, false, false, false, false
     local aimPart, aimFOV, aimSmoothness = "Head", 150, 0.2
     local showTargetFOVCircle, targetFOVRadius, currentFOVTarget, targetWallCheck = false, 150, nil, false
@@ -86,12 +95,12 @@ local success, err = pcall(function()
         TargetGuiCircle = CreateGuiCircle(Color3.fromRGB(255, 30, 30))
     end
 
-    -- MOBILE TOGGLE BUTTON
+    -- MOBILE TOGGLE BUTTON FOR FLUENT UI
     local ScreenGui = Instance.new("ScreenGui")
     local ToggleBtn = Instance.new("TextButton")
     local UICorner = Instance.new("UICorner")
 
-    ScreenGui.Name = "QHubMobileToggle"
+    ScreenGui.Name = "QHubMobileToggleFluent"
     ScreenGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
     ScreenGui.ResetOnSpawn = false
 
@@ -111,8 +120,10 @@ local success, err = pcall(function()
     UICorner.Parent = ToggleBtn
 
     ToggleBtn.MouseButton1Click:Connect(function()
-        local mainFrame = game:GetService("CoreGui"):FindFirstChild("Orion") or LP:WaitForChild("PlayerGui"):FindFirstChild("Orion")
-        if mainFrame then mainFrame.Enabled = not mainFrame.Enabled end
+        local fluentApp = game:GetService("CoreGui"):FindFirstChild("Fluent") or LP:WaitForChild("PlayerGui"):FindFirstChild("Fluent")
+        if fluentApp then 
+            fluentApp.Enabled = not fluentApp.Enabled 
+        end
     end)
 
     -- HELPER FUNCTIONS
@@ -211,21 +222,25 @@ local success, err = pcall(function()
     end)
 
     -- TABS
-    local AimTab = OrionLib:MakeTab({Name = "Aim", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-    local TPTab = OrionLib:MakeTab({Name = "TP All", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-    local TargetTab = OrionLib:MakeTab({Name = "Target", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-    local ESPTab = OrionLib:MakeTab({Name = "ESP", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-    local MiscTab = OrionLib:MakeTab({Name = "Misc", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+    local Tabs = {
+        Info = Window:AddTab({ Title = "Info", Icon = "info" }),
+        Aim = Window:AddTab({ Title = "Aim", Icon = "crosshair" }),
+        TP = Window:AddTab({ Title = "TP All", Icon = "user-check" }),
+        Target = Window:AddTab({ Title = "Target", Icon = "target" }),
+        ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
+        Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
+    }
 
-    -- AIM TAB
-    AimTab:AddToggle({Name = "Aim Lock", Default = false, Callback = function(v) aimLockEnabled = v end})
-    AimTab:AddToggle({Name = "Silent Aim", Default = false, Callback = function(v) silentAimEnabled = v end})
-    AimTab:AddToggle({Name = "Draw Center FOV", Default = false, Callback = function(v) showFOVCircle = v end})
-    AimTab:AddToggle({Name = "Wall Check", Default = false, Callback = function(v) aimWallCheck = v end})
-    AimTab:AddToggle({Name = "Team Check", Default = false, Callback = function(v) aimTeamCheck = v end})
-    AimTab:AddDropdown({Name = "Aim Part", Default = "Head", Options = {"Head", "HumanoidRootPart"}, Callback = function(v) aimPart = v end})
-    AimTab:AddSlider({Name = "Smoothness", Min = 0.05, Max = 1, Default = 0.2, Color = Color3.fromRGB(255,255,255), Increment = 0.05, ValueName = "", Callback = function(v) aimSmoothness = v end})
-    AimTab:AddSlider({Name = "FOV Size", Min = 50, Max = 500, Default = 150, Color = Color3.fromRGB(255,255,255), Increment = 5, ValueName = "", Callback = function(v) aimFOV = v end})
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: VIP Mobile Clean (Fluent)" })
+
+    Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
+    Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
+    Tabs.Aim:AddToggle("DrawFOV", {Title = "Draw Center FOV", Default = false}):OnChanged(function(v) showFOVCircle = v end)
+    Tabs.Aim:AddToggle("WallCheck", {Title = "Wall Check", Default = false}):OnChanged(function(v) aimWallCheck = v end)
+    Tabs.Aim:AddToggle("TeamCheck", {Title = "Team Check", Default = false}):OnChanged(function(v) aimTeamCheck = v end)
+    Tabs.Aim:AddDropdown("AimPart", { Title = "Aim Part", Values = {"Head", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end })
+    Tabs.Aim:AddSlider("AimSmooth", { Title = "Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
+    Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
 
     RS.RenderStepped:Connect(function()
         local centerPos = Vector2.new(Cam.ViewportSize.X / 2, Cam.ViewportSize.Y / 2)
@@ -252,25 +267,29 @@ local success, err = pcall(function()
         end
     end)
 
-    -- TP ALL
-    TPTab:AddToggle({
-        Name = "TP All (0.0002s)",
+    -- TP ALL PLAYERS (0.0002s)
+    Tabs.TP:AddToggle("TPAll", {
+        Title = "TP All (0.0002s)",
         Default = false,
         Callback = function(state)
             if state then
                 T.Teleport = task.spawn(function()
                     local isSkyFalling = false
+
                     while true do
                         local alivePlayers = {}
                         for _, p in ipairs(P:GetPlayers()) do
                             if p ~= LP and not table.find(tpBlacklist, p.Name) and p.Character then
                                 local tr = p.Character:FindFirstChild("HumanoidRootPart")
                                 local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                                if tr and hum and hum.Health > 0 then table.insert(alivePlayers, tr) end
+                                if tr and hum and hum.Health > 0 then 
+                                    table.insert(alivePlayers, tr) 
+                                end
                             end
                         end
 
                         local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+
                         if myHrp then
                             if #alivePlayers > 0 then
                                 isSkyFalling = false 
@@ -288,21 +307,25 @@ local success, err = pcall(function()
                                 end
                                 task.wait(0.1)
                             end
-                        else task.wait(0.05) end
+                        else
+                            task.wait(0.05)
+                        end
                     end
                 end)
-            else StopT("Teleport") end
+            else 
+                StopT("Teleport") 
+            end
         end
     })
 
-    local TPBlacklistDropdown = TPTab:AddDropdown({Name = "Blacklist Player", Default = "", Options = GetPlayerListNames(), Callback = function(s) end})
+    local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
 
-    -- TARGET TAB
-    TargetTab:AddToggle({Name = "Draw Target FOV", Default = false, Callback = function(v) showTargetFOVCircle = v end})
-    TargetTab:AddToggle({Name = "Wall Check", Default = false, Callback = function(v) targetWallCheck = v end})
-    TargetTab:AddSlider({Name = "FOV Size", Min = 50, Max = 500, Default = 150, Color = Color3.fromRGB(255,255,255), Increment = 5, ValueName = "", Callback = function(v) targetFOVRadius = v end})
+    Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV", Default = false, Callback = function(state) showTargetFOVCircle = state end })
+    Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
+    Tabs.Target:AddSlider("RedFOVRadius", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
 
-    TargetTab:AddToggle({Name = "TP Behind (Target FOV)", Default = false, Callback = function(state)
+    -- QUICK TELEPORT BEHIND (RED FOV)
+    Tabs.Target:AddToggle("BehindFOVToggle", { Title = "TP Behind (Target FOV)", Default = false, Callback = function(state)
         fovBehindActive = state
         if fovBehindActive then
             local _, target = GetClosestTargetInFOV(targetFOVRadius, targetWallCheck, false, nil)
@@ -324,11 +347,21 @@ local success, err = pcall(function()
                 end)
             else fovBehindActive = false end
         else StopT("RedBehind") ResetCamToSelf() currentFOVTarget = nil end
-    end})
+    end })
 
-    local TargetPlayerDropdown = TargetTab:AddDropdown({Name = "Select Target", Default = GetPlayerListNames()[1] or "", Options = GetPlayerListNames(), Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end})
+    local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
 
-    TargetTab:AddToggle({Name = "TP Behind Selected Target", Default = false, Callback = function(state)
+    local function UpdateDropdowns()
+        task.wait(0.1)
+        local list = GetPlayerListNames()
+        TargetPlayerDropdown:SetValues(list)
+        TPBlacklistDropdown:SetValues(list)
+    end
+    P.PlayerAdded:Connect(UpdateDropdowns)
+    P.PlayerRemoving:Connect(UpdateDropdowns)
+
+    -- TELEPORT BEHIND SELECTED TARGET (TOGGLE)
+    Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Target", Default = false, Callback = function(state)
         if state then
             if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
             T.Behind = RS.Heartbeat:Connect(function()
@@ -341,16 +374,18 @@ local success, err = pcall(function()
                 end
             end)
         else StopT("Behind") ResetCamToSelf() end
-    end})
+    end })
 
-    TargetTab:AddTextbox({Name = "Distance", Default = "5", TextDisappear = false, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end})
-    TargetTab:AddToggle({Name = "Auto Switch Target", Default = false, Callback = function(v) autoNextTarget = v end})
+    Tabs.Target:AddInput("BehindDistInput", { Title = "Distance", Default = "5", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end })
+    Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Switch Target", Default = false, Callback = function(state) autoNextTarget = state end })
 
-    -- ESP TAB
+    -- ESP VIP
     local function CreateESP(plr)
         if plr == LP then return end
+
         local function SetupCharacter(char)
             if not char then return end
+
             local hrp = char:WaitForChild("HumanoidRootPart", 10)
             local hum = char:WaitForChild("Humanoid", 10)
             if not hrp or not hum then return end
@@ -392,8 +427,14 @@ local success, err = pcall(function()
             hum.HealthChanged:Connect(UpdateText)
             UpdateText()
         end
-        if plr.Character then task.spawn(function() SetupCharacter(plr.Character) end) end
-        plr.CharacterAdded:Connect(function(newChar) task.spawn(function() SetupCharacter(newChar) end) end)
+
+        if plr.Character then 
+            task.spawn(function() SetupCharacter(plr.Character) end) 
+        end
+        
+        plr.CharacterAdded:Connect(function(newChar)
+            task.spawn(function() SetupCharacter(newChar) end)
+        end)
     end
 
     for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
@@ -404,6 +445,7 @@ local success, err = pcall(function()
             if p ~= LP and p.Character then
                 local hl = p.Character:FindFirstChild("QHub_Highlight")
                 if hl then hl.Enabled = espHighlight end
+                
                 local hrp = p.Character:FindFirstChild("HumanoidRootPart")
                 local bb = hrp and hrp:FindFirstChild("QHub_Billboard")
                 if bb then 
@@ -421,12 +463,12 @@ local success, err = pcall(function()
         end
     end
 
-    ESPTab:AddToggle({Name = "ESP Highlight", Default = false, Callback = function(v) espHighlight = v UpdateESPStates() end})
-    ESPTab:AddToggle({Name = "ESP Name", Default = false, Callback = function(v) espName = v UpdateESPStates() end})
-    ESPTab:AddToggle({Name = "ESP Health", Default = false, Callback = function(v) espHealth = v UpdateESPStates() end})
+    Tabs.ESP:AddToggle("ESPHighlight", {Title = "ESP Highlight", Default = false}):OnChanged(function(v) espHighlight = v UpdateESPStates() end)
+    Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name", Default = false}):OnChanged(function(v) espName = v UpdateESPStates() end)
+    Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
 
-    -- MISC TAB (INVIS & FIXED MOBILE FLY)
-    MiscTab:AddToggle({Name = "Invis Lay Down", Default = false, Callback = function(state)
+    -- UNDERGROUND INVISIBILITY
+    Tabs.Misc:AddToggle("UndergroundInvis", { Title = "Invis Lay Down", Default = false, Callback = function(state)
         invisibleLayEnabled = state
         if state then
             T.UndergroundInvis = RS.Stepped:Connect(function()
@@ -450,10 +492,10 @@ local success, err = pcall(function()
                 if hum then hum.CameraOffset = Vector3.zero end
             end
         end
-    end})
+    end })
 
-    -- MOBILE FIXED CFRAME FLY (BAY THEO DIỄN TIẾN JOYSTICK/CAMERA)
-    MiscTab:AddToggle({Name = "Fly Mobile", Default = false, Callback = function(state)
+    -- MOBILE FIXED CFRAME FLY
+    Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mobile", Default = false, Callback = function(state)
         flyEnabled = state
         local char = LP.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -464,12 +506,10 @@ local success, err = pcall(function()
             T.Fly = RS.RenderStepped:Connect(function(dt)
                 if not flyEnabled or not hrp or not hrp.Parent then StopT("Fly") return end
                 
-                -- Tắt trọng lực để không bị trôi/rơi trên Mobile
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 
                 local moveDir = hum.MoveDirection
                 if moveDir.Magnitude > 0 then
-                    -- Bay theo hướng di chuyển của Joystick kết hợp với góc nhìn Camera
                     local camCF = Cam.CFrame
                     local flyVector = (camCF.LookVector * moveDir.Z * -1) + (camCF.RightVector * moveDir.X)
                     hrp.CFrame = hrp.CFrame + (flyVector * (flySpeed * dt))
@@ -478,13 +518,13 @@ local success, err = pcall(function()
         else 
             StopT("Fly") 
         end
-    end})
+    end })
 
-    MiscTab:AddTextbox({Name = "Fly Speed", Default = "50", TextDisappear = false, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end})
-    MiscTab:AddToggle({Name = "Enable Speed", Default = false, Callback = function(v) speedToggleEnabled = v end})
-    MiscTab:AddTextbox({Name = "Speed Value", Default = "50", TextDisappear = false, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end})
-    MiscTab:AddTextbox({Name = "Jump Power", Default = "50", TextDisappear = false, Callback = function(txt) label = num end, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end})
-    MiscTab:AddToggle({Name = "Infinite Jump", Default = false, Callback = function(v) infJumpEnabled = v end})
+    Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
+    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Smooth Speed", Default = false, Callback = function(state) speedToggleEnabled = state end })
+    Tabs.Misc:AddInput("InputWalkSpeed", { Title = "Speed Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
+    Tabs.Misc:AddInput("InputJumpPower", { Title = "Jump Power", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
+    Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) infJumpEnabled = state end })
 
     UIS.JumpRequest:Connect(function()
         if infJumpEnabled and LP.Character then
@@ -493,7 +533,7 @@ local success, err = pcall(function()
         end
     end)
 
-    MiscTab:AddToggle({Name = "Noclip", Default = false, Callback = function(state)
+    Tabs.Misc:AddToggle("Noclip", { Title = "Noclip", Default = false, Callback = function(state)
         noclipEnabled = state
         if state then 
             T.Noclip = RS.Stepped:Connect(function() 
@@ -504,18 +544,20 @@ local success, err = pcall(function()
                 end 
             end) 
         else StopT("Noclip") end
-    end})
+    end })
 
-    MiscTab:AddButton({Name = "Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end})
+    Tabs.Misc:AddButton({ Title = "Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
     RS.Heartbeat:Connect(function(dt)
         local char = LP.Character
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
             local hrp = char:FindFirstChild("HumanoidRootPart")
+            
             if hum and hrp then
                 hum.UseJumpPower = true
                 hum.JumpPower = jumpPower
+
                 if speedToggleEnabled then
                     if hum.MoveDirection.Magnitude > 0 then
                         local targetVelocity = hum.MoveDirection * walkSpeed
@@ -531,7 +573,9 @@ local success, err = pcall(function()
         end
     end)
 
-    OrionLib:Init()
+    Window:SelectTab(1)
 end)
 
-if not success then warn("Q HUB Error: " .. tostring(err)) end
+if not success then
+    warn("Q HUB Error: " .. tostring(err))
+end
