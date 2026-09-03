@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Easy Fly - Space to Fly Up)
+-- Q HUB - Fluent UI (Classic Camera Fly)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -246,7 +246,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: Universal Space-Fly Control" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: Classic Fly Restored" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -515,8 +515,8 @@ local success, err = pcall(function()
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
 
-    -- UNIVERSAL EASY FLY (SPACE TO FLY UP)
-    Tabs.Misc:AddToggle("FlyMode", { Title = "Fly (PC & Mobile)", Default = false, Callback = function(state)
+    -- RESTORED CLASSIC FLY (CAMERA DIRECTION FLY)
+    Tabs.Misc:AddToggle("FlyMode", { Title = "Fly (Classic)", Default = false, Callback = function(state)
         flyEnabled = state
         local char = LP.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -529,28 +529,22 @@ local success, err = pcall(function()
 
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 local moveVector = Vector3.zero
-                local camCF = Cam.CFrame
 
-                -- 1. Directional Movement (WASD on PC)
-                if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
+                -- 1. PC Keyboard Controls
+                if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + Cam.CFrame.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - Cam.CFrame.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - Cam.CFrame.RightVector end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + Cam.CFrame.RightVector end
 
-                -- 2. Space / Jump Button to Fly Up (PC & Mobile)
-                if UIS:IsKeyDown(Enum.KeyCode.Space) or hum.Jump then
-                    moveVector = moveVector + Vector3.new(0, 1, 0)
-                end
-
-                -- 3. Mobile Joystick Controls
+                -- 2. Mobile Joystick Controls
                 local joystickDir = hum.MoveDirection
                 if joystickDir.Magnitude > 0 and moveVector.Magnitude == 0 then
-                    moveVector = (camCF.LookVector * joystickDir.Z * -1) + (camCF.RightVector * joystickDir.X)
+                    moveVector = (Cam.CFrame.LookVector * joystickDir.Z * -1) + (Cam.CFrame.RightVector * joystickDir.X)
                 end
 
-                -- Apply Smooth Flying Movement
+                -- Apply Velocity
                 if moveVector.Magnitude > 0 then
-                    hrp.CFrame = hrp.CFrame + (moveVector.Unit * (flySpeed * dt))
+                    hrp.AssemblyLinearVelocity = moveVector.Unit * flySpeed
                 end
             end)
         else 
