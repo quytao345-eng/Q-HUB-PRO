@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Fixed Fly Gravity & Fixed Touch Target)
+-- Q HUB - Fluent UI (Perfect Fixed Fly & Touch Target)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -208,22 +208,29 @@ local success, err = pcall(function()
         ResetCamToSelf()
     end)
 
-    -- CLICK / TOUCH TO TARGET SYSTEM
-    local function CheckTargetFromMouse()
-        if not targetMobileEnabled then return end
-        local targetObj = Mouse.Target
-        if targetObj then
-            local hitChar = targetObj:FindFirstAncestorOfClass("Model")
-            if hitChar then
-                local hitPlr = P:GetPlayerFromCharacter(hitChar)
-                if hitPlr and hitPlr ~= LP then
-                    StartTargetingPlayer(hitPlr)
+    -- TOUCH / RAYCAST DETECT FOR TARGET MOBILE
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed or not targetMobileEnabled then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local unitRay = Cam:ScreenPointToRay(input.Position.X, input.Position.Y)
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterType = RaycastFilterType.Exclude
+            if LP.Character then
+                raycastParams.FilterDescendantsInstances = {LP.Character}
+            end
+            
+            local result = W:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
+            if result and result.Instance then
+                local hitChar = result.Instance:FindFirstAncestorOfClass("Model")
+                if hitChar then
+                    local hitPlr = P:GetPlayerFromCharacter(hitChar)
+                    if hitPlr and hitPlr ~= LP then
+                        StartTargetingPlayer(hitPlr)
+                    end
                 end
             end
         end
-    end
-
-    Mouse.Button1Down:Connect(CheckTargetFromMouse)
+    end)
 
     local function GetNearestPlayer(maxDist)
         maxDist = maxDist or 500
@@ -316,7 +323,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: Fixed Fly & Touch Target" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: BodyVelocity Fly Fixed" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -592,7 +599,7 @@ local success, err = pcall(function()
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
 
-    -- FLY FIXED (NO GRAVITY DROP)
+    -- PERFECT FLY (BODYVELOCITY & BODYGYRO - WASD ONLY)
     Tabs.Misc:AddToggle("FlyMode", { Title = "Fly (WASD Only)", Default = false, Callback = function(state)
         flyEnabled = state
         local char = LP.Character
@@ -602,16 +609,29 @@ local success, err = pcall(function()
         if flyEnabled and hrp and hum then
             hum.PlatformStand = true
 
-            T.Fly = RS.Heartbeat:Connect(function(dt)
-                if not flyEnabled or not hrp or not hrp.Parent then 
-                    StopT("Fly") 
+            local bg = Instance.new("BodyGyro")
+            bg.Name = "QHub_FlyGyro"
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = hrp.CFrame
+            bg.Parent = hrp
+
+            local bv = Instance.new("BodyVelocity")
+            bv.Name = "QHub_FlyVel"
+            bv.velocity = Vector3.zero
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            bv.Parent = hrp
+
+            T.Fly = RS.RenderStepped:Connect(function()
+                if not flyEnabled or not hrp or not hrp.Parent then
+                    StopT("Fly")
+                    if bg then bg:Destroy() end
+                    if bv then bv:Destroy() end
                     if hum then hum.PlatformStand = false end
-                    return 
+                    return
                 end
 
-                -- Lock vertical velocity completely
-                hrp.AssemblyLinearVelocity = Vector3.zero
-                
+                bg.cframe = Cam.CFrame
                 local moveVector = Vector3.zero
                 local camCF = Cam.CFrame
 
@@ -621,11 +641,19 @@ local success, err = pcall(function()
                 if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
 
                 if moveVector.Magnitude > 0 then
-                    hrp.CFrame = hrp.CFrame + (moveVector.Unit * (flySpeed * dt))
+                    bv.velocity = moveVector.Unit * flySpeed
+                else
+                    bv.velocity = Vector3.zero
                 end
             end)
-        else 
+        else
             StopT("Fly")
+            if hrp then
+                local bg = hrp:FindFirstChild("QHub_FlyGyro")
+                local bv = hrp:FindFirstChild("QHub_FlyVel")
+                if bg then bg:Destroy() end
+                if bv then bv:Destroy() end
+            end
             if hum then hum.PlatformStand = false end
         end
     end })
