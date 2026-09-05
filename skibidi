@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (PC Fly WASD Only)
+-- Q HUB - Fluent UI (Touch Target + Num Shortcut Button)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -23,6 +23,8 @@ local success, err = pcall(function()
     local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
     local behindDistance, targetBehindActive = 5, false
     local SelectedTargetPlayer, autoNextTarget = nil, false
+    local touchToTargetEnabled = false
+    local selectedTargetHighlight = nil
 
     -- AIM LOCK & SILENT AIM SETTINGS
     local aimLockEnabled, silentAimEnabled, showFOVCircle, aimWallCheck, aimTeamCheck = false, false, false, false, false
@@ -95,32 +97,46 @@ local success, err = pcall(function()
         TargetGuiCircle = CreateGuiCircle(Color3.fromRGB(255, 30, 30))
     end
 
-    -- TOGGLE BUTTON FOR MOBILE & PC
+    -- TOGGLE BUTTONS (GUI & NUM SHORTCUT)
     local oldToggle = game:GetService("CoreGui"):FindFirstChild("QHubMobileToggleFluent") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubMobileToggleFluent")
     if oldToggle then oldToggle:Destroy() end
 
     local ScreenGui = Instance.new("ScreenGui")
-    local ToggleBtn = Instance.new("TextButton")
-    local UICorner = Instance.new("UICorner")
-
     ScreenGui.Name = "QHubMobileToggleFluent"
     ScreenGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
     ScreenGui.ResetOnSpawn = false
 
+    -- Toggle Hub Button "Q"
+    local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.Name = "ToggleBtn"
     ToggleBtn.Parent = ScreenGui
     ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
     ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
     ToggleBtn.Font = Enum.Font.SourceSansBold
-    ToggleBtn.Text = "ctrl"
+    ToggleBtn.Text = "Q"
     ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleBtn.TextSize = 15
+    ToggleBtn.TextSize = 24
     ToggleBtn.Active = true
     ToggleBtn.Draggable = true
+    local Corner1 = Instance.new("UICorner", ToggleBtn)
+    Corner1.CornerRadius = UDim.new(0.5, 0)
 
-    UICorner.CornerRadius = UDim.new(0.5, 0)
-    UICorner.Parent = ToggleBtn
+    -- Target Shortcut Button "Num"
+    local NumBtn = Instance.new("TextButton")
+    NumBtn.Name = "NumBtn"
+    NumBtn.Parent = ScreenGui
+    NumBtn.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
+    NumBtn.Position = UDim2.new(0.05, 0, 0.23, 0)
+    NumBtn.Size = UDim2.new(0, 50, 0, 50)
+    NumBtn.Font = Enum.Font.SourceSansBold
+    NumBtn.Text = "Num"
+    NumBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NumBtn.TextSize = 16
+    NumBtn.Active = true
+    NumBtn.Draggable = true
+    local Corner2 = Instance.new("UICorner", NumBtn)
+    Corner2.CornerRadius = UDim.new(0.5, 0)
 
     local function ToggleUI()
         if Window and Window.Root then
@@ -139,7 +155,6 @@ local success, err = pcall(function()
             end
         end
     end
-
     ToggleBtn.MouseButton1Click:Connect(ToggleUI)
 
     -- HELPER FUNCTIONS
@@ -153,6 +168,23 @@ local success, err = pcall(function()
     local function ResetCamToSelf()
         local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
         if hum and Cam then Cam.CameraSubject = hum end
+    end
+
+    local function HighlightTarget(plr)
+        if selectedTargetHighlight then
+            selectedTargetHighlight:Destroy()
+            selectedTargetHighlight = nil
+        end
+        if plr and plr.Character then
+            local hl = Instance.new("Highlight")
+            hl.Name = "QHub_RedTargetHighlight"
+            hl.FillColor = Color3.fromRGB(255, 0, 0)
+            hl.FillTransparency = 0.3
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+            hl.OutlineTransparency = 0
+            hl.Parent = plr.Character
+            selectedTargetHighlight = hl
+        end
     end
 
     local function GetNearestPlayer(maxDist)
@@ -214,6 +246,30 @@ local success, err = pcall(function()
         return closestPart, closestPlayer
     end
 
+    -- TOUCH/CLICK TO TARGET LOGIC
+    UIS.InputBegan:Connect(function(input, gpe)
+        if gpe or not touchToTargetEnabled then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local pos = input.Position
+            local unitRay = Cam:ViewportPointToRay(pos.X, pos.Y)
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterType = RaycastFilterType.Exclude
+            if LP.Character then raycastParams.FilterDescendantsInstances = {LP.Character} end
+            
+            local res = W:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
+            if res and res.Instance then
+                local hitModel = res.Instance:FindFirstAncestorOfClass("Model")
+                if hitModel then
+                    local clickedPlr = P:GetPlayerFromCharacter(hitModel)
+                    if clickedPlr and clickedPlr ~= LP then
+                        SelectedTargetPlayer = clickedPlr
+                        HighlightTarget(clickedPlr)
+                    end
+                end
+            end
+        end
+    end)
+
     -- SILENT AIM HOOK
     pcall(function()
         local rawMeta = getrawmetatable(game)
@@ -246,7 +302,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: PC Fly (WASD Only)" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nFeatures: Touch Target + Num Button" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -327,6 +383,14 @@ local success, err = pcall(function()
 
     local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
 
+    Tabs.Target:AddToggle("TouchTargetToggle", { Title = "Click/Touch to Target (Red)", Default = false, Callback = function(state)
+        touchToTargetEnabled = state
+        if not state and selectedTargetHighlight then
+            selectedTargetHighlight:Destroy()
+            selectedTargetHighlight = nil
+        end
+    end })
+
     Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV", Default = false, Callback = function(state) showTargetFOVCircle = state end })
     Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
     Tabs.Target:AddSlider("RedFOVRadius", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
@@ -356,7 +420,13 @@ local success, err = pcall(function()
         else StopT("RedBehind") ResetCamToSelf() currentFOVTarget = nil end
     end })
 
-    local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
+    local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s)
+        local foundPlr = P:FindFirstChild(s)
+        if foundPlr then
+            SelectedTargetPlayer = foundPlr
+            HighlightTarget(foundPlr)
+        end
+    end })
 
     local function UpdateDropdowns()
         task.wait(0.1)
@@ -367,20 +437,42 @@ local success, err = pcall(function()
     P.PlayerAdded:Connect(UpdateDropdowns)
     P.PlayerRemoving:Connect(UpdateDropdowns)
 
-    Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Target", Default = false, Callback = function(state)
-        if state then
-            if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
+    local function ToggleBehindTarget(enable)
+        targetBehindActive = enable
+        if targetBehindActive then
+            if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) HighlightTarget(SelectedTargetPlayer) end
             T.Behind = RS.Heartbeat:Connect(function()
                 local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-                if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then ResetCamToSelf() if autoNextTarget then SelectedTargetPlayer = GetNearestPlayer(500) end return end
+                if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then
+                    ResetCamToSelf()
+                    if autoNextTarget then
+                        SelectedTargetPlayer = GetNearestPlayer(500)
+                        HighlightTarget(SelectedTargetPlayer)
+                    end
+                    return
+                end
                 if hrp and tHrp then
                     hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
                     hrp.AssemblyLinearVelocity = Vector3.zero
                 end
             end)
-        else StopT("Behind") ResetCamToSelf() end
+        else
+            StopT("Behind")
+            ResetCamToSelf()
+        end
+    end
+
+    local BehindToggleObj = Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Target", Default = false, Callback = function(state)
+        ToggleBehindTarget(state)
     end })
+
+    -- NUM SHORTCUT BUTTON CLICK
+    NumBtn.MouseButton1Click:Connect(function()
+        local newState = not targetBehindActive
+        BehindToggleObj:SetValue(newState)
+        NumBtn.BackgroundColor3 = newState and Color3.fromRGB(30, 180, 30) or Color3.fromRGB(180, 30, 30)
+    end)
 
     Tabs.Target:AddInput("BehindDistInput", { Title = "Distance", Default = "5", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end })
     Tabs.Target:AddToggle("AutoNextTarget", { Title = "Auto Switch Target", Default = false, Callback = function(state) autoNextTarget = state end })
@@ -531,7 +623,6 @@ local success, err = pcall(function()
                 local moveVector = Vector3.zero
                 local camCF = Cam.CFrame
 
-                -- WASD Controls only
                 if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
@@ -576,6 +667,7 @@ local success, err = pcall(function()
 
     RS.Heartbeat:Connect(function(dt)
         local char = LP.Character
+        if char me then end
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
             local hrp = char:FindFirstChild("HumanoidRootPart")
