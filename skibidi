@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Target Mobile Touch Added)
+-- Q HUB - Fluent UI (Fixed Fly Gravity & Fixed Touch Target)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -21,7 +21,7 @@ local success, err = pcall(function()
 
     local walkSpeed, jumpPower, flySpeed = 50, 50, 50
     local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
-    local behindDistance, targetBehindActive = 5, false
+    local behindDistance = 5
     local SelectedTargetPlayer, autoNextTarget = nil, false
 
     -- TARGET MOBILE VARIABLES
@@ -158,7 +158,7 @@ local success, err = pcall(function()
 
     ToggleBtn.MouseButton1Click:Connect(ToggleUI)
 
-    -- TARGET MOBILE OFF BUTTON (T-OFF)
+    -- TARGET MOBILE OFF BUTTON (OFF)
     local oldTargetToggle = game:GetService("CoreGui"):FindFirstChild("QHubTargetMobileToggle") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubTargetMobileToggle")
     if oldTargetToggle then oldTargetToggle:Destroy() end
 
@@ -173,13 +173,13 @@ local success, err = pcall(function()
 
     TargetOffBtn.Name = "TargetOffBtn"
     TargetOffBtn.Parent = TargetMobileGui
-    TargetOffBtn.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+    TargetOffBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
     TargetOffBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
     TargetOffBtn.Size = UDim2.new(0, 50, 0, 50)
     TargetOffBtn.Font = Enum.Font.SourceSansBold
     TargetOffBtn.Text = "OFF"
     TargetOffBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TargetOffBtn.TextSize = 18
+    TargetOffBtn.TextSize = 16
     TargetOffBtn.Active = true
     TargetOffBtn.Draggable = true
 
@@ -208,29 +208,22 @@ local success, err = pcall(function()
         ResetCamToSelf()
     end)
 
-    -- TOUCH / CLICK DETECT FOR TARGET MOBILE
-    UIS.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed or not targetMobileEnabled then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            local unitRay = Cam:ScreenPointToRay(input.Position.X, input.Position.Y)
-            local raycastParams = RaycastParams.new()
-            raycastParams.FilterType = RaycastFilterType.Exclude
-            if LP.Character then
-                raycastParams.FilterDescendantsInstances = {LP.Character}
-            end
-            
-            local result = W:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
-            if result and result.Instance then
-                local hitChar = result.Instance:FindFirstAncestorOfClass("Model")
-                if hitChar then
-                    local hitPlr = P:GetPlayerFromCharacter(hitChar)
-                    if hitPlr and hitPlr ~= LP then
-                        StartTargetingPlayer(hitPlr)
-                    end
+    -- CLICK / TOUCH TO TARGET SYSTEM
+    local function CheckTargetFromMouse()
+        if not targetMobileEnabled then return end
+        local targetObj = Mouse.Target
+        if targetObj then
+            local hitChar = targetObj:FindFirstAncestorOfClass("Model")
+            if hitChar then
+                local hitPlr = P:GetPlayerFromCharacter(hitChar)
+                if hitPlr and hitPlr ~= LP then
+                    StartTargetingPlayer(hitPlr)
                 end
             end
         end
-    end)
+    end
+
+    Mouse.Button1Down:Connect(CheckTargetFromMouse)
 
     local function GetNearestPlayer(maxDist)
         maxDist = maxDist or 500
@@ -323,7 +316,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: Target Mobile Added" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: Fixed Fly & Touch Target" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -404,7 +397,7 @@ local success, err = pcall(function()
 
     local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
 
-    -- TARGET TAB (WITH TARMOBI)
+    -- TARGET TAB
     Tabs.Target:AddToggle("TarMobiToggle", { 
         Title = "Target Mobile (tarmobi)", 
         Default = false, 
@@ -599,19 +592,26 @@ local success, err = pcall(function()
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
 
-    -- FLY WASD ONLY (CAMERA DIRECTION)
+    -- FLY FIXED (NO GRAVITY DROP)
     Tabs.Misc:AddToggle("FlyMode", { Title = "Fly (WASD Only)", Default = false, Callback = function(state)
         flyEnabled = state
         local char = LP.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if not hrp or not hum then return end
 
-        if flyEnabled then
-            T.Fly = RS.RenderStepped:Connect(function(dt)
-                if not flyEnabled or not hrp or not hrp.Parent then StopT("Fly") return end
+        if flyEnabled and hrp and hum then
+            hum.PlatformStand = true
 
+            T.Fly = RS.Heartbeat:Connect(function(dt)
+                if not flyEnabled or not hrp or not hrp.Parent then 
+                    StopT("Fly") 
+                    if hum then hum.PlatformStand = false end
+                    return 
+                end
+
+                -- Lock vertical velocity completely
                 hrp.AssemblyLinearVelocity = Vector3.zero
+                
                 local moveVector = Vector3.zero
                 local camCF = Cam.CFrame
 
@@ -625,7 +625,8 @@ local success, err = pcall(function()
                 end
             end)
         else 
-            StopT("Fly") 
+            StopT("Fly")
+            if hum then hum.PlatformStand = false end
         end
     end })
 
@@ -667,12 +668,10 @@ local success, err = pcall(function()
                 hum.UseJumpPower = true
                 hum.JumpPower = jumpPower
 
-                if speedToggleEnabled then
+                if speedToggleEnabled and not flyEnabled then
                     if hum.MoveDirection.Magnitude > 0 then
                         local targetVelocity = hum.MoveDirection * walkSpeed
-                        if not flyEnabled then
-                            hrp.CFrame = hrp.CFrame + (targetVelocity * dt)
-                        end
+                        hrp.CFrame = hrp.CFrame + (targetVelocity * dt)
                         hrp.AssemblyLinearVelocity = Vector3.new(targetVelocity.X, hrp.AssemblyLinearVelocity.Y, targetVelocity.Z)
                     else
                         hrp.AssemblyLinearVelocity = Vector3.new(0, hrp.AssemblyLinearVelocity.Y, 0)
