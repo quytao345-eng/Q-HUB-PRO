@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (PC Fly WASD Only)
+-- Q HUB - Fluent UI (Target Mobile Touch Added)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -23,6 +23,9 @@ local success, err = pcall(function()
     local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
     local behindDistance, targetBehindActive = 5, false
     local SelectedTargetPlayer, autoNextTarget = nil, false
+
+    -- TARGET MOBILE VARIABLES
+    local targetMobileEnabled = false
 
     -- AIM LOCK & SILENT AIM SETTINGS
     local aimLockEnabled, silentAimEnabled, showFOVCircle, aimWallCheck, aimTeamCheck = false, false, false, false, false
@@ -95,7 +98,20 @@ local success, err = pcall(function()
         TargetGuiCircle = CreateGuiCircle(Color3.fromRGB(255, 30, 30))
     end
 
-    -- TOGGLE BUTTON FOR MOBILE & PC
+    -- HELPER FUNCTIONS
+    local function StopT(n)
+        if T[n] then
+            if typeof(T[n]) == "RBXScriptConnection" then T[n]:Disconnect() else task.cancel(T[n]) end
+            T[n] = nil
+        end
+    end
+
+    local function ResetCamToSelf()
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum and Cam then Cam.CameraSubject = hum end
+    end
+
+    -- TOGGLE BUTTON FOR MENU (Q)
     local oldToggle = game:GetService("CoreGui"):FindFirstChild("QHubMobileToggleFluent") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubMobileToggleFluent")
     if oldToggle then oldToggle:Destroy() end
 
@@ -142,18 +158,79 @@ local success, err = pcall(function()
 
     ToggleBtn.MouseButton1Click:Connect(ToggleUI)
 
-    -- HELPER FUNCTIONS
-    local function StopT(n)
-        if T[n] then
-            if typeof(T[n]) == "RBXScriptConnection" then T[n]:Disconnect() else task.cancel(T[n]) end
-            T[n] = nil
-        end
+    -- TARGET MOBILE OFF BUTTON (T-OFF)
+    local oldTargetToggle = game:GetService("CoreGui"):FindFirstChild("QHubTargetMobileToggle") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubTargetMobileToggle")
+    if oldTargetToggle then oldTargetToggle:Destroy() end
+
+    local TargetMobileGui = Instance.new("ScreenGui")
+    local TargetOffBtn = Instance.new("TextButton")
+    local TargetUICorner = Instance.new("UICorner")
+
+    TargetMobileGui.Name = "QHubTargetMobileToggle"
+    TargetMobileGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
+    TargetMobileGui.ResetOnSpawn = false
+    TargetMobileGui.Enabled = false
+
+    TargetOffBtn.Name = "TargetOffBtn"
+    TargetOffBtn.Parent = TargetMobileGui
+    TargetOffBtn.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+    TargetOffBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
+    TargetOffBtn.Size = UDim2.new(0, 50, 0, 50)
+    TargetOffBtn.Font = Enum.Font.SourceSansBold
+    TargetOffBtn.Text = "OFF"
+    TargetOffBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TargetOffBtn.TextSize = 18
+    TargetOffBtn.Active = true
+    TargetOffBtn.Draggable = true
+
+    TargetUICorner.CornerRadius = UDim.new(0.5, 0)
+    TargetUICorner.Parent = TargetOffBtn
+
+    local function StartTargetingPlayer(plr)
+        if not plr or plr == LP then return end
+        SelectedTargetPlayer = plr
+        
+        StopT("Behind")
+        T.Behind = RS.Heartbeat:Connect(function()
+            local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
+            if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then ResetCamToSelf() return end
+            if hrp and tHrp then
+                hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
+                hrp.AssemblyLinearVelocity = Vector3.zero
+            end
+        end)
     end
 
-    local function ResetCamToSelf()
-        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-        if hum and Cam then Cam.CameraSubject = hum end
-    end
+    TargetOffBtn.MouseButton1Click:Connect(function()
+        SelectedTargetPlayer = nil
+        StopT("Behind")
+        ResetCamToSelf()
+    end)
+
+    -- TOUCH / CLICK DETECT FOR TARGET MOBILE
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed or not targetMobileEnabled then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local unitRay = Cam:ScreenPointToRay(input.Position.X, input.Position.Y)
+            local raycastParams = RaycastParams.new()
+            raycastParams.FilterType = RaycastFilterType.Exclude
+            if LP.Character then
+                raycastParams.FilterDescendantsInstances = {LP.Character}
+            end
+            
+            local result = W:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
+            if result and result.Instance then
+                local hitChar = result.Instance:FindFirstAncestorOfClass("Model")
+                if hitChar then
+                    local hitPlr = P:GetPlayerFromCharacter(hitChar)
+                    if hitPlr and hitPlr ~= LP then
+                        StartTargetingPlayer(hitPlr)
+                    end
+                end
+            end
+        end
+    end)
 
     local function GetNearestPlayer(maxDist)
         maxDist = maxDist or 500
@@ -246,7 +323,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: PC Fly (WASD Only)" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nVersion: Target Mobile Added" })
 
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
@@ -327,6 +404,21 @@ local success, err = pcall(function()
 
     local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
 
+    -- TARGET TAB (WITH TARMOBI)
+    Tabs.Target:AddToggle("TarMobiToggle", { 
+        Title = "Target Mobile (tarmobi)", 
+        Default = false, 
+        Callback = function(state) 
+            targetMobileEnabled = state 
+            TargetMobileGui.Enabled = state
+            if not state then
+                SelectedTargetPlayer = nil
+                StopT("Behind")
+                ResetCamToSelf()
+            end
+        end 
+    })
+
     Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV", Default = false, Callback = function(state) showTargetFOVCircle = state end })
     Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
     Tabs.Target:AddSlider("RedFOVRadius", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
@@ -370,15 +462,7 @@ local success, err = pcall(function()
     Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Target", Default = false, Callback = function(state)
         if state then
             if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
-            T.Behind = RS.Heartbeat:Connect(function()
-                local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-                if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then ResetCamToSelf() if autoNextTarget then SelectedTargetPlayer = GetNearestPlayer(500) end return end
-                if hrp and tHrp then
-                    hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
-                    hrp.AssemblyLinearVelocity = Vector3.zero
-                end
-            end)
+            StartTargetingPlayer(SelectedTargetPlayer)
         else StopT("Behind") ResetCamToSelf() end
     end })
 
@@ -531,7 +615,6 @@ local success, err = pcall(function()
                 local moveVector = Vector3.zero
                 local camCF = Cam.CFrame
 
-                -- WASD Controls only
                 if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
