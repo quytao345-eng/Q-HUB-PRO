@@ -667,7 +667,6 @@ local success, err = pcall(function()
 
     RS.Heartbeat:Connect(function(dt)
         local char = LP.Character
-        if char me then end
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
             local hrp = char:FindFirstChild("HumanoidRootPart")
