@@ -1,4 +1,4 @@
--- Q HUB - Rayfield UI Edition
+-- Q HUB - Rayfield UI Edition (No Shortcut Buttons)
 local success, err = pcall(function()
     local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
@@ -34,49 +34,6 @@ local success, err = pcall(function()
 
     local espHighlight = false
     local tpBlacklist = {}
-
-    -- SHORTCUT BUTTONS (Q & NUM)
-    local oldToggle = game:GetService("CoreGui"):FindFirstChild("QHubMobileToggle") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubMobileToggle")
-    if oldToggle then oldToggle:Destroy() end
-
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "QHubMobileToggle"
-    ScreenGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
-    ScreenGui.ResetOnSpawn = false
-
-    -- Nút Q (Mở/Ẩn UI)
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Name = "ToggleBtn"
-    ToggleBtn.Parent = ScreenGui
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-    ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
-    ToggleBtn.Font = Enum.Font.SourceSansBold
-    ToggleBtn.Text = "Q"
-    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleBtn.TextSize = 22
-    ToggleBtn.Active = true
-    ToggleBtn.Draggable = true
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0.5, 0)
-
-    -- Nút Num (Dịch chuyển ra sau lưng)
-    local NumBtn = Instance.new("TextButton")
-    NumBtn.Name = "NumBtn"
-    NumBtn.Parent = ScreenGui
-    NumBtn.BackgroundColor3 = Color3.fromRGB(180, 30, 30)
-    NumBtn.Position = UDim2.new(0.05, 0, 0.23, 0)
-    NumBtn.Size = UDim2.new(0, 45, 0, 45)
-    NumBtn.Font = Enum.Font.SourceSansBold
-    NumBtn.Text = "Num"
-    NumBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NumBtn.TextSize = 14
-    NumBtn.Active = true
-    NumBtn.Draggable = true
-    Instance.new("UICorner", NumBtn).CornerRadius = UDim.new(0.5, 0)
-
-    ToggleBtn.MouseButton1Click:Connect(function()
-        Rayfield:Toggle()
-    end)
 
     -- HELPER FUNCTIONS
     local function StopT(n)
@@ -175,7 +132,6 @@ local success, err = pcall(function()
 
     local function ToggleBehindTarget(enable)
         targetBehindActive = enable
-        NumBtn.BackgroundColor3 = enable and Color3.fromRGB(30, 180, 30) or Color3.fromRGB(180, 30, 30)
         if targetBehindActive then
             if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then 
                 SelectedTargetPlayer = GetNearestPlayer(500) 
@@ -205,10 +161,6 @@ local success, err = pcall(function()
         Flag = "TPBehind",
         Callback = function(Value) ToggleBehindTarget(Value) end    
     })
-
-    NumBtn.MouseButton1Click:Connect(function()
-        ToggleBehindTarget(not targetBehindActive)
-    end)
 
     TargetTab:CreateInput({
         Name = "Khoang cach sau lung",
@@ -289,7 +241,7 @@ local success, err = pcall(function()
         Callback = function(Value)
             espHighlight = Value
             for _, p in ipairs(P:GetPlayers()) do
-                if p ~= LP and p.Character then
+                if p ~= LP and p.Character me
                     local hl = p.Character:FindFirstChild("QHub_Highlight")
                     if hl then hl.Enabled = Value end
                 end
