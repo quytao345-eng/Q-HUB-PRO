@@ -1,15 +1,22 @@
--- Q HUB - WindUI Edition (Tối ưu Mobile & PC)
+-- Q HUB - Rayfield UI Edition
 local success, err = pcall(function()
-    local WindUI = loadstring(game:HttpGet("https://tree-hub.verifier.workers.dev/scripts/WindUI.lua"))()
+    local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-    local Window = WindUI:CreateWindow({
-        Title = "⚡ Q HUB - Mobile Edition",
-        Icon = "rbxassetid://4483345998",
-        Author = "Gemini & Quy",
-        Folder = "QHubConfig",
-        Size = UDim2.fromOffset(520, 340),
-        Transparent = true,
-        Theme = "Dark"
+    local Window = Rayfield:CreateWindow({
+        Name = "⚡ Q HUB - Mobile Edition",
+        LoadingTitle = "Q HUB Loading...",
+        LoadingSubtitle = "by Gemini & Quy",
+        ConfigurationSaving = {
+            Enabled = false,
+            FolderName = nil,
+            FileName = "QHubConfig"
+        },
+        Discord = {
+            Enabled = false,
+            Invite = "noinvitelink",
+            RememberJoins = true
+        },
+        KeySystem = false
     })
 
     -- SERVICES & VARIABLES
@@ -68,7 +75,7 @@ local success, err = pcall(function()
     Instance.new("UICorner", NumBtn).CornerRadius = UDim.new(0.5, 0)
 
     ToggleBtn.MouseButton1Click:Connect(function()
-        Window:Toggle()
+        Rayfield:Toggle()
     end)
 
     -- HELPER FUNCTIONS
@@ -119,7 +126,7 @@ local success, err = pcall(function()
         for _, p in ipairs(P:GetPlayers()) do
             if p ~= LP then table.insert(names, p.Name) end
         end
-        return #names > 0 and names or {"Chưa có người chơi"}
+        return #names > 0 and names or {"Chua co nguoi choi"}
     end
 
     -- LOGIC TOUCH TO TARGET
@@ -147,15 +154,16 @@ local success, err = pcall(function()
     end)
 
     -- TABS
-    local TargetTab = Window:Tab({ Title = "Target", Icon = "user" })
-    local TPTab = Window:Tab({ Title = "TP All", Icon = "zap" })
-    local ESPTab = Window:Tab({ Title = "ESP", Icon = "eye" })
-    local MiscTab = Window:Tab({ Title = "Misc", Icon = "settings" })
+    local TargetTab = Window:CreateTab("Target", 4483345998)
+    local TPTab = Window:CreateTab("TP All", 4483345998)
+    local ESPTab = Window:CreateTab("ESP", 4483345998)
+    local MiscTab = Window:CreateTab("Misc", 4483345998)
 
     -- TARGET TAB
-    TargetTab:Toggle({
-        Title = "Chạm/Click để chọn Target (Đỏ)",
-        Value = false,
+    TargetTab:CreateToggle({
+        Name = "Touch/Click Target (Do)",
+        CurrentValue = false,
+        Flag = "TouchTarget",
         Callback = function(Value)
             touchToTargetEnabled = Value
             if not Value and selectedTargetHighlight then
@@ -191,9 +199,10 @@ local success, err = pcall(function()
         end
     end
 
-    TargetTab:Toggle({
-        Title = "TP Sau Lưng Target",
-        Value = false,
+    TargetTab:CreateToggle({
+        Name = "TP Sau Lung Target",
+        CurrentValue = false,
+        Flag = "TPBehind",
         Callback = function(Value) ToggleBehindTarget(Value) end    
     })
 
@@ -201,21 +210,24 @@ local success, err = pcall(function()
         ToggleBehindTarget(not targetBehindActive)
     end)
 
-    TargetTab:Input({
-        Title = "Khoảng cách sau lưng",
-        Value = "5",
+    TargetTab:CreateInput({
+        Name = "Khoang cach sau lung",
+        PlaceholderText = "5",
+        RemoveTextOnFocus = false,
         Callback = function(Value)
             local num = tonumber(Value)
             if num then behindDistance = num end
         end
     })
 
-    TargetTab:Dropdown({
-        Title = "Chọn Người Chơi",
-        Values = GetPlayerListNames(),
-        Value = GetPlayerListNames()[1],
+    TargetTab:CreateDropdown({
+        Name = "Chon Nguoi Choi",
+        Options = GetPlayerListNames(),
+        CurrentOption = GetPlayerListNames()[1],
+        Flag = "TargetDropdown",
         Callback = function(Value)
-            local foundPlr = P:FindFirstChild(Value)
+            local targetName = type(Value) == "table" and Value[1] or Value
+            local foundPlr = P:FindFirstChild(targetName)
             if foundPlr then
                 SelectedTargetPlayer = foundPlr
                 HighlightTarget(foundPlr)
@@ -224,9 +236,10 @@ local success, err = pcall(function()
     })
 
     -- TP ALL TAB
-    TPTab:Toggle({
-        Title = "TP Liên Tục Toàn Bộ Player",
-        Value = false,
+    TPTab:CreateToggle({
+        Name = "TP Lien Tuc Toan Bo Player",
+        CurrentValue = false,
+        Flag = "TPAll",
         Callback = function(Value)
             if Value then
                 T.Teleport = task.spawn(function()
@@ -269,9 +282,10 @@ local success, err = pcall(function()
     for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
     P.PlayerAdded:Connect(CreateESP)
 
-    ESPTab:Toggle({
-        Title = "ESP Highlight Red",
-        Value = false,
+    ESPTab:CreateToggle({
+        Name = "ESP Highlight Red",
+        CurrentValue = false,
+        Flag = "ESPRed",
         Callback = function(Value)
             espHighlight = Value
             for _, p in ipairs(P:GetPlayers()) do
@@ -284,9 +298,10 @@ local success, err = pcall(function()
     })
 
     -- MISC TAB
-    MiscTab:Toggle({
-        Title = "Noclip (Xuyên tường)",
-        Value = false,
+    MiscTab:CreateToggle({
+        Name = "Noclip (Xuyen tuong)",
+        CurrentValue = false,
+        Flag = "Noclip",
         Callback = function(Value)
             noclipEnabled = Value
             if Value then
@@ -301,11 +316,11 @@ local success, err = pcall(function()
         end
     })
 
-    MiscTab:Button({
-        Title = "Vào lại game (Rejoin)",
+    MiscTab:CreateButton({
+        Name = "Vao lai game (Rejoin)",
         Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end
     })
 
 end)
 
-if not success then warn("Lỗi Q Hub: " .. tostring(err)) end
+if not success then warn("Loi Rayfield Q Hub: " .. tostring(err)) end
