@@ -1,13 +1,15 @@
--- Q HUB - Clean & Fixed (Support Mobile & PC)
+-- Q HUB - WindUI Edition (Tối ưu Mobile & PC)
 local success, err = pcall(function()
-    local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Orion/main/source'))()
-    
-    local Window = OrionLib:MakeWindow({
-        Name = "⚡ Q HUB - Gemini & Quy", 
-        HidePremium = true, 
-        SaveConfig = false, 
-        ConfigFolder = "QHubConfig",
-        IntroText = "Q HUB Loading..."
+    local WindUI = loadstring(game:HttpGet("https://tree-hub.verifier.workers.dev/scripts/WindUI.lua"))()
+
+    local Window = WindUI:CreateWindow({
+        Title = "⚡ Q HUB - Mobile Edition",
+        Icon = "rbxassetid://4483345998",
+        Author = "Gemini & Quy",
+        Folder = "QHubConfig",
+        Size = UDim2.fromOffset(520, 340),
+        Transparent = true,
+        Theme = "Dark"
     })
 
     -- SERVICES & VARIABLES
@@ -19,12 +21,11 @@ local success, err = pcall(function()
     local walkSpeed, jumpPower, flySpeed = 50, 50, 50
     local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
     local behindDistance, targetBehindActive = 5, false
-    local SelectedTargetPlayer, autoNextTarget = nil, false
+    local SelectedTargetPlayer = nil
     local touchToTargetEnabled = false
     local selectedTargetHighlight = nil
 
-    -- ESP & FOV
-    local espHighlight, espName, espHealth, espDistance, espBox = false, false, false, false, false
+    local espHighlight = false
     local tpBlacklist = {}
 
     -- SHORTCUT BUTTONS (Q & NUM)
@@ -36,11 +37,11 @@ local success, err = pcall(function()
     ScreenGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
     ScreenGui.ResetOnSpawn = false
 
-    -- Toggle Q Button
+    -- Nút Q (Mở/Ẩn UI)
     local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.Name = "ToggleBtn"
     ToggleBtn.Parent = ScreenGui
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
     ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
     ToggleBtn.Font = Enum.Font.SourceSansBold
@@ -51,7 +52,7 @@ local success, err = pcall(function()
     ToggleBtn.Draggable = true
     Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0.5, 0)
 
-    -- Target Num Button
+    -- Nút Num (Dịch chuyển ra sau lưng)
     local NumBtn = Instance.new("TextButton")
     NumBtn.Name = "NumBtn"
     NumBtn.Parent = ScreenGui
@@ -67,8 +68,7 @@ local success, err = pcall(function()
     Instance.new("UICorner", NumBtn).CornerRadius = UDim.new(0.5, 0)
 
     ToggleBtn.MouseButton1Click:Connect(function()
-        local mainGui = game:GetService("CoreGui"):FindFirstChild("Orion") or LP:WaitForChild("PlayerGui"):FindFirstChild("Orion")
-        if mainGui then mainGui.Enabled = not mainGui.Enabled end
+        Window:Toggle()
     end)
 
     -- HELPER FUNCTIONS
@@ -119,10 +119,10 @@ local success, err = pcall(function()
         for _, p in ipairs(P:GetPlayers()) do
             if p ~= LP then table.insert(names, p.Name) end
         end
-        return #names > 0 and names or {"No players"}
+        return #names > 0 and names or {"Chưa có người chơi"}
     end
 
-    -- TOUCH TO TARGET LOGIC
+    -- LOGIC TOUCH TO TARGET
     UIS.InputBegan:Connect(function(input, gpe)
         if gpe or not touchToTargetEnabled then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -147,15 +147,15 @@ local success, err = pcall(function()
     end)
 
     -- TABS
-    local TargetTab = OrionLib:MakeTab({Name = "Target", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-    local TPTab = OrionLib:MakeTab({Name = "TP All", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-    local ESPTab = OrionLib:MakeTab({Name = "ESP", Icon = "rbxassetid://4483345998", PremiumOnly = false})
-    local MiscTab = OrionLib:MakeTab({Name = "Misc", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+    local TargetTab = Window:Tab({ Title = "Target", Icon = "user" })
+    local TPTab = Window:Tab({ Title = "TP All", Icon = "zap" })
+    local ESPTab = Window:Tab({ Title = "ESP", Icon = "eye" })
+    local MiscTab = Window:Tab({ Title = "Misc", Icon = "settings" })
 
     -- TARGET TAB
-    TargetTab:AddToggle({
-        Name = "Click/Touch to Target (Highlight Red)",
-        Default = false,
+    TargetTab:Toggle({
+        Title = "Chạm/Click để chọn Target (Đỏ)",
+        Value = false,
         Callback = function(Value)
             touchToTargetEnabled = Value
             if not Value and selectedTargetHighlight then
@@ -178,10 +178,6 @@ local success, err = pcall(function()
                 local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
                 if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then
                     ResetCamToSelf()
-                    if autoNextTarget then
-                        SelectedTargetPlayer = GetNearestPlayer(500)
-                        HighlightTarget(SelectedTargetPlayer)
-                    end
                     return
                 end
                 if hrp and tHrp then
@@ -195,9 +191,9 @@ local success, err = pcall(function()
         end
     end
 
-    TargetTab:AddToggle({
-        Name = "TP Behind Target",
-        Default = false,
+    TargetTab:Toggle({
+        Title = "TP Sau Lưng Target",
+        Value = false,
         Callback = function(Value) ToggleBehindTarget(Value) end    
     })
 
@@ -205,20 +201,19 @@ local success, err = pcall(function()
         ToggleBehindTarget(not targetBehindActive)
     end)
 
-    TargetTab:AddTextbox({
-        Name = "Distance Behind",
-        Default = "5",
-        TextDisappear = false,
+    TargetTab:Input({
+        Title = "Khoảng cách sau lưng",
+        Value = "5",
         Callback = function(Value)
             local num = tonumber(Value)
             if num then behindDistance = num end
         end
     })
 
-    TargetTab:AddDropdown({
-        Name = "Select Target Player",
-        Default = GetPlayerListNames()[1] or "",
-        Options = GetPlayerListNames(),
+    TargetTab:Dropdown({
+        Title = "Chọn Người Chơi",
+        Values = GetPlayerListNames(),
+        Value = GetPlayerListNames()[1],
         Callback = function(Value)
             local foundPlr = P:FindFirstChild(Value)
             if foundPlr then
@@ -229,9 +224,9 @@ local success, err = pcall(function()
     })
 
     -- TP ALL TAB
-    TPTab:AddToggle({
-        Name = "TP All Players (Fast)",
-        Default = false,
+    TPTab:Toggle({
+        Title = "TP Liên Tục Toàn Bộ Player",
+        Value = false,
         Callback = function(Value)
             if Value then
                 T.Teleport = task.spawn(function()
@@ -261,10 +256,6 @@ local success, err = pcall(function()
         if plr == LP then return end
         local function SetupCharacter(char)
             if not char then return end
-            local hrp = char:WaitForChild("HumanoidRootPart", 10)
-            local hum = char:WaitForChild("Humanoid", 10)
-            if not hrp or not hum then return end
-
             local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
             hl.Name = "QHub_Highlight"
             hl.FillTransparency = 0.5
@@ -278,9 +269,9 @@ local success, err = pcall(function()
     for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
     P.PlayerAdded:Connect(CreateESP)
 
-    ESPTab:AddToggle({
-        Name = "ESP Highlight",
-        Default = false,
+    ESPTab:Toggle({
+        Title = "ESP Highlight Red",
+        Value = false,
         Callback = function(Value)
             espHighlight = Value
             for _, p in ipairs(P:GetPlayers()) do
@@ -293,46 +284,9 @@ local success, err = pcall(function()
     })
 
     -- MISC TAB
-    MiscTab:AddToggle({
-        Name = "Fly Mode (WASD / Cam)",
-        Default = false,
-        Callback = function(Value)
-            flyEnabled = Value
-            local char = LP.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-
-            if flyEnabled then
-                T.Fly = RS.RenderStepped:Connect(function(dt)
-                    if not flyEnabled or not hrp or not hrp.Parent then StopT("Fly") return end
-                    hrp.AssemblyLinearVelocity = Vector3.zero
-                    local moveVector = Vector3.zero
-                    local camCF = Cam.CFrame
-
-                    if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
-                    if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
-                    if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
-                    if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
-
-                    if moveVector.Magnitude > 0 then hrp.CFrame = hrp.CFrame + (moveVector.Unit * (flySpeed * dt)) end
-                end)
-            else StopT("Fly") end
-        end
-    })
-
-    MiscTab:AddTextbox({
-        Name = "Fly Speed",
-        Default = "50",
-        TextDisappear = false,
-        Callback = function(Value)
-            local num = tonumber(Value)
-            if num then flySpeed = num end
-        end
-    })
-
-    MiscTab:AddToggle({
-        Name = "Noclip",
-        Default = false,
+    MiscTab:Toggle({
+        Title = "Noclip (Xuyên tường)",
+        Value = false,
         Callback = function(Value)
             noclipEnabled = Value
             if Value then
@@ -347,12 +301,11 @@ local success, err = pcall(function()
         end
     })
 
-    MiscTab:AddButton({
-        Name = "Rejoin Game",
+    MiscTab:Button({
+        Title = "Vào lại game (Rejoin)",
         Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end
     })
 
-    OrionLib:Init()
 end)
 
-if not success then warn("Q HUB Error: " .. tostring(err)) end
+if not success then warn("Lỗi Q Hub: " .. tostring(err)) end
