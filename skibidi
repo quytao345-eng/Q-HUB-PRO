@@ -1,9 +1,9 @@
--- Q HUB - Fluent UI (Optimized FPS Performance)
+-- Q HUB - Fluent UI (Exact Mouse FOV Fix)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
     local Window = Fluent:CreateWindow({
-        Title = "⚡ Q HUB (Low-Lag)",
+        Title = "⚡ Q HUB (Exact Mouse FOV)",
         SubTitle = "by Gemini & Quy",
         TabWidth = 140,
         Size = UDim2.fromOffset(560, 420),
@@ -13,7 +13,7 @@ local success, err = pcall(function()
     })
 
     -- SERVICES & VARIABLES
-    local P, W, RS, UIS = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("UserInputService")
+    local P, W, RS, UIS, GS = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("UserInputService"), game:GetService("GuiService")
     local LP = P.LocalPlayer
     local Mouse = LP:GetMouse()
     local Cam = W.CurrentCamera
@@ -34,6 +34,12 @@ local success, err = pcall(function()
     -- ESP SETTINGS
     local espHighlight, espName, espHealth, espDistance, espBox = false, false, false, false, false
 
+    -- HÀM LẤY TỌA ĐỘ CHUỘT CHUẨN XÁC 100% (ĐÃ TRỪ INSET)
+    local function GetCorrectMousePos()
+        local mouseLocation = UIS:GetMouseLocation()
+        return Vector2.new(mouseLocation.X, mouseLocation.Y)
+    end
+
     -- DRAWING / GUI FOV SETUP
     local FOVCircle, TargetFOVCircle = nil, nil
     local GuiCircle, TargetGuiCircle = nil, nil
@@ -49,7 +55,7 @@ local success, err = pcall(function()
             FOVCircle = Drawing.new("Circle")
             FOVCircle.Color = Color3.fromRGB(255, 255, 255)
             FOVCircle.Thickness = 1.5
-            FOVCircle.NumSides = 30 -- Giảm từ 60 xuống 30 để mượt hơn
+            FOVCircle.NumSides = 30
             FOVCircle.Filled = false
             FOVCircle.Transparency = 1
             FOVCircle.Visible = false
@@ -71,6 +77,7 @@ local success, err = pcall(function()
         local sg = Instance.new("ScreenGui")
         sg.Name = "QHubFOVCircleGui"
         sg.ResetOnSpawn = false
+        sg.IgnoreGuiInset = true -- ĐẢM BẢO KHÔNG BỊ LỆCH KHỎI TRỎ CHUỘT
         sg.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
 
         local function CreateGuiCircle(color)
@@ -251,7 +258,7 @@ local success, err = pcall(function()
 
     local function GetClosestTargetInFOV(radius, wallCheck, teamCheck, specificPart)
         local closestPart, closestPlayer, shortestDistance = nil, nil, radius
-        local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+        local mousePos = GetCorrectMousePos()
 
         for _, p in ipairs(P:GetPlayers()) do
             if p ~= LP and p.Character and not (teamCheck and p.Team == LP.Team) then
@@ -304,7 +311,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nOptimized for FPS performance." })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nExact Mouse Position Fixed." })
 
     -- AIM TAB TOGGLES
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
@@ -316,10 +323,10 @@ local success, err = pcall(function()
     Tabs.Aim:AddSlider("AimSmooth", { Title = "Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
     Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
 
-    -- VÒNG LẶP RENDERSTEPPED NHẸ VÀ TỐI ƯU
+    -- CẬP NHẬT TÂM FOV THEO VỊ TRÍ CHUỘT CHUẨN
     RS.RenderStepped:Connect(function()
         if showFOVCircle or showTargetFOVCircle or aimLockEnabled then
-            local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+            local mousePos = GetCorrectMousePos()
 
             if FOVCircle then
                 FOVCircle.Position = mousePos
@@ -370,7 +377,7 @@ local success, err = pcall(function()
                             for _, targetHrp in ipairs(alivePlayers) do
                                 if targetHrp and targetHrp.Parent then 
                                     myHrp.CFrame = targetHrp.CFrame 
-                                    task.wait(0.01) -- Tăng thời gian chờ tránh spam CFrame quá đà
+                                    task.wait(0.01)
                                 end
                             end
                         else 
@@ -421,7 +428,7 @@ local success, err = pcall(function()
     Tabs.Target:AddKeybind("TargetKeybind", { Title = "Target Keybind", Mode = "Toggle", Default = "G", Callback = function() BehindToggle:SetValue(not BehindToggle.Value) end })
     Tabs.Target:AddInput("BehindDistInput", { Title = "Distance", Default = "5", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num end end })
 
-    -- ESP TỐI ƯU CẬP NHẬT THEO CHU KỲ TASK (KHÔNG SPAM FRAME)
+    -- ESP SYSTEM
     local function CreateESP(plr)
         if plr == LP then return end
 
@@ -487,7 +494,6 @@ local success, err = pcall(function()
     for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
     P.PlayerAdded:Connect(CreateESP)
 
-    -- Cập nhật ESP mỗi 0.1s thay vì từng Frame để chống giật
     task.spawn(function()
         while true do
             task.wait(0.1)
@@ -607,7 +613,6 @@ local success, err = pcall(function()
         end
     end)
 
-    -- NOCLIP TỐI ƯU
     Tabs.Misc:AddToggle("Noclip", { Title = "Noclip", Default = false, Callback = function(state)
         noclipEnabled = state
         if state then 
