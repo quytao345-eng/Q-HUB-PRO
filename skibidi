@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (POV / Target Hide Fix)
+-- Q HUB - Fluent UI (POV Radius & Target Detection Fixed)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -158,7 +158,7 @@ local success, err = pcall(function()
     TargetMobileGui.Name = "QHubTargetMobileToggle"
     TargetMobileGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
     TargetMobileGui.ResetOnSpawn = false
-    TargetMobileGui.Enabled = false -- MẶC ĐỊNH ẨN NÚT OFF
+    TargetMobileGui.Enabled = false
 
     TargetOffBtn.Name = "TargetOffBtn"
     TargetOffBtn.Parent = TargetMobileGui
@@ -179,7 +179,7 @@ local success, err = pcall(function()
     local function StopTargetingPlayer()
         targetBehindActive = false
         SelectedTargetPlayer = nil
-        TargetMobileGui.Enabled = false -- ÉP ẨN GUI NÚT OFF
+        TargetMobileGui.Enabled = false
         StopT("Behind")
         ResetCamToSelf()
     end
@@ -225,23 +225,6 @@ local success, err = pcall(function()
         end
     end)
 
-    local function GetNearestPlayer(maxDist)
-        maxDist = maxDist or 500
-        local closest, shortestDist = nil, maxDist
-        local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-        if not myHrp then return nil end
-        for _, p in ipairs(P:GetPlayers()) do
-            if p ~= LP and p.Character then
-                local pHrp, pHum = p.Character:FindFirstChild("HumanoidRootPart"), p.Character:FindFirstChildOfClass("Humanoid")
-                if pHrp and pHum and pHum.Health > 0 then
-                    local dist = (pHrp.Position - myHrp.Position).Magnitude
-                    if dist < shortestDist then shortestDist, closest = dist, p end
-                end
-            end
-        end
-        return closest
-    end
-
     local function GetPlayerListNames()
         local names = {}
         for _, p in ipairs(P:GetPlayers()) do
@@ -259,6 +242,7 @@ local success, err = pcall(function()
         return hit == nil or hit:IsDescendantOf(targetPart.Parent)
     end
 
+    -- SỬA LỖI: CHỈ LẤY TARGET NẰM TRONG VÒNG TRÒN FOV
     local function GetClosestTargetInFOV(radius, wallCheck, teamCheck, specificPart)
         local closestPart, closestPlayer, shortestDistance = nil, nil, radius
         local mousePos = GetCorrectMousePos()
@@ -271,9 +255,12 @@ local success, err = pcall(function()
                     local screenPos, onScreen = Cam:WorldToViewportPoint(part.Position)
                     if onScreen then
                         local distFromMouse = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                        if distFromMouse < shortestDistance and IsVisiblePart(part, wallCheck) then
-                            shortestDistance = distFromMouse
-                            closestPart, closestPlayer = part, p
+                        -- Kiểm tra chính xác xem khoảng cách có <= bán kính (radius) FOV không
+                        if distFromMouse <= radius and distFromMouse < shortestDistance then
+                            if IsVisiblePart(part, wallCheck) then
+                                shortestDistance = distFromMouse
+                                closestPart, closestPlayer = part, p
+                            end
                         end
                     end
                 end
@@ -314,7 +301,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nPOV Hide Bug Fixed." })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nFixed FOV Target Inside Radius Only." })
 
     -- AIM TAB TOGGLES
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
@@ -422,8 +409,14 @@ local success, err = pcall(function()
     local BehindToggle = Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Target", Default = false })
     BehindToggle:OnChanged(function(state)
         if state then
-            if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
-            StartTargetingPlayer(SelectedTargetPlayer)
+            -- BẮT BUỘC CHỈ LẤY NGƯỜI Ở TRONG VÒNG TRÒN FOV RED
+            local _, targetPlr = GetClosestTargetInFOV(targetFOVRadius, targetWallCheck, false, "HumanoidRootPart")
+            if targetPlr then
+                SelectedTargetPlayer = targetPlr
+                StartTargetingPlayer(SelectedTargetPlayer)
+            else
+                BehindToggle:SetValue(false) -- Tắt toggle nếu không có ai trong vòng POV
+            end
         else 
             StopTargetingPlayer() 
         end
