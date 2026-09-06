@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Mouse Center FOV & Fly/Target Keybinds)
+-- Q HUB - Fluent UI (Center Mouse FOV)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -261,7 +261,7 @@ local success, err = pcall(function()
         return hit == nil or hit:IsDescendantOf(targetPart.Parent)
     end
 
-    -- FOV LẤY VỊ TRÍ CHUỘT
+    -- ĐẶT TÂM TÍNH FOV DỰA VÀO VỊ TRÍ CHUỘT (MOUSE)
     local function GetClosestTargetInFOV(radius, wallCheck, teamCheck, specificPart)
         local closestPart, closestPlayer, shortestDistance = nil, nil, radius
         local mousePos = Vector2.new(Mouse.X, Mouse.Y)
@@ -317,7 +317,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nFeatures: Mouse-Follow FOV & Customizable Keybinds" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nFOV Circle centered on Mouse Pointer." })
 
     -- AIM TAB TOGGLES
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
@@ -329,7 +329,7 @@ local success, err = pcall(function()
     Tabs.Aim:AddSlider("AimSmooth", { Title = "Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
     Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
 
-    -- CẬP NHẬT FOV BÁM THEO CHUỘT
+    -- CẬP NHẬT TÂM VÒNG TRÒN DÙNG VỊ TRÍ CHUỘT
     RS.RenderStepped:Connect(function()
         local mousePos = Vector2.new(Mouse.X, Mouse.Y)
 
@@ -581,7 +581,7 @@ local success, err = pcall(function()
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
 
-    -- PERFECT FLY & KEYBIND
+    -- FLY & KEYBIND
     local FlyToggle = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly (WASD Only)", Default = false })
     FlyToggle:OnChanged(function(state)
         flyEnabled = state
