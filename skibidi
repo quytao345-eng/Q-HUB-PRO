@@ -1,9 +1,9 @@
--- Q HUB - Fluent UI (Exact Mouse FOV Fix)
+-- Q HUB - Fluent UI (POV / Target Hide Fix)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
     local Window = Fluent:CreateWindow({
-        Title = "⚡ Q HUB (Exact Mouse FOV)",
+        Title = "⚡ Q HUB (Target Fixed)",
         SubTitle = "by Gemini & Quy",
         TabWidth = 140,
         Size = UDim2.fromOffset(560, 420),
@@ -34,7 +34,7 @@ local success, err = pcall(function()
     -- ESP SETTINGS
     local espHighlight, espName, espHealth, espDistance, espBox = false, false, false, false, false
 
-    -- HÀM LẤY TỌA ĐỘ CHUỘT CHUẨN XÁC 100% (ĐÃ TRỪ INSET)
+    -- HÀM LẤY TỌA ĐỘ CHUỘT CHUẨN XÁC
     local function GetCorrectMousePos()
         local mouseLocation = UIS:GetMouseLocation()
         return Vector2.new(mouseLocation.X, mouseLocation.Y)
@@ -77,7 +77,7 @@ local success, err = pcall(function()
         local sg = Instance.new("ScreenGui")
         sg.Name = "QHubFOVCircleGui"
         sg.ResetOnSpawn = false
-        sg.IgnoreGuiInset = true -- ĐẢM BẢO KHÔNG BỊ LỆCH KHỎI TRỎ CHUỘT
+        sg.IgnoreGuiInset = true
         sg.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
 
         local function CreateGuiCircle(color)
@@ -158,7 +158,7 @@ local success, err = pcall(function()
     TargetMobileGui.Name = "QHubTargetMobileToggle"
     TargetMobileGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
     TargetMobileGui.ResetOnSpawn = false
-    TargetMobileGui.Enabled = false
+    TargetMobileGui.Enabled = false -- MẶC ĐỊNH ẨN NÚT OFF
 
     TargetOffBtn.Name = "TargetOffBtn"
     TargetOffBtn.Parent = TargetMobileGui
@@ -175,29 +175,32 @@ local success, err = pcall(function()
     TargetUICorner.CornerRadius = UDim.new(0.5, 0)
     TargetUICorner.Parent = TargetOffBtn
 
+    -- HÀM TẮT TARGET HOÀN TOÀN
+    local function StopTargetingPlayer()
+        targetBehindActive = false
+        SelectedTargetPlayer = nil
+        TargetMobileGui.Enabled = false -- ÉP ẨN GUI NÚT OFF
+        StopT("Behind")
+        ResetCamToSelf()
+    end
+
     local function StartTargetingPlayer(plr)
         if not plr or plr == LP then return end
         SelectedTargetPlayer = plr
         targetBehindActive = true
+        if targetMobileEnabled then TargetMobileGui.Enabled = true end
         
         StopT("Behind")
         T.Behind = RS.Heartbeat:Connect(function()
             if not targetBehindActive then StopT("Behind") ResetCamToSelf() return end
             local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-            if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then ResetCamToSelf() return end
+            if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then StopTargetingPlayer() return end
             if hrp and tHrp then
                 hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
                 hrp.AssemblyLinearVelocity = Vector3.zero
             end
         end)
-    end
-
-    local function StopTargetingPlayer()
-        targetBehindActive = false
-        SelectedTargetPlayer = nil
-        StopT("Behind")
-        ResetCamToSelf()
     end
 
     TargetOffBtn.MouseButton1Click:Connect(StopTargetingPlayer)
@@ -311,7 +314,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nExact Mouse Position Fixed." })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Script by Gemini & Quy\nPOV Hide Bug Fixed." })
 
     -- AIM TAB TOGGLES
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
@@ -323,35 +326,33 @@ local success, err = pcall(function()
     Tabs.Aim:AddSlider("AimSmooth", { Title = "Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
     Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
 
-    -- CẬP NHẬT TÂM FOV THEO VỊ TRÍ CHUỘT CHUẨN
+    -- CẬP NHẬT HOẶC ẨN VÒNG TRÒN FOV
     RS.RenderStepped:Connect(function()
-        if showFOVCircle or showTargetFOVCircle or aimLockEnabled then
-            local mousePos = GetCorrectMousePos()
+        local mousePos = GetCorrectMousePos()
 
-            if FOVCircle then
-                FOVCircle.Position = mousePos
-                FOVCircle.Radius = aimFOV
-                FOVCircle.Visible = showFOVCircle
-            elseif GuiCircle then
-                GuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
-                GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
-                GuiCircle.Visible = showFOVCircle
-            end
+        if FOVCircle then
+            FOVCircle.Position = mousePos
+            FOVCircle.Radius = aimFOV
+            FOVCircle.Visible = showFOVCircle
+        elseif GuiCircle then
+            GuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+            GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
+            GuiCircle.Visible = showFOVCircle
+        end
 
-            if TargetFOVCircle then
-                TargetFOVCircle.Position = mousePos
-                TargetFOVCircle.Radius = targetFOVRadius
-                TargetFOVCircle.Visible = showTargetFOVCircle
-            elseif TargetGuiCircle then
-                TargetGuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
-                TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
-                TargetGuiCircle.Visible = showTargetFOVCircle
-            end
+        if TargetFOVCircle then
+            TargetFOVCircle.Position = mousePos
+            TargetFOVCircle.Radius = targetFOVRadius
+            TargetFOVCircle.Visible = showTargetFOVCircle
+        elseif TargetGuiCircle then
+            TargetGuiCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+            TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
+            TargetGuiCircle.Visible = showTargetFOVCircle
+        end
 
-            if aimLockEnabled then
-                local target = GetClosestTargetInFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
-                if target then Cam.CFrame = Cam.CFrame:Lerp(CFrame.new(Cam.CFrame.Position, target.Position), aimSmoothness) end
-            end
+        if aimLockEnabled then
+            local target = GetClosestTargetInFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
+            if target then Cam.CFrame = Cam.CFrame:Lerp(CFrame.new(Cam.CFrame.Position, target.Position), aimSmoothness) end
         end
     end)
 
@@ -397,8 +398,9 @@ local success, err = pcall(function()
         Default = false, 
         Callback = function(state) 
             targetMobileEnabled = state 
-            TargetMobileGui.Enabled = state
-            if not state then StopTargetingPlayer() end
+            if not state then 
+                StopTargetingPlayer()
+            end
         end 
     })
 
@@ -422,7 +424,9 @@ local success, err = pcall(function()
         if state then
             if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
             StartTargetingPlayer(SelectedTargetPlayer)
-        else StopTargetingPlayer() end
+        else 
+            StopTargetingPlayer() 
+        end
     end)
 
     Tabs.Target:AddKeybind("TargetKeybind", { Title = "Target Keybind", Mode = "Toggle", Default = "G", Callback = function() BehindToggle:SetValue(not BehindToggle.Value) end })
