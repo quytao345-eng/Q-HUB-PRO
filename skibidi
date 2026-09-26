@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Custom Keybinds + Smooth Mobile Fly + Fixed Mobile Num Target)
+-- Q HUB - Fluent UI (Đã Tinh Chỉnh Hạ POV Xuống 50 Độ)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -13,7 +13,7 @@ local success, err = pcall(function()
     })
 
     -- SERVICES & VARIABLES
-    local P, W, RS, UIS, GS = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("UserInputService"), game:GetService("GuiService")
+    local P, W, RS, UIS, Lighting = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("UserInputService"), game:GetService("Lighting")
     local LP = P.LocalPlayer
     local Mouse = LP:GetMouse()
     local Cam = W.CurrentCamera
@@ -24,19 +24,20 @@ local success, err = pcall(function()
     local behindDistance = 5
     local SelectedTargetPlayer = nil
 
+    -- MẶC ĐỊNH HẠ POV XUỐNG 50 ĐỘ / 50PX
+    local fixedPovOffset = 50
+
     -- KEYBINDS
-    local flyKeybind = Enum.KeyCode.E
+    local flyKeybind = Enum.KeyCode.F
     local targetKeybind = Enum.KeyCode.R
 
-    -- TARGET POV / MOUSE VARIABLES
-    local povTargetEnabled = false
-    local povTargetPosition = nil
-    local isMouseDown = false
+    -- TARGET & POV VARIABLES
+    local targetModeEnabled = false
 
     -- AIM LOCK & SILENT AIM SETTINGS
     local aimLockEnabled, silentAimEnabled, showFOVCircle, aimWallCheck, aimTeamCheck = false, false, false, false, false
     local aimPart, aimFOV, aimSmoothness = "Head", 150, 0.2
-    local showTargetFOVCircle, targetFOVRadius, currentFOVTarget, targetWallCheck = false, 150, nil, false
+    local showTargetFOVCircle, targetFOVRadius, targetWallCheck = false, 150, false
     local tpBlacklist = {}
 
     -- ESP SETTINGS
@@ -56,18 +57,18 @@ local success, err = pcall(function()
         pcall(function()
             FOVCircle = Drawing.new("Circle")
             FOVCircle.Color = Color3.fromRGB(255, 255, 255)
-            FOVCircle.Thickness = 2
-            FOVCircle.NumSides = 60
+            FOVCircle.Thickness = 1.5
+            FOVCircle.NumSides = 32
             FOVCircle.Filled = false
-            FOVCircle.Transparency = 1
+            FOVCircle.Transparency = 0.8
             FOVCircle.Visible = false
 
             TargetFOVCircle = Drawing.new("Circle")
             TargetFOVCircle.Color = Color3.fromRGB(255, 30, 30)
-            TargetFOVCircle.Thickness = 2
-            TargetFOVCircle.NumSides = 60
+            TargetFOVCircle.Thickness = 1.5
+            TargetFOVCircle.NumSides = 32
             TargetFOVCircle.Filled = false
-            TargetFOVCircle.Transparency = 1
+            TargetFOVCircle.Transparency = 0.8
             TargetFOVCircle.Visible = false
         end)
     end
@@ -88,15 +89,15 @@ local success, err = pcall(function()
             frame.Visible = false
             frame.Parent = sg
             
-            local stroke = Instance.new("UIStroke")
-            stroke.Color = color
-            stroke.Thickness = 2
-            stroke.Parent = frame
-            
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(1, 0)
             corner.Parent = frame
             
+            local stroke = Instance.new("UIStroke")
+            stroke.Color = color
+            stroke.Thickness = 1.5
+            stroke.Parent = frame
+
             return frame
         end
 
@@ -133,13 +134,14 @@ local success, err = pcall(function()
     ToggleBtn.Parent = ScreenGui
     ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-    ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+    ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
     ToggleBtn.Font = Enum.Font.SourceSansBold
     ToggleBtn.Text = "Q"
     ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleBtn.TextSize = 24
+    ToggleBtn.TextSize = 22
     ToggleBtn.Active = true
     ToggleBtn.Draggable = true
+    ToggleBtn.BorderSizePixel = 0
 
     UICorner.CornerRadius = UDim.new(0.5, 0)
     UICorner.Parent = ToggleBtn
@@ -164,7 +166,7 @@ local success, err = pcall(function()
 
     ToggleBtn.MouseButton1Click:Connect(ToggleUI)
 
-    -- TARGET POV OFF BUTTON & NUM TARGET MOBILE INPUT
+    -- TARGET CONTROL PANELS
     local oldTargetToggle = game:GetService("CoreGui"):FindFirstChild("QHubTargetMobileToggle") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubTargetMobileToggle")
     if oldTargetToggle then oldTargetToggle:Destroy() end
 
@@ -172,99 +174,55 @@ local success, err = pcall(function()
     TargetMobileGui.Name = "QHubTargetMobileToggle"
     TargetMobileGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
     TargetMobileGui.ResetOnSpawn = false
-    TargetMobileGui.Enabled = false
+    TargetMobileGui.Enabled = true
 
-    local TargetOffBtn = Instance.new("TextButton")
-    TargetOffBtn.Name = "TargetOffBtn"
-    TargetOffBtn.Parent = TargetMobileGui
-    TargetOffBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
-    TargetOffBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
-    TargetOffBtn.Size = UDim2.new(0, 50, 0, 50)
-    TargetOffBtn.Font = Enum.Font.SourceSansBold
-    TargetOffBtn.Text = "OFF"
-    TargetOffBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TargetOffBtn.TextSize = 16
-    TargetOffBtn.Active = true
-    TargetOffBtn.Draggable = true
-    Instance.new("UICorner", TargetOffBtn).CornerRadius = UDim.new(0.5, 0)
+    local TargetToggleBtn = Instance.new("TextButton")
+    TargetToggleBtn.Name = "TargetToggleBtn"
+    TargetToggleBtn.Parent = TargetMobileGui
+    TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
+    TargetToggleBtn.Position = UDim2.new(0.05, 0, 0.23, 0)
+    TargetToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+    TargetToggleBtn.Font = Enum.Font.SourceSansBold
+    TargetToggleBtn.Text = "OFF"
+    TargetToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TargetToggleBtn.TextSize = 15
+    TargetToggleBtn.Active = true
+    TargetToggleBtn.Draggable = true
+    TargetToggleBtn.BorderSizePixel = 0
+    Instance.new("UICorner", TargetToggleBtn).CornerRadius = UDim.new(0.5, 0)
 
-    -- MOBILE NUM TARGET INPUT FIELD
     local NumTargetBox = Instance.new("TextBox")
     NumTargetBox.Name = "NumTargetBox"
     NumTargetBox.Parent = TargetMobileGui
     NumTargetBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    NumTargetBox.Position = UDim2.new(0.05, 0, 0.33, 0)
-    NumTargetBox.Size = UDim2.new(0, 60, 0, 30)
+    NumTargetBox.Position = UDim2.new(0.05, 0, 0.31, 0)
+    NumTargetBox.Size = UDim2.new(0, 55, 0, 28)
     NumTargetBox.Font = Enum.Font.SourceSansBold
     NumTargetBox.Text = tostring(behindDistance)
     NumTargetBox.PlaceholderText = "Num"
     NumTargetBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     NumTargetBox.TextSize = 14
     NumTargetBox.ClearTextOnFocus = false
+    NumTargetBox.BorderSizePixel = 0
     Instance.new("UICorner", NumTargetBox).CornerRadius = UDim.new(0.2, 0)
 
-    NumTargetBox.FocusLost:Connect(function()
-        local num = tonumber(NumTargetBox.Text)
+    local BehindDistInputObj = nil
+
+    local function UpdateBehindDistance(val)
+        local num = tonumber(val)
         if num then
             behindDistance = num
+            NumTargetBox.Text = tostring(num)
+            if BehindDistInputObj and BehindDistInputObj.SetValue then
+                BehindDistInputObj:SetValue(tostring(num))
+            end
         else
             NumTargetBox.Text = tostring(behindDistance)
         end
-    end)
-
-    local povToggleUI = nil
-
-    local function TogglePOVTarget(state)
-        if state == nil then state = not povTargetEnabled end
-        povTargetEnabled = state
-        TargetMobileGui.Enabled = state
-        if not state then
-            povTargetPosition = nil
-        end
-        if povToggleUI and povToggleUI.Value ~= state then
-            povToggleUI:SetValue(state)
-        end
     end
 
-    TargetOffBtn.MouseButton1Click:Connect(function()
-        TogglePOVTarget(false)
-    end)
-
-    -- UPDATE POV TARGET POSITION BY MOUSE / TOUCH
-    local function UpdatePOVPosition(screenPos)
-        local unitRay = Cam:ScreenPointToRay(screenPos.X, screenPos.Y)
-        local raycastParams = RaycastParams.new()
-        raycastParams.FilterType = RaycastFilterType.Exclude
-        if LP.Character then
-            raycastParams.FilterDescendantsInstances = {LP.Character}
-        end
-        local result = W:Raycast(unitRay.Origin, unitRay.Direction * 1000, raycastParams)
-        if result then
-            povTargetPosition = result.Position
-        else
-            povTargetPosition = unitRay.Origin + (unitRay.Direction * 100)
-        end
-    end
-
-    UIS.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed or not povTargetEnabled then return end
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isMouseDown = true
-            UpdatePOVPosition(input.Position)
-        end
-    end)
-
-    UIS.InputChanged:Connect(function(input, gameProcessed)
-        if not povTargetEnabled or not isMouseDown then return end
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            UpdatePOVPosition(input.Position)
-        end
-    end)
-
-    UIS.InputEnded:Connect(function(input, gameProcessed)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isMouseDown = false
-        end
+    NumTargetBox.FocusLost:Connect(function()
+        UpdateBehindDistance(NumTargetBox.Text)
     end)
 
     local function StartTargetingPlayer(plr)
@@ -283,6 +241,75 @@ local success, err = pcall(function()
         end)
     end
 
+    local function IsVisiblePart(targetPart, wallCheckEnabled)
+        if not wallCheckEnabled or not targetPart then return true end
+        local myChar = LP.Character
+        if not myChar then return false end
+        local ray = Ray.new(Cam.CFrame.Position, (targetPart.Position - Cam.CFrame.Position).Unit * 500)
+        local hit = W:FindPartOnRayWithIgnoreList(ray, {myChar, targetPart.Parent})
+        return hit == nil or hit:IsDescendantOf(targetPart.Parent)
+    end
+
+    local function GetClosestTargetToMouseFOV(radius, wallCheck, teamCheck, specificPart)
+        local closestPart, closestPlayer, shortestDistance = nil, nil, radius
+        local fovCenterPos = Vector2.new(Mouse.X, Mouse.Y + fixedPovOffset)
+
+        for _, p in ipairs(P:GetPlayers()) do
+            if p ~= LP and p.Character and not (teamCheck and p.Team == LP.Team) then
+                local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health > 0 then
+                    local part = specificPart and (p.Character:FindFirstChild(specificPart) or p.Character:FindFirstChild("HumanoidRootPart")) or p.Character:FindFirstChild("HumanoidRootPart")
+                    if part then
+                        local screenPos, onScreen = Cam:WorldToViewportPoint(part.Position)
+                        if onScreen then
+                            local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - fovCenterPos).Magnitude
+                            if distFromCenter < shortestDistance and IsVisiblePart(part, wallCheck) then
+                                shortestDistance = distFromCenter
+                                closestPart, closestPlayer = part, p
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return closestPart, closestPlayer
+    end
+
+    local function ToggleTargetMode(state)
+        if state == nil then state = not targetModeEnabled end
+        targetModeEnabled = state
+
+        if targetModeEnabled then
+            TargetToggleBtn.Text = "ON"
+            TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 220, 30)
+            
+            local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
+            if targetPlr then
+                StartTargetingPlayer(targetPlr)
+            end
+        else
+            TargetToggleBtn.Text = "OFF"
+            TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
+            SelectedTargetPlayer = nil
+            StopT("Behind")
+            ResetCamToSelf()
+        end
+    end
+
+    TargetToggleBtn.MouseButton1Click:Connect(function()
+        ToggleTargetMode()
+    end)
+
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed or not targetModeEnabled then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
+            if targetPlr then
+                StartTargetingPlayer(targetPlr)
+            end
+        end
+    end)
+
     local function GetNearestPlayer(maxDist)
         maxDist = maxDist or 500
         local closest, shortestDist = nil, maxDist
@@ -293,9 +320,7 @@ local success, err = pcall(function()
                 local pHrp, pHum = p.Character:FindFirstChild("HumanoidRootPart"), p.Character:FindFirstChildOfClass("Humanoid")
                 if pHrp and pHum and pHum.Health > 0 then
                     local dist = (pHrp.Position - myHrp.Position).Magnitude
-                    if dist < shortestDist then
-                        shortestDist, closest = dist, p
-                    end
+                    if dist < shortestDist then shortestDist, closest = dist, p end
                 end
             end
         end
@@ -310,38 +335,6 @@ local success, err = pcall(function()
         return #names > 0 and names or {"No players found"}
     end
 
-    local function IsVisiblePart(targetPart, wallCheckEnabled)
-        if not wallCheckEnabled or not targetPart then return true end
-        local myChar = LP.Character
-        if not myChar then return false end
-        local ray = Ray.new(Cam.CFrame.Position, (targetPart.Position - Cam.CFrame.Position).Unit * 500)
-        local hit = W:FindPartOnRayWithIgnoreList(ray, {myChar, targetPart.Parent})
-        return hit == nil or hit:IsDescendantOf(targetPart.Parent)
-    end
-
-    local function GetClosestTargetInFOV(radius, wallCheck, teamCheck, specificPart)
-        local closestPart, closestPlayer, shortestDistance = nil, nil, radius
-        local centerPos = Vector2.new(Cam.ViewportSize.X / 2, Cam.ViewportSize.Y / 2)
-
-        for _, p in ipairs(P:GetPlayers()) do
-            if p ~= LP and p.Character and not (teamCheck and p.Team == LP.Team) then
-                local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                local part = specificPart and (p.Character:FindFirstChild(specificPart) or p.Character:FindFirstChild("HumanoidRootPart")) or p.Character:FindFirstChild("HumanoidRootPart")
-                if hum and hum.Health > 0 and part then
-                    local screenPos, onScreen = Cam:WorldToViewportPoint(part.Position)
-                    if onScreen then
-                        local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - centerPos).Magnitude
-                        if distFromCenter < shortestDistance and IsVisiblePart(part, wallCheck) then
-                            shortestDistance = distFromCenter
-                            closestPart, closestPlayer = part, p
-                        end
-                    end
-                end
-            end
-        end
-        return closestPart, closestPlayer
-    end
-
     -- SILENT AIM HOOK
     pcall(function()
         local rawMeta = getrawmetatable(game)
@@ -349,7 +342,7 @@ local success, err = pcall(function()
         setreadonly(rawMeta, false)
         rawMeta.__index = newcclosure(function(self, key)
             if not checkcaller() and silentAimEnabled and self == Mouse then
-                local targetPart = GetClosestTargetInFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
+                local targetPart, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
                 if targetPart then
                     local k = key:lower()
                     if k == "hit" then return targetPart.CFrame
@@ -371,44 +364,124 @@ local success, err = pcall(function()
         TP = Window:AddTab({ Title = "TP All", Icon = "user-check" }),
         Target = Window:AddTab({ Title = "Target", Icon = "target" }),
         ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
+        FixLag = Window:AddTab({ Title = "Fix Lag", Icon = "zap" }),
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Hotkey List:\n• [Q] Toggle Menu\n• Configurable Keybinds in Misc Tab" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Hotkey List:\n• [Q] Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode" })
 
+    -- AIM TAB
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
     Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
-    Tabs.Aim:AddToggle("DrawFOV", {Title = "Draw Center FOV", Default = false}):OnChanged(function(v) showFOVCircle = v end)
+    Tabs.Aim:AddToggle("DrawFOV", {Title = "Draw Aim FOV", Default = false}):OnChanged(function(v) showFOVCircle = v end)
     Tabs.Aim:AddToggle("WallCheck", {Title = "Wall Check", Default = false}):OnChanged(function(v) aimWallCheck = v end)
     Tabs.Aim:AddToggle("TeamCheck", {Title = "Team Check", Default = false}):OnChanged(function(v) aimTeamCheck = v end)
     Tabs.Aim:AddDropdown("AimPart", { Title = "Aim Part", Values = {"Head", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end })
     Tabs.Aim:AddSlider("AimSmooth", { Title = "Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
     Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
 
+    -- RENDER LOOP CHO FOV
     RS.RenderStepped:Connect(function()
-        local centerPos = Vector2.new(Cam.ViewportSize.X / 2, Cam.ViewportSize.Y / 2)
+        local fovPos = Vector2.new(Mouse.X, Mouse.Y + fixedPovOffset)
 
-        if FOVCircle then
-            FOVCircle.Position, FOVCircle.Radius, FOVCircle.Visible = centerPos, aimFOV, showFOVCircle
-        elseif GuiCircle then
-            GuiCircle.Position = UDim2.new(0, centerPos.X, 0, centerPos.Y)
-            GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
-            GuiCircle.Visible = showFOVCircle
+        if showFOVCircle then
+            if FOVCircle then
+                FOVCircle.Position, FOVCircle.Radius, FOVCircle.Visible = fovPos, aimFOV, true
+            elseif GuiCircle then
+                GuiCircle.Position = UDim2.new(0, fovPos.X, 0, fovPos.Y)
+                GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
+                GuiCircle.Visible = true
+            end
+        else
+            if FOVCircle then FOVCircle.Visible = false end
+            if GuiCircle then GuiCircle.Visible = false end
         end
 
-        if TargetFOVCircle then
-            TargetFOVCircle.Position, TargetFOVCircle.Radius, TargetFOVCircle.Visible = centerPos, targetFOVRadius, showTargetFOVCircle
-        elseif TargetGuiCircle then
-            TargetGuiCircle.Position = UDim2.new(0, centerPos.X, 0, centerPos.Y)
-            TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
-            TargetGuiCircle.Visible = showTargetFOVCircle
+        if showTargetFOVCircle then
+            if TargetFOVCircle then
+                TargetFOVCircle.Position, TargetFOVCircle.Radius, TargetFOVCircle.Visible = fovPos, targetFOVRadius, true
+            elseif TargetGuiCircle then
+                TargetGuiCircle.Position = UDim2.new(0, fovPos.X, 0, fovPos.Y)
+                TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
+                TargetGuiCircle.Visible = true
+            end
+        else
+            if TargetFOVCircle then TargetFOVCircle.Visible = false end
+            if TargetGuiCircle then TargetGuiCircle.Visible = false end
         end
 
         if aimLockEnabled then
-            local target = GetClosestTargetInFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
+            local target, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
             if target then Cam.CFrame = Cam.CFrame:Lerp(CFrame.new(Cam.CFrame.Position, target.Position), aimSmoothness) end
         end
     end)
+
+    -- FIX LAG / FPS BOOST FUNCTIONS
+    Tabs.FixLag:AddButton({
+        Title = "⚡ Full Boost FPS (Khuyên Dùng)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                Lighting.Brightness = 1
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                        v.Enabled = false
+                    end
+                end
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                        v.Enabled = false
+                    elseif v:IsA("BasePart") and not v:IsA("MeshPart") then
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã tối ưu FPS thành công!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "🎨 Potato Graphics (Làm Mượt Texture)",
+        Callback = function()
+            pcall(function()
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.Material = Enum.Material.SmoothPlastic
+                    elseif v:IsA("Decal") or v:IsA("Texture") then
+                        v:Destroy()
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã bật Potato Graphics!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "🔥 Remove Particles & Effects",
+        Callback = function()
+            pcall(function()
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") or v:IsA("Explosion") then
+                        v:Destroy()
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã gỡ toàn bộ hiệu ứng hạt!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "💡 Disable Shadows & Lighting Effects",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.Technology = Enum.Technology.Compatibility
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã tắt bóng đổ!", Duration = 3 })
+        end
+    })
 
     -- TP ALL PLAYERS
     Tabs.TP:AddToggle("TPAll", {
@@ -455,20 +528,33 @@ local success, err = pcall(function()
 
     local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
 
-    -- TARGET TAB
-    povToggleUI = Tabs.Target:AddToggle("POVTargetToggle", { 
-        Title = "POV Target (Follow Mouse)", 
-        Default = false, 
-        Callback = function(state) 
-            TogglePOVTarget(state)
-        end 
+    -- TAB TARGET CONFIG
+    Tabs.Target:AddKeybind("TargetKeybindConfig", {
+        Title = "Target Hotkey",
+        Mode = "Toggle",
+        Default = "R",
+        Callback = function() ToggleTargetMode() end,
+        ChangedCallback = function(newKey) targetKeybind = newKey end
     })
 
+    Tabs.Target:AddToggle("ToggleTargetBtnUI", { Title = "Show Target Button", Default = true, Callback = function(state) TargetToggleBtn.Visible = state end })
+    Tabs.Target:AddToggle("ToggleNumInputUI", { Title = "Show Num Input Box", Default = true, Callback = function(state) NumTargetBox.Visible = state end })
     Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV", Default = false, Callback = function(state) showTargetFOVCircle = state end })
     Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
     Tabs.Target:AddSlider("RedFOVRadius", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
 
     local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
+
+    Tabs.Target:AddButton({
+        Title = "Teleport To Target",
+        Callback = function()
+            if SelectedTargetPlayer and SelectedTargetPlayer.Character then
+                local tHrp = SelectedTargetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                if tHrp and myHrp then myHrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, 3) end
+            end
+        end
+    })
 
     local function UpdateDropdowns()
         task.wait(0.1)
@@ -480,13 +566,26 @@ local success, err = pcall(function()
     P.PlayerRemoving:Connect(UpdateDropdowns)
 
     Tabs.Target:AddToggle("BehindToggle", { Title = "TP Behind Target", Default = false, Callback = function(state)
+        ToggleTargetMode(state)
         if state then
             if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
             StartTargetingPlayer(SelectedTargetPlayer)
-        else StopT("Behind") ResetCamToSelf() end
+        end
     end })
 
-    local BehindInputUI = Tabs.Target:AddInput("BehindDistInput", { Title = "Num Distance / Target", Default = tostring(behindDistance), Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then behindDistance = num NumTargetBox.Text = tostring(num) end end })
+    BehindDistInputObj = Tabs.Target:AddInput("BehindDistInput", { 
+        Title = "Num Distance / Target", 
+        Default = tostring(behindDistance), 
+        Numeric = true, 
+        Finished = true, 
+        Callback = function(txt) 
+            local num = tonumber(txt) 
+            if num then 
+                behindDistance = num 
+                NumTargetBox.Text = tostring(num) 
+            end 
+        end 
+    })
 
     -- ESP SYSTEM
     local function CreateESP(plr)
@@ -538,11 +637,6 @@ local success, err = pcall(function()
             boxFrame.BackgroundTransparency = 1
             boxFrame.Parent = boxBb
 
-            local stroke = boxFrame:FindFirstChild("UIStroke") or Instance.new("UIStroke")
-            stroke.Color = Color3.fromRGB(255, 45, 85)
-            stroke.Thickness = 1.8
-            stroke.Parent = boxFrame
-
             local corner = boxFrame:FindFirstChild("UICorner") or Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = boxFrame
@@ -593,7 +687,7 @@ local success, err = pcall(function()
     Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
     Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
 
-    -- FLY TOGGLE FUNCTION (MOBILE SMOOTH FLY DIRECTLY BY CAMERA DIRECTION)
+    -- FLY TOGGLE FUNCTION
     local function ToggleFly(state)
         if state == nil then state = not flyEnabled end
         flyEnabled = state
@@ -631,13 +725,11 @@ local success, err = pcall(function()
                 local moveVector = Vector3.zero
                 local camCF = Cam.CFrame
 
-                -- PC KEYBOARD INPUT
                 if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
                 if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
                 if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
 
-                -- MOBILE JOYSTICK / TOUCH MOVE INPUT (BAY THEO HƯỚNG LOOK VECTOR CỦA CAMERA)
                 if hum.MoveDirection.Magnitude > 0 then
                     moveVector = moveVector + (camCF.LookVector * (hum.MoveDirection:Dot(camCF.LookVector)))
                     moveVector = moveVector + (camCF.RightVector * (hum.MoveDirection:Dot(camCF.RightVector)))
@@ -661,33 +753,14 @@ local success, err = pcall(function()
         end
     end
 
-    local flyToggleUI = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state)
-        ToggleFly(state)
-    end })
+    local flyToggleUI = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state) ToggleFly(state) end })
 
-    -- CUSTOM KEYBINDS IN MISC TAB
     Tabs.Misc:AddKeybind("FlyKeybindConfig", {
         Title = "Fly Hotkey",
         Mode = "Toggle",
-        Default = "E",
-        Callback = function()
-            flyToggleUI:SetValue(not flyEnabled)
-        end,
-        ChangedCallback = function(newKey)
-            flyKeybind = newKey
-        end
-    })
-
-    Tabs.Misc:AddKeybind("TargetKeybindConfig", {
-        Title = "Target Hotkey",
-        Mode = "Toggle",
-        Default = "R",
-        Callback = function()
-            povToggleUI:SetValue(not povTargetEnabled)
-        end,
-        ChangedCallback = function(newKey)
-            targetKeybind = newKey
-        end
+        Default = "F",
+        Callback = function() flyToggleUI:SetValue(not flyEnabled) end,
+        ChangedCallback = function(newKey) flyKeybind = newKey end
     })
 
     Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
@@ -718,7 +791,7 @@ local success, err = pcall(function()
 
     Tabs.Misc:AddButton({ Title = "Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
 
-    -- MAIN LOOP FOR SPEED AND POV TARGET MOVEMENT
+    -- MAIN LOOP FOR SPEED
     RS.Heartbeat:Connect(function(dt)
         local char = LP.Character
         if char then
@@ -729,19 +802,7 @@ local success, err = pcall(function()
                 hum.UseJumpPower = true
                 hum.JumpPower = jumpPower
 
-                -- POV TARGET LOGIC
-                if povTargetEnabled and povTargetPosition then
-                    local targetFlat = Vector3.new(povTargetPosition.X, hrp.Position.Y, povTargetPosition.Z)
-                    local dir = targetFlat - hrp.Position
-                    if dir.Magnitude > 1.5 then
-                        hum:MoveTo(targetFlat)
-                        hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(hrp.Position, targetFlat), 0.25)
-                        if speedToggleEnabled then
-                            local moveDir = dir.Unit
-                            hrp.CFrame = hrp.CFrame + (moveDir * walkSpeed * dt)
-                        end
-                    end
-                elseif speedToggleEnabled and not flyEnabled then
+                if speedToggleEnabled and not flyEnabled then
                     if hum.MoveDirection.Magnitude > 0 then
                         local targetVelocity = hum.MoveDirection * walkSpeed
                         hrp.CFrame = hrp.CFrame + (targetVelocity * dt)
