@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Bổ Sung Fix Lag 80% - Smooth Stone Material)
+-- Q HUB - Fluent UI (Update TP All Under Feet 90° & New Fix Lag Modes)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -24,7 +24,7 @@ local success, err = pcall(function()
     local behindDistance = 5
     local SelectedTargetPlayer = nil
 
-    -- CHẾ ĐỘ TARGET: "Behind" (Sau lưng), "Top" (Trên đầu - nằm sấp quay mặt), "Front" (Trước mặt)
+    -- CHẾ ĐỘ TARGET: "Behind", "Top", "Front"
     local targetPositionMode = "Behind"
 
     -- MẶC ĐỊNH HẠ POV XUỐNG 50 ĐỘ / 50PX
@@ -194,7 +194,6 @@ local success, err = pcall(function()
     TargetToggleBtn.BorderSizePixel = 0
     Instance.new("UICorner", TargetToggleBtn).CornerRadius = UDim.new(0.5, 0)
 
-    -- Nút Nhanh Đổi Chế Độ Target
     local ModeTargetBtn = Instance.new("TextButton")
     ModeTargetBtn.Name = "ModeTargetBtn"
     ModeTargetBtn.Parent = TargetMobileGui
@@ -255,13 +254,10 @@ local success, err = pcall(function()
             if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then ResetCamToSelf() return end
             if hrp and tHrp then
                 if targetPositionMode == "Behind" then
-                    -- Sau Lưng
                     hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
                 elseif targetPositionMode == "Front" then
-                    -- Trước Mặt (Đối diện quay mặt lại)
                     hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, -behindDistance) * CFrame.Angles(0, math.rad(180), 0)
                 elseif targetPositionMode == "Top" then
-                    -- Trên Đầu: Nằm sấp và quay theo hướng của Target
                     local topCFrame = tHrp.CFrame * CFrame.new(0, behindDistance, 0)
                     hrp.CFrame = topCFrame * CFrame.Angles(math.rad(-90), 0, 0)
                 end
@@ -467,10 +463,9 @@ local success, err = pcall(function()
 
     -- FIX LAG / FPS BOOST FUNCTIONS
     Tabs.FixLag:AddButton({
-        Title = "🗿 Smooth Stone Material (Fix Lag 80%)",
+        Title = "🚀 Fix Lag 100% (Xóa Players & Effects)",
         Callback = function()
             pcall(function()
-                -- Tắt bóng và ánh sáng phức tạp
                 Lighting.GlobalShadows = false
                 Lighting.FogEnd = 9e9
                 Lighting.Brightness = 1
@@ -480,7 +475,42 @@ local success, err = pcall(function()
                     end
                 end
 
-                -- Chuyển toàn bộ map sang dạng Smooth Plastic dạng Đá
+                -- Xóa toàn bộ hiệu ứng hạt & phụ kiện của map
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") or v:IsA("Explosion") then
+                        v:Destroy()
+                    elseif v:IsA("BasePart") then
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                    elseif v:IsA("Decal") or v:IsA("Texture") then
+                        v:Destroy()
+                    end
+                end
+
+                -- Ẩn mô hình của toàn bộ Player khác để Max Performance
+                for _, p in ipairs(P:GetPlayers()) do
+                    if p ~= LP and p.Character then
+                        p.Character:Destroy()
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 100% (Xóa người chơi & hiệu ứng)!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "🗿 Smooth Stone Material (Fix Lag 80%)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                Lighting.Brightness = 1
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                        v.Enabled = false
+                    end
+                end
+
                 local stoneColor = Color3.fromRGB(130, 130, 130)
                 for _, v in ipairs(W:GetDescendants()) do
                     if v:IsA("BasePart") and not v:IsA("Terrain") then
@@ -493,16 +523,26 @@ local success, err = pcall(function()
                         v.Enabled = false
                     end
                 end
-
-                -- Tối ưu Terrain nếu có
-                if W.Terrain then
-                    W.Terrain.WaterWaveSize = 0
-                    W.Terrain.WaterWaveSpeed = 0
-                    W.Terrain.WaterReflectance = 0
-                    W.Terrain.WaterTransparency = 0
-                end
             end)
             Fluent:Notify({ Title = "Q HUB", Content = "Đã biến toàn bộ bản đồ thành Đá (Fix Lag 80%)!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "👕 Fix Lag 50% (Xóa Phụ Kiện / Accessories)",
+        Callback = function()
+            pcall(function()
+                for _, p in ipairs(P:GetPlayers()) do
+                    if p.Character then
+                        for _, acc in ipairs(p.Character:GetChildren()) do
+                            if acc:IsA("Accessory") or acc:IsA("Shirt") or acc:IsA("Pants") or acc:IsA("ShirtGraphic") then
+                                acc:Destroy()
+                            end
+                        end
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã xóa toàn bộ phụ kiện & quần áo (Fix Lag 50%)!", Duration = 3 })
         end
     })
 
@@ -531,50 +571,9 @@ local success, err = pcall(function()
         end
     })
 
-    Tabs.FixLag:AddButton({
-        Title = "🎨 Potato Graphics (Làm Mượt Texture)",
-        Callback = function()
-            pcall(function()
-                for _, v in ipairs(W:GetDescendants()) do
-                    if v:IsA("BasePart") then
-                        v.Material = Enum.Material.SmoothPlastic
-                    elseif v:IsA("Decal") or v:IsA("Texture") then
-                        v:Destroy()
-                    end
-                end
-            end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã bật Potato Graphics!", Duration = 3 })
-        end
-    })
-
-    Tabs.FixLag:AddButton({
-        Title = "🔥 Remove Particles & Effects",
-        Callback = function()
-            pcall(function()
-                for _, v in ipairs(W:GetDescendants()) do
-                    if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") or v:IsA("Explosion") then
-                        v:Destroy()
-                    end
-                end
-            end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã gỡ toàn bộ hiệu ứng hạt!", Duration = 3 })
-        end
-    })
-
-    Tabs.FixLag:AddButton({
-        Title = "💡 Disable Shadows & Lighting Effects",
-        Callback = function()
-            pcall(function()
-                Lighting.GlobalShadows = false
-                Lighting.Technology = Enum.Technology.Compatibility
-            end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã tắt bóng đổ!", Duration = 3 })
-        end
-    })
-
-    -- TP ALL PLAYERS
+    -- TP ALL PLAYERS (Cập nhật: Dưới chân target & nằm ngửa 90 độ)
     Tabs.TP:AddToggle("TPAll", {
-        Title = "TP All (0.0002s)",
+        Title = "TP All Under Feet 90° (0.0002s)",
         Default = false,
         Callback = function(state)
             if state then
@@ -596,7 +595,9 @@ local success, err = pcall(function()
                                 isSkyFalling = false 
                                 for _, targetHrp in ipairs(alivePlayers) do
                                     if targetHrp and targetHrp.Parent then 
-                                        myHrp.CFrame = targetHrp.CFrame 
+                                        -- Teleport xuống dưới chân (3.5 stud) và xoay nằm ngửa 90 độ
+                                        myHrp.CFrame = (targetHrp.CFrame * CFrame.new(0, -3.5, 0)) * CFrame.Angles(math.rad(90), 0, 0)
+                                        myHrp.AssemblyLinearVelocity = Vector3.zero
                                         task.wait(0.0002) 
                                     end
                                 end
@@ -626,7 +627,6 @@ local success, err = pcall(function()
         ChangedCallback = function(newKey) targetKeybind = newKey end
     })
 
-    -- Dropdown chọn Chế Độ Target Position
     ModeDropdownObj = Tabs.Target:AddDropdown("TargetPosMode", {
         Title = "Target Position Mode",
         Values = {"Behind", "Top", "Front"},
