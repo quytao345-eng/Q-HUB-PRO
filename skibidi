@@ -1,15 +1,22 @@
--- Q HUB - Fluent UI (Added 10%, 20%, 30% Fix Lag Modes)
+-- Q HUB - WindUI (Converted from Fluent)
+-- Added 10%, 20%, 30% Fix Lag Modes
 local success, err = pcall(function()
-    local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
-    local Window = Fluent:CreateWindow({
+    local Window = WindUI:CreateWindow({
         Title = "⚡ Q HUB",
-        SubTitle = "by Gemini & Quy",
-        TabWidth = 140,
-        Size = UDim2.fromOffset(560, 400),
-        Acrylic = false,
+        Author = "by Gemini & Quy",
+        Icon = "zap",
         Theme = "Dark",
-        MinimizeKey = Enum.KeyCode.LeftControl
+        Size = UDim2.fromOffset(560, 400),
+        ToggleKey = Enum.KeyCode.LeftControl,
+        Transparent = false,
+        Folder = "QHub",
+    })
+
+    Window:Tag({
+        Title = "WindUI",
+        Color = "ElementBackground",
     })
 
     -- SERVICES & VARIABLES
@@ -21,17 +28,32 @@ local success, err = pcall(function()
 
     local walkSpeed, jumpPower, flySpeed = 50, 50, 50
     local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
-    local behindDistance = 5
+    local behindDistance = 6
     local SelectedTargetPlayer = nil
 
     -- CHẾ ĐỘ TARGET: "Behind", "Top", "Front"
-    local targetPositionMode = "Behind"
+    local targetPositionMode = "Top"
     local fixedPovOffset = 50
 
-    -- KEYBINDS
+    -- KEYBINDS (custom system - WindUI Keybind rebind is buggy)
     local flyKeybind = Enum.KeyCode.F
     local targetKeybind = Enum.KeyCode.R
     local tpAllKeybind = Enum.KeyCode.T
+    local waitingForKeybind = nil -- "fly" | "target" | "tpall" | nil
+    local flyKeybindBtn, targetKeybindBtn, tpAllKeybindBtn = nil, nil, nil
+    local flyToggleUI, tpAllToggleUI = nil, nil -- forward declare (dùng trong InputBegan)
+
+    local function KeyCodeToName(kc)
+        if typeof(kc) == "EnumItem" then return kc.Name end
+        return tostring(kc)
+    end
+
+    local function NameToKeyCode(name)
+        if type(name) ~= "string" then return nil end
+        local ok, kc = pcall(function() return Enum.KeyCode[name] end)
+        if ok and kc then return kc end
+        return nil
+    end
 
     -- TARGET & POV VARIABLES
     local targetModeEnabled = false
@@ -79,7 +101,7 @@ local success, err = pcall(function()
     if not FOVCircle or not TargetFOVCircle then
         local parentGui = (game:GetService("CoreGui"):FindFirstChild("QHubFOVCircleGui"))
         if parentGui then parentGui:Destroy() end
-        
+
         local sg = Instance.new("ScreenGui")
         sg.Name = "QHubFOVCircleGui"
         sg.ResetOnSpawn = false
@@ -91,11 +113,11 @@ local success, err = pcall(function()
             frame.BackgroundTransparency = 1
             frame.Visible = false
             frame.Parent = sg
-            
+
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(1, 0)
             corner.Parent = frame
-            
+
             local stroke = Instance.new("UIStroke")
             stroke.Color = color
             stroke.Thickness = 1.5
@@ -150,20 +172,8 @@ local success, err = pcall(function()
     UICorner.Parent = ToggleBtn
 
     local function ToggleUI()
-        if Window and Window.Root then
-            Window.Root.Visible = not Window.Root.Visible
-        else
-            local coreGui = game:GetService("CoreGui")
-            local playerGui = LP:FindFirstChild("PlayerGui")
-            for _, parent in ipairs({coreGui, playerGui}) do
-                if parent then
-                    for _, child in ipairs(parent:GetChildren()) do
-                        if child:IsA("ScreenGui") and (child.Name:find("Fluent") or child:FindFirstChild("Main") or child:FindFirstChild("Frame")) then
-                            child.Enabled = not child.Enabled
-                        end
-                    end
-                end
-            end
+        if Window and Window.Toggle then
+            Window:Toggle()
         end
     end
 
@@ -201,7 +211,7 @@ local success, err = pcall(function()
     ModeTargetBtn.Position = UDim2.new(0.05, 0, 0.31, 0)
     ModeTargetBtn.Size = UDim2.new(0, 55, 0, 25)
     ModeTargetBtn.Font = Enum.Font.SourceSansBold
-    ModeTargetBtn.Text = "Behind"
+    ModeTargetBtn.Text = "Top"
     ModeTargetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     ModeTargetBtn.TextSize = 12
     ModeTargetBtn.Active = true
@@ -226,61 +236,128 @@ local success, err = pcall(function()
     local BehindDistInputObj = nil
     local ModeDropdownObj = nil
     local ToggleTargetUIObj = nil
+    local syncingTargetUI = false -- chặn vòng lặp Set ↔ Callback
+    local syncingNum = false
 
-    local function UpdateBehindDistance(val)
+    local function UpdateBehindDistance(val, fromMobile)
         local num = tonumber(val)
-        if num then
-            behindDistance = num
-            NumTargetBox.Text = tostring(num)
-            if BehindDistInputObj and BehindDistInputObj.SetValue then
-                BehindDistInputObj:SetValue(tostring(num))
-            end
-        else
-            NumTargetBox.Text = tostring(behindDistance)
+        if not (num and num >= 0) then
+            if NumTargetBox then NumTargetBox.Text = tostring(behindDistance) end
+            return
         end
+        behindDistance = num
+        syncingNum = true
+        if NumTargetBox and NumTargetBox.Text ~= tostring(num) then
+            NumTargetBox.Text = tostring(num)
+        end
+        if not fromMobile and BehindDistInputObj and BehindDistInputObj.Set then
+            pcall(function() BehindDistInputObj:Set(tostring(num)) end)
+        end
+        if fromMobile and BehindDistInputObj and BehindDistInputObj.Set then
+            pcall(function() BehindDistInputObj:Set(tostring(num)) end)
+        end
+        syncingNum = false
     end
 
     NumTargetBox.FocusLost:Connect(function()
-        UpdateBehindDistance(NumTargetBox.Text)
+        UpdateBehindDistance(NumTargetBox.Text, true)
+    end)
+    NumTargetBox:GetPropertyChangedSignal("Text"):Connect(function()
+        if syncingNum then return end
+        local num = tonumber(NumTargetBox.Text)
+        if num and num >= 0 then
+            behindDistance = num
+            if BehindDistInputObj and BehindDistInputObj.Set then
+                syncingNum = true
+                pcall(function() BehindDistInputObj:Set(tostring(num)) end)
+                syncingNum = false
+            end
+        end
     end)
 
     local function StopTargeting()
-        SelectedTargetPlayer = nil
+        -- Cắt connection trước, xóa target sau → thoát chắc
         StopT("Behind")
+        SelectedTargetPlayer = nil
         ResetCamToSelf()
+        -- Thả velocity để không bị kéo tiếp
+        pcall(function()
+            local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.AssemblyLinearVelocity = Vector3.zero
+            end
+        end)
     end
 
-    local function StartTargetingPlayer(plr)
+    local targetSmooth = 0.35
+
+    local function SetMobileTargetUI(on)
+        TargetToggleBtn.Text = on and "ON" or "OFF"
+        TargetToggleBtn.BackgroundColor3 = on and Color3.fromRGB(30, 220, 30) or Color3.fromRGB(220, 30, 30)
+    end
+
+    local function SyncAllTargetUI(on)
+        if syncingTargetUI then return end
+        syncingTargetUI = true
+        SetMobileTargetUI(on)
+        if ToggleTargetUIObj and ToggleTargetUIObj.Set then
+            pcall(function() ToggleTargetUIObj:Set(on) end)
+        end
+        syncingTargetUI = false
+    end
+
+    local function StartTargetingPlayer(plr, forceEnable)
         if not plr or plr == LP then return end
         SelectedTargetPlayer = plr
-        
+
+        if forceEnable then
+            targetModeEnabled = true
+            SyncAllTargetUI(true)
+        end
+        if not targetModeEnabled then
+            return
+        end
+
         StopT("Behind")
-        T.Behind = RS.Heartbeat:Connect(function()
-            local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-            
-            if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then 
+        T.Behind = RS.Heartbeat:Connect(function(dt)
+            -- Thoát ngay nếu đã tắt
+            if not targetModeEnabled then
+                StopT("Behind")
+                return
+            end
+
+            local char = LP.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local tPlr = SelectedTargetPlayer
+            local tChar = tPlr and tPlr.Character
+            local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
+            local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
+
+            if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then
+                targetModeEnabled = false
                 StopTargeting()
-                if targetModeEnabled then
-                    targetModeEnabled = false
-                    TargetToggleBtn.Text = "OFF"
-                    TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
-                    if ToggleTargetUIObj then ToggleTargetUIObj:SetValue(false) end
-                end
-                return 
+                SyncAllTargetUI(false)
+                return
             end
 
             if hrp and tHrp then
+                local dist = math.max(0, behindDistance)
+                local goalCF
                 if targetPositionMode == "Behind" then
-                    hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
+                    goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
                 elseif targetPositionMode == "Front" then
-                    hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, -behindDistance) * CFrame.Angles(0, math.rad(180), 0)
+                    goalCF = tHrp.CFrame * CFrame.new(0, 0, -dist)
+                    goalCF = CFrame.new(goalCF.Position, tHrp.Position)
                 elseif targetPositionMode == "Top" then
-                    local topCFrame = tHrp.CFrame * CFrame.new(0, behindDistance, 0)
-                    hrp.CFrame = topCFrame * CFrame.Angles(math.rad(-90), 0, 0)
+                    goalCF = CFrame.new(tHrp.Position + Vector3.new(0, dist, 0), tHrp.Position)
+                else
+                    goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
                 end
-                
-                hrp.AssemblyLinearVelocity = Vector3.zero
+
+                local alpha = math.clamp(targetSmooth + (dt or 0.016) * 8, 0.15, 1)
+                hrp.CFrame = hrp.CFrame:Lerp(goalCF, alpha)
+                local vel = hrp.AssemblyLinearVelocity
+                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.3, vel.Y * 0.5, vel.Z * 0.3)
             end
         end)
     end
@@ -288,8 +365,8 @@ local success, err = pcall(function()
     local function SetTargetMode(mode)
         targetPositionMode = mode
         ModeTargetBtn.Text = mode
-        if ModeDropdownObj and ModeDropdownObj.SetValue then
-            ModeDropdownObj:SetValue(mode)
+        if ModeDropdownObj and ModeDropdownObj.Select then
+            pcall(function() ModeDropdownObj:Select(mode) end)
         end
     end
 
@@ -339,32 +416,78 @@ local success, err = pcall(function()
 
     local function ToggleTargetMode(state)
         if state == nil then state = not targetModeEnabled end
-        targetModeEnabled = state
 
-        if targetModeEnabled then
-            TargetToggleBtn.Text = "ON"
-            TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 220, 30)
-            
-            if not SelectedTargetPlayer then
-                local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
-                if targetPlr then
-                    StartTargetingPlayer(targetPlr)
-                else
-                    targetModeEnabled = false
-                    TargetToggleBtn.Text = "OFF"
-                    TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
-                end
-            end
-        else
-            TargetToggleBtn.Text = "OFF"
-            TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
+        -- TẮT: cắt ngay, không kẹt người
+        if not state then
+            targetModeEnabled = false
             StopTargeting()
+            SyncAllTargetUI(false)
+            return
+        end
+
+        -- BẬT
+        targetModeEnabled = true
+        SyncAllTargetUI(true)
+
+        if SelectedTargetPlayer and SelectedTargetPlayer.Parent then
+            StartTargetingPlayer(SelectedTargetPlayer)
+        else
+            local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
+            if targetPlr then
+                StartTargetingPlayer(targetPlr)
+            else
+                WindUI:Notify({ Title = "Target", Content = "Chưa có target · click gần người chơi", Duration = 2 })
+            end
         end
     end
 
-    TargetToggleBtn.MouseButton1Click:Connect(function() ToggleTargetMode() end)
+    TargetToggleBtn.MouseButton1Click:Connect(function()
+        ToggleTargetMode() -- toggle + sync UI bên trong
+    end)
 
     UIS.InputBegan:Connect(function(input, gameProcessed)
+        -- Rebind hotkey mode (ưu tiên cao nhất)
+        if waitingForKeybind and input.UserInputType == Enum.UserInputType.Keyboard then
+            local key = input.KeyCode
+            if key == Enum.KeyCode.Unknown or key == Enum.KeyCode.Escape then
+                waitingForKeybind = nil
+                if tpAllKeybindBtn and tpAllKeybindBtn.SetTitle then
+                    pcall(function() tpAllKeybindBtn:SetTitle("TP All Hotkey: [" .. KeyCodeToName(tpAllKeybind) .. "]") end)
+                end
+                if targetKeybindBtn and targetKeybindBtn.SetTitle then
+                    pcall(function() targetKeybindBtn:SetTitle("Target Hotkey: [" .. KeyCodeToName(targetKeybind) .. "]") end)
+                end
+                if flyKeybindBtn and flyKeybindBtn.SetTitle then
+                    pcall(function() flyKeybindBtn:SetTitle("Fly Hotkey: [" .. KeyCodeToName(flyKeybind) .. "]") end)
+                end
+                return
+            end
+
+            local name = key.Name
+            if waitingForKeybind == "tpall" then
+                tpAllKeybind = key
+                if tpAllKeybindBtn and tpAllKeybindBtn.SetTitle then
+                    pcall(function() tpAllKeybindBtn:SetTitle("TP All Hotkey: [" .. name .. "]") end)
+                end
+                WindUI:Notify({ Title = "Q HUB", Content = "TP All → [" .. name .. "]", Duration = 2 })
+            elseif waitingForKeybind == "target" then
+                targetKeybind = key
+                if targetKeybindBtn and targetKeybindBtn.SetTitle then
+                    pcall(function() targetKeybindBtn:SetTitle("Target Hotkey: [" .. name .. "]") end)
+                end
+                WindUI:Notify({ Title = "Q HUB", Content = "Target → [" .. name .. "]", Duration = 2 })
+            elseif waitingForKeybind == "fly" then
+                flyKeybind = key
+                if flyKeybindBtn and flyKeybindBtn.SetTitle then
+                    pcall(function() flyKeybindBtn:SetTitle("Fly Hotkey: [" .. name .. "]") end)
+                end
+                WindUI:Notify({ Title = "Q HUB", Content = "Fly → [" .. name .. "]", Duration = 2 })
+            end
+            waitingForKeybind = nil
+            return
+        end
+
+        -- Target mode click-to-select
         if gameProcessed or not targetModeEnabled then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if not SelectedTargetPlayer then
@@ -408,26 +531,64 @@ local success, err = pcall(function()
 
     -- TABS
     local Tabs = {
-        Info = Window:AddTab({ Title = "Info", Icon = "info" }),
-        Aim = Window:AddTab({ Title = "Aim", Icon = "crosshair" }),
-        TP = Window:AddTab({ Title = "TP All", Icon = "user-check" }),
-        Target = Window:AddTab({ Title = "Target", Icon = "target" }),
-        ESP = Window:AddTab({ Title = "ESP", Icon = "eye" }),
-        FixLag = Window:AddTab({ Title = "Fix Lag", Icon = "zap" }),
-        Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
+        Info = Window:Tab({ Title = "Info", Icon = "info" }),
+        Aim = Window:Tab({ Title = "Aim", Icon = "crosshair" }),
+        TP = Window:Tab({ Title = "TP All", Icon = "user-check" }),
+        Target = Window:Tab({ Title = "Target", Icon = "target" }),
+        ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
+        FixLag = Window:Tab({ Title = "Fix Lag", Icon = "zap" }),
+        Misc = Window:Tab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Hotkey List:\n• [Q] Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode\n• [T] TP All Mode" })
+    Tabs.Info:Paragraph({
+        Title = "Q HUB",
+        Desc = "Hotkey List:\n• [Q] / [LeftCtrl] Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode\n• [T] TP All Mode"
+    })
 
     -- AIM TAB
-    Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
-    Tabs.Aim:AddToggle("SilentAim", {Title = "Silent Aim", Default = false}):OnChanged(function(v) silentAimEnabled = v end)
-    Tabs.Aim:AddToggle("DrawFOV", {Title = "Draw Aim FOV", Default = false}):OnChanged(function(v) showFOVCircle = v end)
-    Tabs.Aim:AddToggle("WallCheck", {Title = "Wall Check", Default = false}):OnChanged(function(v) aimWallCheck = v end)
-    Tabs.Aim:AddToggle("TeamCheck", {Title = "Team Check", Default = false}):OnChanged(function(v) aimTeamCheck = v end)
-    Tabs.Aim:AddDropdown("AimPart", { Title = "Aim Part", Values = {"Head", "HumanoidRootPart"}, Default = "Head", Callback = function(v) aimPart = v end })
-    Tabs.Aim:AddSlider("AimSmooth", { Title = "Smoothness", Min = 0.05, Max = 1, Default = 0.2, Rounding = 2, Callback = function(v) aimSmoothness = v end })
-    Tabs.Aim:AddSlider("AimFOV", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(v) aimFOV = v end })
+    Tabs.Aim:Toggle({
+        Title = "Aim Lock",
+        Value = false,
+        Callback = function(v) aimLockEnabled = v end
+    })
+    Tabs.Aim:Toggle({
+        Title = "Silent Aim",
+        Value = false,
+        Callback = function(v) silentAimEnabled = v end
+    })
+    Tabs.Aim:Toggle({
+        Title = "Draw Aim FOV",
+        Value = false,
+        Callback = function(v) showFOVCircle = v end
+    })
+    Tabs.Aim:Toggle({
+        Title = "Wall Check",
+        Value = false,
+        Callback = function(v) aimWallCheck = v end
+    })
+    Tabs.Aim:Toggle({
+        Title = "Team Check",
+        Value = false,
+        Callback = function(v) aimTeamCheck = v end
+    })
+    Tabs.Aim:Dropdown({
+        Title = "Aim Part",
+        Values = {"Head", "HumanoidRootPart"},
+        Value = "Head",
+        Callback = function(v) aimPart = v end
+    })
+    Tabs.Aim:Slider({
+        Title = "Smoothness",
+        Step = 0.01,
+        Value = { Min = 0.05, Max = 1, Default = 0.2 },
+        Callback = function(v) aimSmoothness = v end
+    })
+    Tabs.Aim:Slider({
+        Title = "FOV Size",
+        Step = 1,
+        Value = { Min = 50, Max = 500, Default = 150 },
+        Callback = function(v) aimFOV = v end
+    })
 
     -- RENDER LOOP CHO FOV
     RS.RenderStepped:Connect(function()
@@ -466,18 +627,18 @@ local success, err = pcall(function()
     end)
 
     -- FIX LAG / FPS BOOST FUNCTIONS
-    Tabs.FixLag:AddButton({
+    Tabs.FixLag:Button({
         Title = "💡 Fix Lag 10% (Tắt Shadows & Fog)",
         Callback = function()
             pcall(function()
                 Lighting.GlobalShadows = false
                 Lighting.FogEnd = 9e9
             end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 10% (Tắt bóng & sương mù)!", Duration = 3 })
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 10% (Tắt bóng & sương mù)!", Duration = 3 })
         end
     })
 
-    Tabs.FixLag:AddButton({
+    Tabs.FixLag:Button({
         Title = "✨ Fix Lag 20% (Tắt Hiệu Ứng Ánh Sáng / Post Effects)",
         Callback = function()
             pcall(function()
@@ -489,11 +650,11 @@ local success, err = pcall(function()
                     end
                 end
             end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 20% (Tắt hiệu ứng màn hình & ánh sáng)!", Duration = 3 })
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 20% (Tắt hiệu ứng màn hình & ánh sáng)!", Duration = 3 })
         end
     })
 
-    Tabs.FixLag:AddButton({
+    Tabs.FixLag:Button({
         Title = "💥 Fix Lag 30% (Tắt Hiệu Ứng Hạt / Particles)",
         Callback = function()
             pcall(function()
@@ -510,11 +671,11 @@ local success, err = pcall(function()
                     end
                 end
             end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 30% (Tắt toàn bộ hiệu ứng hạt/khói/lửa)!", Duration = 3 })
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 30% (Tắt toàn bộ hiệu ứng hạt/khói/lửa)!", Duration = 3 })
         end
     })
 
-    Tabs.FixLag:AddButton({
+    Tabs.FixLag:Button({
         Title = "👕 Fix Lag 50% (Xóa Phụ Kiện / Accessories)",
         Callback = function()
             pcall(function()
@@ -528,11 +689,11 @@ local success, err = pcall(function()
                     end
                 end
             end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã xóa toàn bộ phụ kiện & quần áo (Fix Lag 50%)!", Duration = 3 })
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã xóa toàn bộ phụ kiện & quần áo (Fix Lag 50%)!", Duration = 3 })
         end
     })
 
-    Tabs.FixLag:AddButton({
+    Tabs.FixLag:Button({
         Title = "🗿 Fix Lag 80% (Smooth Stone Material)",
         Callback = function()
             pcall(function()
@@ -558,11 +719,11 @@ local success, err = pcall(function()
                     end
                 end
             end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã biến toàn bộ bản đồ thành Đá (Fix Lag 80%)!", Duration = 3 })
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã biến toàn bộ bản đồ thành Đá (Fix Lag 80%)!", Duration = 3 })
         end
     })
 
-    Tabs.FixLag:AddButton({
+    Tabs.FixLag:Button({
         Title = "🚀 Fix Lag 100% (Xóa Players & Effects)",
         Callback = function()
             pcall(function()
@@ -592,7 +753,7 @@ local success, err = pcall(function()
                     end
                 end
             end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 100% (Xóa người chơi & hiệu ứng)!", Duration = 3 })
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 100% (Xóa người chơi & hiệu ứng)!", Duration = 3 })
         end
     })
 
@@ -617,12 +778,12 @@ local success, err = pcall(function()
                     local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
                     if myHrp then
                         if #alivePlayers > 0 then
-                            isSkyFalling = false 
+                            isSkyFalling = false
                             for _, targetHrp in ipairs(alivePlayers) do
-                                if targetHrp and targetHrp.Parent and tpAllEnabled then 
+                                if targetHrp and targetHrp.Parent and tpAllEnabled then
                                     myHrp.CFrame = (targetHrp.CFrame * CFrame.new(0, -3.5, 0)) * CFrame.Angles(math.rad(90), 0, 0)
                                     myHrp.AssemblyLinearVelocity = Vector3.zero
-                                    task.wait(0.0002) 
+                                    task.wait(0.0002)
                                 end
                             end
                         else
@@ -641,47 +802,93 @@ local success, err = pcall(function()
         end
     end
 
-    local tpAllToggleUI = Tabs.TP:AddToggle("TPAll", {
+    tpAllToggleUI = Tabs.TP:Toggle({
         Title = "TP All Under Feet 90° (0.0002s)",
-        Default = false,
+        Value = false,
         Callback = function(state) ToggleTPAll(state) end
     })
 
-    Tabs.TP:AddKeybind("TPAllKeybindConfig", {
-        Title = "TP All Hotkey",
-        Mode = "Toggle",
-        Default = "T",
-        Callback = function() tpAllToggleUI:SetValue(not tpAllEnabled) end,
-        ChangedCallback = function(newKey) tpAllKeybind = newKey end
+    tpAllKeybindBtn = Tabs.TP:Button({
+        Title = "TP All Hotkey: [" .. KeyCodeToName(tpAllKeybind) .. "]",
+        Desc = "Bấm để đổi phím · nhấn phím mới",
+        Callback = function()
+            waitingForKeybind = "tpall"
+            if tpAllKeybindBtn and tpAllKeybindBtn.SetTitle then
+                pcall(function() tpAllKeybindBtn:SetTitle("TP All Hotkey: [ ... ]") end)
+            end
+            WindUI:Notify({ Title = "Q HUB", Content = "Nhấn phím mới cho TP All...", Duration = 2 })
+        end
     })
 
-    local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
+    local TPBlacklistDropdown = Tabs.TP:Dropdown({
+        Title = "Blacklist",
+        Values = GetPlayerListNames(),
+        Multi = true,
+        AllowNone = true,
+        Value = {},
+        Callback = function(s)
+            tpBlacklist = {}
+            if type(s) == "table" then
+                for _, name in ipairs(s) do
+                    if name ~= "No players found" then
+                        table.insert(tpBlacklist, name)
+                    end
+                end
+            end
+        end
+    })
 
     -- TAB TARGET CONFIG
-    Tabs.Target:AddKeybind("TargetKeybindConfig", {
-        Title = "Target Hotkey",
-        Mode = "Toggle",
-        Default = "R",
-        Callback = function() ToggleTargetMode() end,
-        ChangedCallback = function(newKey) targetKeybind = newKey end
+    targetKeybindBtn = Tabs.Target:Button({
+        Title = "Target Hotkey: [" .. KeyCodeToName(targetKeybind) .. "]",
+        Desc = "Bấm để đổi phím · nhấn phím mới",
+        Callback = function()
+            waitingForKeybind = "target"
+            if targetKeybindBtn and targetKeybindBtn.SetTitle then
+                pcall(function() targetKeybindBtn:SetTitle("Target Hotkey: [ ... ]") end)
+            end
+            WindUI:Notify({ Title = "Q HUB", Content = "Nhấn phím mới cho Target...", Duration = 2 })
+        end
     })
 
-    ModeDropdownObj = Tabs.Target:AddDropdown("TargetPosMode", {
+    ModeDropdownObj = Tabs.Target:Dropdown({
         Title = "Target Position Mode",
         Values = {"Behind", "Top", "Front"},
-        Default = "Behind",
+        Value = "Top",
         Callback = function(v) SetTargetMode(v) end
     })
 
-    Tabs.Target:AddToggle("ToggleTargetBtnUI", { Title = "Show Target Button", Default = true, Callback = function(state) TargetToggleBtn.Visible = state ModeTargetBtn.Visible = state end })
-    Tabs.Target:AddToggle("ToggleNumInputUI", { Title = "Show Num Input Box", Default = true, Callback = function(state) NumTargetBox.Visible = state end })
-    Tabs.Target:AddToggle("DrawRedFOV", { Title = "Draw Target FOV", Default = false, Callback = function(state) showTargetFOVCircle = state end })
-    Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
-    Tabs.Target:AddSlider("RedFOVRadius", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
+    Tabs.Target:Toggle({
+        Title = "Show Target Button",
+        Value = true,
+        Callback = function(state)
+            TargetToggleBtn.Visible = state
+            ModeTargetBtn.Visible = state
+        end
+    })
+    Tabs.Target:Toggle({
+        Title = "Show Num Input Box",
+        Value = true,
+        Callback = function(state) NumTargetBox.Visible = state end
+    })
+    Tabs.Target:Toggle({
+        Title = "Draw Target FOV",
+        Value = false,
+        Callback = function(state) showTargetFOVCircle = state end
+    })
+    Tabs.Target:Toggle({
+        Title = "Wall Check",
+        Value = false,
+        Callback = function(state) targetWallCheck = state end
+    })
+    Tabs.Target:Slider({
+        Title = "FOV Size",
+        Step = 1,
+        Value = { Min = 50, Max = 500, Default = 150 },
+        Callback = function(val) targetFOVRadius = val end
+    })
 
-    local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then StartTargetingPlayer(foundPlr) end end })
-
-    Tabs.Target:AddButton({
+    Tabs.Target:Button({
         Title = "Teleport To Target",
         Callback = function()
             if SelectedTargetPlayer and SelectedTargetPlayer.Character then
@@ -695,28 +902,42 @@ local success, err = pcall(function()
     local function UpdateDropdowns()
         task.wait(0.1)
         local list = GetPlayerListNames()
-        TargetPlayerDropdown:SetValues(list)
-        TPBlacklistDropdown:SetValues(list)
+        pcall(function()
+            if TPBlacklistDropdown and TPBlacklistDropdown.Refresh then
+                TPBlacklistDropdown:Refresh(list)
+            end
+        end)
     end
     P.PlayerAdded:Connect(UpdateDropdowns)
     P.PlayerRemoving:Connect(UpdateDropdowns)
 
-    ToggleTargetUIObj = Tabs.Target:AddToggle("BehindToggle", { Title = "TP To Target Mode", Default = false, Callback = function(state)
-        ToggleTargetMode(state)
-    end })
+    ToggleTargetUIObj = Tabs.Target:Toggle({
+        Title = "TP To Target Mode",
+        Value = false,
+        Callback = function(state)
+            if syncingTargetUI then return end -- đang sync từ mobile, bỏ qua
+            ToggleTargetMode(state)
+        end
+    })
 
-    BehindDistInputObj = Tabs.Target:AddInput("BehindDistInput", { 
-        Title = "Num Distance / Target", 
-        Default = tostring(behindDistance), 
-        Numeric = true, 
-        Finished = true, 
-        Callback = function(txt) 
-            local num = tonumber(txt) 
-            if num then 
-                behindDistance = num 
-                NumTargetBox.Text = tostring(num) 
-            end 
-        end 
+    BehindDistInputObj = Tabs.Target:Input({
+        Title = "Num Distance / Target",
+        Desc = "Đồng bộ với ô Num mobile",
+        Value = tostring(behindDistance),
+        Placeholder = "VD: 5",
+        Callback = function(txt)
+            if syncingNum then return end
+            UpdateBehindDistance(txt, false)
+        end
+    })
+
+    Tabs.Target:Slider({
+        Title = "Target Smooth",
+        Step = 0.05,
+        Value = { Min = 0.1, Max = 1, Default = 0.35 },
+        Callback = function(v)
+            targetSmooth = v
+        end
     })
 
     -- ESP SYSTEM
@@ -813,11 +1034,31 @@ local success, err = pcall(function()
         end
     end
 
-    Tabs.ESP:AddToggle("ESPHighlight", {Title = "ESP Highlight", Default = false}):OnChanged(function(v) espHighlight = v UpdateESPStates() end)
-    Tabs.ESP:AddToggle("ESPBox", {Title = "ESP Box (Smooth)", Default = false}):OnChanged(function(v) espBox = v UpdateESPStates() end)
-    Tabs.ESP:AddToggle("ESPName", {Title = "ESP Name", Default = false}):OnChanged(function(v) espName = v UpdateESPStates() end)
-    Tabs.ESP:AddToggle("ESPHealth", {Title = "ESP Health", Default = false}):OnChanged(function(v) espHealth = v UpdateESPStates() end)
-    Tabs.ESP:AddToggle("ESPDistance", {Title = "ESP Distance (m)", Default = false}):OnChanged(function(v) espDistance = v UpdateESPStates() end)
+    Tabs.ESP:Toggle({
+        Title = "ESP Highlight",
+        Value = false,
+        Callback = function(v) espHighlight = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Box (Smooth)",
+        Value = false,
+        Callback = function(v) espBox = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Name",
+        Value = false,
+        Callback = function(v) espName = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Health",
+        Value = false,
+        Callback = function(v) espHealth = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Distance (m)",
+        Value = false,
+        Callback = function(v) espDistance = v UpdateESPStates() end
+    })
 
     -- FLY TOGGLE FUNCTION
     local function ToggleFly(state)
@@ -885,21 +1126,61 @@ local success, err = pcall(function()
         end
     end
 
-    local flyToggleUI = Tabs.Misc:AddToggle("FlyMode", { Title = "Fly Mode", Default = false, Callback = function(state) ToggleFly(state) end })
-
-    Tabs.Misc:AddKeybind("FlyKeybindConfig", {
-        Title = "Fly Hotkey",
-        Mode = "Toggle",
-        Default = "F",
-        Callback = function() flyToggleUI:SetValue(not flyEnabled) end,
-        ChangedCallback = function(newKey) flyKeybind = newKey end
+    flyToggleUI = Tabs.Misc:Toggle({
+        Title = "Fly Mode",
+        Value = false,
+        Callback = function(state) ToggleFly(state) end
     })
 
-    Tabs.Misc:AddInput("InputFlySpeed", { Title = "Fly Speed", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then flySpeed = num end end })
-    Tabs.Misc:AddToggle("EnableSpeed", { Title = "Smooth Speed", Default = false, Callback = function(state) speedToggleEnabled = state end })
-    Tabs.Misc:AddInput("InputWalkSpeed", { Title = "Speed Value", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then walkSpeed = num end end })
-    Tabs.Misc:AddInput("InputJumpPower", { Title = "Jump Power", Default = "50", Numeric = true, Finished = true, Callback = function(txt) local num = tonumber(txt) if num then jumpPower = num end end })
-    Tabs.Misc:AddToggle("InfJump", { Title = "Infinite Jump", Default = false, Callback = function(state) infJumpEnabled = state end })
+    flyKeybindBtn = Tabs.Misc:Button({
+        Title = "Fly Hotkey: [" .. KeyCodeToName(flyKeybind) .. "]",
+        Desc = "Bấm để đổi phím · nhấn phím mới",
+        Callback = function()
+            waitingForKeybind = "fly"
+            if flyKeybindBtn and flyKeybindBtn.SetTitle then
+                pcall(function() flyKeybindBtn:SetTitle("Fly Hotkey: [ ... ]") end)
+            end
+            WindUI:Notify({ Title = "Q HUB", Content = "Nhấn phím mới cho Fly...", Duration = 2 })
+        end
+    })
+
+    Tabs.Misc:Input({
+        Title = "Fly Speed",
+        Value = "50",
+        Placeholder = "Speed",
+        Callback = function(txt)
+            local num = tonumber(txt)
+            if num then flySpeed = num end
+        end
+    })
+    Tabs.Misc:Toggle({
+        Title = "Smooth Speed",
+        Value = false,
+        Callback = function(state) speedToggleEnabled = state end
+    })
+    Tabs.Misc:Input({
+        Title = "Speed Value",
+        Value = "50",
+        Placeholder = "WalkSpeed",
+        Callback = function(txt)
+            local num = tonumber(txt)
+            if num then walkSpeed = num end
+        end
+    })
+    Tabs.Misc:Input({
+        Title = "Jump Power",
+        Value = "50",
+        Placeholder = "JumpPower",
+        Callback = function(txt)
+            local num = tonumber(txt)
+            if num then jumpPower = num end
+        end
+    })
+    Tabs.Misc:Toggle({
+        Title = "Infinite Jump",
+        Value = false,
+        Callback = function(state) infJumpEnabled = state end
+    })
 
     UIS.JumpRequest:Connect(function()
         if infJumpEnabled and LP.Character then
@@ -908,20 +1189,31 @@ local success, err = pcall(function()
         end
     end)
 
-    Tabs.Misc:AddToggle("Noclip", { Title = "Noclip", Default = false, Callback = function(state)
-        noclipEnabled = state
-        if state then 
-            T.Noclip = RS.Stepped:Connect(function() 
-                if LP.Character and noclipEnabled then 
-                    for _, part in ipairs(LP.Character:GetDescendants()) do 
-                        if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end 
-                    end 
-                end 
-            end) 
-        else StopT("Noclip") end
-    end })
+    Tabs.Misc:Toggle({
+        Title = "Noclip",
+        Value = false,
+        Callback = function(state)
+            noclipEnabled = state
+            if state then
+                T.Noclip = RS.Stepped:Connect(function()
+                    if LP.Character and noclipEnabled then
+                        for _, part in ipairs(LP.Character:GetDescendants()) do
+                            if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+                        end
+                    end
+                end)
+            else
+                StopT("Noclip")
+            end
+        end
+    })
 
-    Tabs.Misc:AddButton({ Title = "Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end })
+    Tabs.Misc:Button({
+        Title = "Rejoin",
+        Callback = function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
+        end
+    })
 
     -- MAIN LOOP FOR SPEED
     RS.Heartbeat:Connect(function(dt)
@@ -929,7 +1221,7 @@ local success, err = pcall(function()
         if char then
             local hum = char:FindFirstChildOfClass("Humanoid")
             local hrp = char:FindFirstChild("HumanoidRootPart")
-            
+
             if hum and hrp then
                 hum.UseJumpPower = true
                 hum.JumpPower = jumpPower
@@ -947,7 +1239,44 @@ local success, err = pcall(function()
         end
     end)
 
-    Window:SelectTab(1)
+    -- Hotkey trigger (đặt sau khi Toggle* đã khai báo)
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if waitingForKeybind then return end
+        if gameProcessed or UIS:GetFocusedTextBox() then return end
+        if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+
+        if input.KeyCode == tpAllKeybind then
+            local newState = not tpAllEnabled
+            if tpAllToggleUI and tpAllToggleUI.Set then
+                pcall(function() tpAllToggleUI:Set(newState) end)
+            else
+                ToggleTPAll(newState)
+            end
+        elseif input.KeyCode == targetKeybind then
+            ToggleTargetMode()
+        elseif input.KeyCode == flyKeybind then
+            local newState = not flyEnabled
+            if flyToggleUI and flyToggleUI.Set then
+                pcall(function() flyToggleUI:Set(newState) end)
+            else
+                ToggleFly(newState)
+            end
+        end
+    end)
+
+    -- Select first tab
+    pcall(function()
+        if Tabs.Info and Tabs.Info.Select then
+            Tabs.Info:Select()
+        end
+    end)
+
+    WindUI:Notify({
+        Title = "Q HUB",
+        Content = "Loaded with WindUI!",
+        Duration = 3,
+        Icon = "zap"
+    })
 end)
 
 if not success then
