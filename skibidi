@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Update TP All Keybind & Single Lock Target)
+-- Q HUB - Fluent UI (Added 10%, 20%, 30% Fix Lag Modes)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -31,7 +31,7 @@ local success, err = pcall(function()
     -- KEYBINDS
     local flyKeybind = Enum.KeyCode.F
     local targetKeybind = Enum.KeyCode.R
-    local tpAllKeybind = Enum.KeyCode.T -- Mặc định phím T cho TP All
+    local tpAllKeybind = Enum.KeyCode.T
 
     -- TARGET & POV VARIABLES
     local targetModeEnabled = false
@@ -259,7 +259,6 @@ local success, err = pcall(function()
             local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
             
-            -- Nếu mục tiêu chết hoặc biến mất -> Hủy target
             if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then 
                 StopTargeting()
                 if targetModeEnabled then
@@ -346,13 +345,11 @@ local success, err = pcall(function()
             TargetToggleBtn.Text = "ON"
             TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 220, 30)
             
-            -- CHỈ BẮT TARGET NẾU CHƯA CÓ TARGET HOẶC TARGET CŨ ĐÃ CHẾT
             if not SelectedTargetPlayer then
                 local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
                 if targetPlr then
                     StartTargetingPlayer(targetPlr)
                 else
-                    -- Không tìm thấy mục tiêu trong FOV thì tắt
                     targetModeEnabled = false
                     TargetToggleBtn.Text = "OFF"
                     TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
@@ -367,11 +364,9 @@ local success, err = pcall(function()
 
     TargetToggleBtn.MouseButton1Click:Connect(function() ToggleTargetMode() end)
 
-    -- KHÓA TARGET: KHÔNG TỰ ĐỔI MỤC TIÊU KHI ĐANG TARGET TỚI KHI TARGET CHẾT/TẮT
     UIS.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed or not targetModeEnabled then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            -- Nếu chưa có Target nào thì mới tìm Target mới
             if not SelectedTargetPlayer then
                 local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
                 if targetPlr then
@@ -472,6 +467,102 @@ local success, err = pcall(function()
 
     -- FIX LAG / FPS BOOST FUNCTIONS
     Tabs.FixLag:AddButton({
+        Title = "💡 Fix Lag 10% (Tắt Shadows & Fog)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 10% (Tắt bóng & sương mù)!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "✨ Fix Lag 20% (Tắt Hiệu Ứng Ánh Sáng / Post Effects)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("ColorCorrectionEffect") then
+                        v.Enabled = false
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 20% (Tắt hiệu ứng màn hình & ánh sáng)!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "💥 Fix Lag 30% (Tắt Hiệu Ứng Hạt / Particles)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                        v.Enabled = false
+                    end
+                end
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                        v.Enabled = false
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 30% (Tắt toàn bộ hiệu ứng hạt/khói/lửa)!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "👕 Fix Lag 50% (Xóa Phụ Kiện / Accessories)",
+        Callback = function()
+            pcall(function()
+                for _, p in ipairs(P:GetPlayers()) do
+                    if p.Character then
+                        for _, acc in ipairs(p.Character:GetChildren()) do
+                            if acc:IsA("Accessory") or acc:IsA("Shirt") or acc:IsA("Pants") or acc:IsA("ShirtGraphic") then
+                                acc:Destroy()
+                            end
+                        end
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã xóa toàn bộ phụ kiện & quần áo (Fix Lag 50%)!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
+        Title = "🗿 Fix Lag 80% (Smooth Stone Material)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                Lighting.Brightness = 1
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                        v.Enabled = false
+                    end
+                end
+
+                local stoneColor = Color3.fromRGB(130, 130, 130)
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("BasePart") and not v:IsA("Terrain") then
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                        v.Color = stoneColor
+                    elseif v:IsA("Decal") or v:IsA("Texture") then
+                        v:Destroy()
+                    elseif v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                        v.Enabled = false
+                    end
+                end
+            end)
+            Fluent:Notify({ Title = "Q HUB", Content = "Đã biến toàn bộ bản đồ thành Đá (Fix Lag 80%)!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:AddButton({
         Title = "🚀 Fix Lag 100% (Xóa Players & Effects)",
         Callback = function()
             pcall(function()
@@ -502,54 +593,6 @@ local success, err = pcall(function()
                 end
             end)
             Fluent:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 100% (Xóa người chơi & hiệu ứng)!", Duration = 3 })
-        end
-    })
-
-    Tabs.FixLag:AddButton({
-        Title = "🗿 Smooth Stone Material (Fix Lag 80%)",
-        Callback = function()
-            pcall(function()
-                Lighting.GlobalShadows = false
-                Lighting.FogEnd = 9e9
-                Lighting.Brightness = 1
-                for _, v in ipairs(Lighting:GetChildren()) do
-                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
-                        v.Enabled = false
-                    end
-                end
-
-                local stoneColor = Color3.fromRGB(130, 130, 130)
-                for _, v in ipairs(W:GetDescendants()) do
-                    if v:IsA("BasePart") and not v:IsA("Terrain") then
-                        v.Material = Enum.Material.SmoothPlastic
-                        v.Reflectance = 0
-                        v.Color = stoneColor
-                    elseif v:IsA("Decal") or v:IsA("Texture") then
-                        v:Destroy()
-                    elseif v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
-                        v.Enabled = false
-                    end
-                end
-            end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã biến toàn bộ bản đồ thành Đá (Fix Lag 80%)!", Duration = 3 })
-        end
-    })
-
-    Tabs.FixLag:AddButton({
-        Title = "👕 Fix Lag 50% (Xóa Phụ Kiện / Accessories)",
-        Callback = function()
-            pcall(function()
-                for _, p in ipairs(P:GetPlayers()) do
-                    if p.Character then
-                        for _, acc in ipairs(p.Character:GetChildren()) do
-                            if acc:IsA("Accessory") or acc:IsA("Shirt") or acc:IsA("Pants") or acc:IsA("ShirtGraphic") then
-                                acc:Destroy()
-                            end
-                        end
-                    end
-                end
-            end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã xóa toàn bộ phụ kiện & quần áo (Fix Lag 50%)!", Duration = 3 })
         end
     })
 
