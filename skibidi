@@ -1,4 +1,4 @@
--- Q HUB - Fluent UI (Update TP All Under Feet 90° & New Fix Lag Modes)
+-- Q HUB - Fluent UI (Update TP All Keybind & Single Lock Target)
 local success, err = pcall(function()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
@@ -26,13 +26,12 @@ local success, err = pcall(function()
 
     -- CHẾ ĐỘ TARGET: "Behind", "Top", "Front"
     local targetPositionMode = "Behind"
-
-    -- MẶC ĐỊNH HẠ POV XUỐNG 50 ĐỘ / 50PX
     local fixedPovOffset = 50
 
     -- KEYBINDS
     local flyKeybind = Enum.KeyCode.F
     local targetKeybind = Enum.KeyCode.R
+    local tpAllKeybind = Enum.KeyCode.T -- Mặc định phím T cho TP All
 
     -- TARGET & POV VARIABLES
     local targetModeEnabled = false
@@ -41,6 +40,7 @@ local success, err = pcall(function()
     local aimLockEnabled, silentAimEnabled, showFOVCircle, aimWallCheck, aimTeamCheck = false, false, false, false, false
     local aimPart, aimFOV, aimSmoothness = "Head", 150, 0.2
     local showTargetFOVCircle, targetFOVRadius, targetWallCheck = false, 150, false
+    local tpAllEnabled = false
     local tpBlacklist = {}
 
     -- ESP SETTINGS
@@ -225,6 +225,7 @@ local success, err = pcall(function()
 
     local BehindDistInputObj = nil
     local ModeDropdownObj = nil
+    local ToggleTargetUIObj = nil
 
     local function UpdateBehindDistance(val)
         local num = tonumber(val)
@@ -243,6 +244,12 @@ local success, err = pcall(function()
         UpdateBehindDistance(NumTargetBox.Text)
     end)
 
+    local function StopTargeting()
+        SelectedTargetPlayer = nil
+        StopT("Behind")
+        ResetCamToSelf()
+    end
+
     local function StartTargetingPlayer(plr)
         if not plr or plr == LP then return end
         SelectedTargetPlayer = plr
@@ -251,7 +258,19 @@ local success, err = pcall(function()
         T.Behind = RS.Heartbeat:Connect(function()
             local char = LP.Character local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local tPlr = SelectedTargetPlayer local tChar = tPlr and tPlr.Character local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart") local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-            if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then ResetCamToSelf() return end
+            
+            -- Nếu mục tiêu chết hoặc biến mất -> Hủy target
+            if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then 
+                StopTargeting()
+                if targetModeEnabled then
+                    targetModeEnabled = false
+                    TargetToggleBtn.Text = "OFF"
+                    TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
+                    if ToggleTargetUIObj then ToggleTargetUIObj:SetValue(false) end
+                end
+                return 
+            end
+
             if hrp and tHrp then
                 if targetPositionMode == "Behind" then
                     hrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, behindDistance)
@@ -272,9 +291,6 @@ local success, err = pcall(function()
         ModeTargetBtn.Text = mode
         if ModeDropdownObj and ModeDropdownObj.SetValue then
             ModeDropdownObj:SetValue(mode)
-        end
-        if targetModeEnabled and SelectedTargetPlayer then
-            StartTargetingPlayer(SelectedTargetPlayer)
         end
     end
 
@@ -330,47 +346,40 @@ local success, err = pcall(function()
             TargetToggleBtn.Text = "ON"
             TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 220, 30)
             
-            local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
-            if targetPlr then
-                StartTargetingPlayer(targetPlr)
+            -- CHỈ BẮT TARGET NẾU CHƯA CÓ TARGET HOẶC TARGET CŨ ĐÃ CHẾT
+            if not SelectedTargetPlayer then
+                local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
+                if targetPlr then
+                    StartTargetingPlayer(targetPlr)
+                else
+                    -- Không tìm thấy mục tiêu trong FOV thì tắt
+                    targetModeEnabled = false
+                    TargetToggleBtn.Text = "OFF"
+                    TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
+                end
             end
         else
             TargetToggleBtn.Text = "OFF"
             TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
-            SelectedTargetPlayer = nil
-            StopT("Behind")
-            ResetCamToSelf()
+            StopTargeting()
         end
     end
 
-    TargetToggleBtn.MouseButton1Click:Connect(ToggleTargetMode)
+    TargetToggleBtn.MouseButton1Click:Connect(function() ToggleTargetMode() end)
 
+    -- KHÓA TARGET: KHÔNG TỰ ĐỔI MỤC TIÊU KHI ĐANG TARGET TỚI KHI TARGET CHẾT/TẮT
     UIS.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed or not targetModeEnabled then return end
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
-            if targetPlr then
-                StartTargetingPlayer(targetPlr)
-            end
-        end
-    end)
-
-    local function GetNearestPlayer(maxDist)
-        maxDist = maxDist or 500
-        local closest, shortestDist = nil, maxDist
-        local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-        if not myHrp then return nil end
-        for _, p in ipairs(P:GetPlayers()) do
-            if p ~= LP and p.Character then
-                local pHrp, pHum = p.Character:FindFirstChild("HumanoidRootPart"), p.Character:FindFirstChildOfClass("Humanoid")
-                if pHrp and pHum and pHum.Health > 0 then
-                    local dist = (pHrp.Position - myHrp.Position).Magnitude
-                    if dist < shortestDist then shortestDist, closest = dist, p end
+            -- Nếu chưa có Target nào thì mới tìm Target mới
+            if not SelectedTargetPlayer then
+                local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
+                if targetPlr then
+                    StartTargetingPlayer(targetPlr)
                 end
             end
         end
-        return closest
-    end
+    end)
 
     local function GetPlayerListNames()
         local names = {}
@@ -413,7 +422,7 @@ local success, err = pcall(function()
         Misc = Window:AddTab({ Title = "Misc", Icon = "move" })
     }
 
-    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Hotkey List:\n• [Q] Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode" })
+    Tabs.Info:AddParagraph({ Title = "Q HUB", Content = "Hotkey List:\n• [Q] Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode\n• [T] TP All Mode" })
 
     -- AIM TAB
     Tabs.Aim:AddToggle("AimLock", {Title = "Aim Lock", Default = false}):OnChanged(function(v) aimLockEnabled = v end)
@@ -475,7 +484,6 @@ local success, err = pcall(function()
                     end
                 end
 
-                -- Xóa toàn bộ hiệu ứng hạt & phụ kiện của map
                 for _, v in ipairs(W:GetDescendants()) do
                     if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") or v:IsA("Explosion") then
                         v:Destroy()
@@ -487,7 +495,6 @@ local success, err = pcall(function()
                     end
                 end
 
-                -- Ẩn mô hình của toàn bộ Player khác để Max Performance
                 for _, p in ipairs(P:GetPlayers()) do
                     if p ~= LP and p.Character then
                         p.Character:Destroy()
@@ -546,74 +553,63 @@ local success, err = pcall(function()
         end
     })
 
-    Tabs.FixLag:AddButton({
-        Title = "⚡ Full Boost FPS (Khuyên Dùng)",
-        Callback = function()
-            pcall(function()
-                Lighting.GlobalShadows = false
-                Lighting.FogEnd = 9e9
-                Lighting.Brightness = 1
-                for _, v in ipairs(Lighting:GetChildren()) do
-                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
-                        v.Enabled = false
+    -- TP ALL FUNCTION & KEYBIND
+    local function ToggleTPAll(state)
+        if state == nil then state = not tpAllEnabled end
+        tpAllEnabled = state
+
+        if tpAllEnabled then
+            T.Teleport = task.spawn(function()
+                local isSkyFalling = false
+                while tpAllEnabled do
+                    local alivePlayers = {}
+                    for _, p in ipairs(P:GetPlayers()) do
+                        if p ~= LP and not table.find(tpBlacklist, p.Name) and p.Character then
+                            local tr = p.Character:FindFirstChild("HumanoidRootPart")
+                            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                            if tr and hum and hum.Health > 0 then table.insert(alivePlayers, tr) end
+                        end
                     end
-                end
-                for _, v in ipairs(W:GetDescendants()) do
-                    if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
-                        v.Enabled = false
-                    elseif v:IsA("BasePart") and not v:IsA("MeshPart") then
-                        v.Material = Enum.Material.SmoothPlastic
-                        v.Reflectance = 0
-                    end
+
+                    local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp then
+                        if #alivePlayers > 0 then
+                            isSkyFalling = false 
+                            for _, targetHrp in ipairs(alivePlayers) do
+                                if targetHrp and targetHrp.Parent and tpAllEnabled then 
+                                    myHrp.CFrame = (targetHrp.CFrame * CFrame.new(0, -3.5, 0)) * CFrame.Angles(math.rad(90), 0, 0)
+                                    myHrp.AssemblyLinearVelocity = Vector3.zero
+                                    task.wait(0.0002) 
+                                end
+                            end
+                        else
+                            if not isSkyFalling then
+                                isSkyFalling = true
+                                myHrp.CFrame = myHrp.CFrame + Vector3.new(0, 500, 0)
+                                myHrp.AssemblyLinearVelocity = Vector3.zero
+                            end
+                            task.wait(0.1)
+                        end
+                    else task.wait(0.05) end
                 end
             end)
-            Fluent:Notify({ Title = "Q HUB", Content = "Đã tối ưu FPS thành công!", Duration = 3 })
+        else
+            StopT("Teleport")
         end
-    })
+    end
 
-    -- TP ALL PLAYERS (Cập nhật: Dưới chân target & nằm ngửa 90 độ)
-    Tabs.TP:AddToggle("TPAll", {
+    local tpAllToggleUI = Tabs.TP:AddToggle("TPAll", {
         Title = "TP All Under Feet 90° (0.0002s)",
         Default = false,
-        Callback = function(state)
-            if state then
-                T.Teleport = task.spawn(function()
-                    local isSkyFalling = false
-                    while true do
-                        local alivePlayers = {}
-                        for _, p in ipairs(P:GetPlayers()) do
-                            if p ~= LP and not table.find(tpBlacklist, p.Name) and p.Character then
-                                local tr = p.Character:FindFirstChild("HumanoidRootPart")
-                                local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                                if tr and hum and hum.Health > 0 then table.insert(alivePlayers, tr) end
-                            end
-                        end
+        Callback = function(state) ToggleTPAll(state) end
+    })
 
-                        local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                        if myHrp then
-                            if #alivePlayers > 0 then
-                                isSkyFalling = false 
-                                for _, targetHrp in ipairs(alivePlayers) do
-                                    if targetHrp and targetHrp.Parent then 
-                                        -- Teleport xuống dưới chân (3.5 stud) và xoay nằm ngửa 90 độ
-                                        myHrp.CFrame = (targetHrp.CFrame * CFrame.new(0, -3.5, 0)) * CFrame.Angles(math.rad(90), 0, 0)
-                                        myHrp.AssemblyLinearVelocity = Vector3.zero
-                                        task.wait(0.0002) 
-                                    end
-                                end
-                            else
-                                if not isSkyFalling then
-                                    isSkyFalling = true
-                                    myHrp.CFrame = myHrp.CFrame + Vector3.new(0, 500, 0)
-                                    myHrp.AssemblyLinearVelocity = Vector3.zero
-                                end
-                                task.wait(0.1)
-                            end
-                        else task.wait(0.05) end
-                    end
-                end)
-            else StopT("Teleport") end
-        end
+    Tabs.TP:AddKeybind("TPAllKeybindConfig", {
+        Title = "TP All Hotkey",
+        Mode = "Toggle",
+        Default = "T",
+        Callback = function() tpAllToggleUI:SetValue(not tpAllEnabled) end,
+        ChangedCallback = function(newKey) tpAllKeybind = newKey end
     })
 
     local TPBlacklistDropdown = Tabs.TP:AddDropdown("TPBlacklist", { Title = "Blacklist", Values = GetPlayerListNames(), Multi = true, Default = {}, Callback = function(s) tpBlacklist = {} for name, st in pairs(s) do if st and name ~= "No players found" then table.insert(tpBlacklist, name) end end end })
@@ -631,13 +627,7 @@ local success, err = pcall(function()
         Title = "Target Position Mode",
         Values = {"Behind", "Top", "Front"},
         Default = "Behind",
-        Callback = function(v)
-            targetPositionMode = v
-            ModeTargetBtn.Text = v
-            if targetModeEnabled and SelectedTargetPlayer then
-                StartTargetingPlayer(SelectedTargetPlayer)
-            end
-        end
+        Callback = function(v) SetTargetMode(v) end
     })
 
     Tabs.Target:AddToggle("ToggleTargetBtnUI", { Title = "Show Target Button", Default = true, Callback = function(state) TargetToggleBtn.Visible = state ModeTargetBtn.Visible = state end })
@@ -646,7 +636,7 @@ local success, err = pcall(function()
     Tabs.Target:AddToggle("TargetWallCheckToggle", { Title = "Wall Check", Default = false, Callback = function(state) targetWallCheck = state end })
     Tabs.Target:AddSlider("RedFOVRadius", { Title = "FOV Size", Min = 50, Max = 500, Default = 150, Rounding = 0, Callback = function(val) targetFOVRadius = val end })
 
-    local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then SelectedTargetPlayer = foundPlr end end })
+    local TargetPlayerDropdown = Tabs.Target:AddDropdown("TargetSelect", { Title = "Select Target", Values = GetPlayerListNames(), Default = GetPlayerListNames()[1] or "", Callback = function(s) local foundPlr = P:FindFirstChild(s) if foundPlr then StartTargetingPlayer(foundPlr) end end })
 
     Tabs.Target:AddButton({
         Title = "Teleport To Target",
@@ -668,12 +658,8 @@ local success, err = pcall(function()
     P.PlayerAdded:Connect(UpdateDropdowns)
     P.PlayerRemoving:Connect(UpdateDropdowns)
 
-    Tabs.Target:AddToggle("BehindToggle", { Title = "TP To Target Mode", Default = false, Callback = function(state)
+    ToggleTargetUIObj = Tabs.Target:AddToggle("BehindToggle", { Title = "TP To Target Mode", Default = false, Callback = function(state)
         ToggleTargetMode(state)
-        if state then
-            if not SelectedTargetPlayer or not SelectedTargetPlayer.Character then SelectedTargetPlayer = GetNearestPlayer(500) end
-            StartTargetingPlayer(SelectedTargetPlayer)
-        end
     end })
 
     BehindDistInputObj = Tabs.Target:AddInput("BehindDistInput", { 
