@@ -66,7 +66,7 @@ local success, err = pcall(function()
     local tpBlacklist = {}
 
     -- ESP SETTINGS
-    local espHighlight, espName, espHealth, espDistance, espBox = false, false, false, false, false
+    local espHighlight, espName, espHealth, espDistance, espBox, espTracer = false, false, false, false, false, false
 
     -- DRAWING / GUI FOV SETUP
     local FOVCircle, TargetFOVCircle = nil, nil
@@ -200,7 +200,7 @@ local success, err = pcall(function()
     TargetToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     TargetToggleBtn.TextSize = 15
     TargetToggleBtn.Active = true
-    TargetToggleBtn.Draggable = true
+    TargetToggleBtn.Draggable = false -- Draggable + Click dễ crash/lag trên mobile
     TargetToggleBtn.BorderSizePixel = 0
     Instance.new("UICorner", TargetToggleBtn).CornerRadius = UDim.new(0.5, 0)
 
@@ -275,35 +275,66 @@ local success, err = pcall(function()
         end
     end)
 
-    local function StopTargeting()
-        -- Cắt connection trước, xóa target sau → thoát chắc
-        StopT("Behind")
-        SelectedTargetPlayer = nil
-        ResetCamToSelf()
-        -- Thả velocity để không bị kéo tiếp
-        pcall(function()
-            local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                hrp.AssemblyLinearVelocity = Vector3.zero
-            end
-        end)
-    end
-
     local targetSmooth = 0.35
+    local lastTargetToggleAt = 0
 
     local function SetMobileTargetUI(on)
-        TargetToggleBtn.Text = on and "ON" or "OFF"
-        TargetToggleBtn.BackgroundColor3 = on and Color3.fromRGB(30, 220, 30) or Color3.fromRGB(220, 30, 30)
+        pcall(function()
+            TargetToggleBtn.Text = on and "ON" or "OFF"
+            TargetToggleBtn.BackgroundColor3 = on and Color3.fromRGB(30, 220, 30) or Color3.fromRGB(220, 30, 30)
+        end)
     end
 
     local function SyncAllTargetUI(on)
         if syncingTargetUI then return end
         syncingTargetUI = true
         SetMobileTargetUI(on)
-        if ToggleTargetUIObj and ToggleTargetUIObj.Set then
-            pcall(function() ToggleTargetUIObj:Set(on) end)
+        pcall(function()
+            if ToggleTargetUIObj and ToggleTargetUIObj.Set then
+                ToggleTargetUIObj:Set(on)
+            end
+        end)
+        -- Giữ flag thêm 1 frame → tránh WindUI Callback đệ quy gây lag/crash
+        task.defer(function()
+            task.wait()
+            syncingTargetUI = false
+        end)
+    end
+
+    local function RestoreGravity()
+        -- Tắt Physics của mode Top → gravity bình thường
+        pcall(function()
+            local char = LP.Character
+            if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hum then
+                hum.PlatformStand = false
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+            end
+            if hrp then
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                hrp.AssemblyAngularVelocity = Vector3.zero
+            end
+        end)
+    end
+
+    local function StopTargeting()
+        pcall(function() RS:UnbindFromRenderStep("QHub_TargetFollow") end)
+        if T.Behind then
+            pcall(function()
+                if typeof(T.Behind) == "RBXScriptConnection" then
+                    T.Behind:Disconnect()
+                elseif typeof(T.Behind) ~= "string" then
+                    task.cancel(T.Behind)
+                end
+            end)
+            T.Behind = nil
         end
-        syncingTargetUI = false
+        SelectedTargetPlayer = nil
+        RestoreGravity()
+        pcall(ResetCamToSelf)
     end
 
     local function StartTargetingPlayer(plr, forceEnable)
@@ -318,65 +349,153 @@ local success, err = pcall(function()
             return
         end
 
-        StopT("Behind")
-        T.Behind = RS.Heartbeat:Connect(function(dt)
-            -- Thoát ngay nếu đã tắt
+        local TARGET_BIND = "QHub_TargetFollow"
+        -- Unbind sạch trước khi bind lại (tránh stack → crash)
+        pcall(function() RS:UnbindFromRenderStep(TARGET_BIND) end)
+        if T.Behind then
+            pcall(function()
+                if typeof(T.Behind) == "RBXScriptConnection" then
+                    T.Behind:Disconnect()
+                end
+            end)
+            T.Behind = nil
+        end
+
+        local function stopFollowOnly()
+            pcall(function() RS:UnbindFromRenderStep(TARGET_BIND) end)
+            if T.Behind then
+                pcall(function()
+                    if typeof(T.Behind) == "RBXScriptConnection" then T.Behind:Disconnect() end
+                end)
+                T.Behind = nil
+            end
+        end
+
+        local function followStep(dt)
             if not targetModeEnabled then
-                StopT("Behind")
+                stopFollowOnly()
                 return
             end
-
             local char = LP.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
             local tPlr = SelectedTargetPlayer
-            local tChar = tPlr and tPlr.Character
+            if not tPlr or not tPlr.Parent then
+                targetModeEnabled = false
+                stopFollowOnly()
+                SelectedTargetPlayer = nil
+                task.defer(function() SyncAllTargetUI(false) end)
+                return
+            end
+            local tChar = tPlr.Character
             local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-
-            if not tPlr or not tChar or not tHrp or not tHum or tHum.Health <= 0 then
+            if not tHrp or not tHum or tHum.Health <= 0 then
                 targetModeEnabled = false
-                StopTargeting()
-                SyncAllTargetUI(false)
+                stopFollowOnly()
+                SelectedTargetPlayer = nil
+                task.defer(function() SyncAllTargetUI(false) end)
                 return
             end
+            if not hrp then return end
 
-            if hrp and tHrp then
-                local dist = math.max(0, behindDistance)
-                local goalCF
-                if targetPositionMode == "Behind" then
-                    goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
-                elseif targetPositionMode == "Front" then
-                    goalCF = tHrp.CFrame * CFrame.new(0, 0, -dist)
-                    goalCF = CFrame.new(goalCF.Position, tHrp.Position)
-                elseif targetPositionMode == "Top" then
-                    goalCF = CFrame.new(tHrp.Position + Vector3.new(0, dist, 0), tHrp.Position)
-                else
-                    goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
+            local dist = math.max(0, behindDistance or 6)
+            local mode = targetPositionMode or "Top"
+            local myHum = char:FindFirstChildOfClass("Humanoid")
+
+            if mode == "Top" then
+                -- Cố định trên đầu target, không rơi (set cứng + zero velocity)
+                local topPos = tHrp.Position + Vector3.new(0, dist, 0)
+                local goalCF = CFrame.new(topPos, tHrp.Position)
+                hrp.CFrame = goalCF
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                hrp.AssemblyAngularVelocity = Vector3.zero
+                if myHum then
+                    pcall(function()
+                        myHum:ChangeState(Enum.HumanoidStateType.Physics)
+                    end)
                 end
-
-                local alpha = math.clamp(targetSmooth + (dt or 0.016) * 8, 0.15, 1)
+            else
+                local goalCF
+                if mode == "Behind" then
+                    goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
+                else -- Front
+                    local front = tHrp.CFrame * CFrame.new(0, 0, -dist)
+                    goalCF = CFrame.new(front.Position, tHrp.Position)
+                end
+                local alpha = math.clamp((targetSmooth or 0.35), 0.1, 1)
                 hrp.CFrame = hrp.CFrame:Lerp(goalCF, alpha)
                 local vel = hrp.AssemblyLinearVelocity
-                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.3, vel.Y * 0.5, vel.Z * 0.3)
+                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.2, 0, vel.Z * 0.2)
             end
+        end
+
+        local bindOk = pcall(function()
+            RS:BindToRenderStep(TARGET_BIND, Enum.RenderPriority.Camera.Value + 1, followStep)
         end)
+        if not bindOk then
+            -- Fallback Heartbeat nếu BindToRenderStep fail
+            T.Behind = RS.Heartbeat:Connect(function(dt)
+                pcall(followStep, dt)
+            end)
+        else
+            T.Behind = TARGET_BIND -- marker
+        end
     end
 
-    local function SetTargetMode(mode)
+    local syncingMode = false
+    local MODE_LIST = { "Behind", "Top", "Front" }
+
+    local function NormalizeMode(v)
+        if type(v) == "table" then
+            v = v[1] or v.Value or v.Name
+        end
+        v = tostring(v or "")
+        for _, m in ipairs(MODE_LIST) do
+            if m == v then return m end
+        end
+        return nil
+    end
+
+    local function SetTargetMode(mode, fromDropdown)
+        mode = NormalizeMode(mode)
+        if not mode then return end
+        local prev = targetPositionMode
         targetPositionMode = mode
-        ModeTargetBtn.Text = mode
-        if ModeDropdownObj and ModeDropdownObj.Select then
-            pcall(function() ModeDropdownObj:Select(mode) end)
+        pcall(function() ModeTargetBtn.Text = mode end)
+        -- Rời Top → tắt Physics/gravity lock
+        if prev == "Top" and mode ~= "Top" then
+            RestoreGravity()
+        end
+        if fromDropdown then return end
+        if syncingMode then return end
+        if ModeDropdownObj then
+            syncingMode = true
+            pcall(function()
+                if ModeDropdownObj.Select then
+                    ModeDropdownObj:Select(mode)
+                elseif ModeDropdownObj.Set then
+                    ModeDropdownObj:Set(mode)
+                end
+            end)
+            task.defer(function()
+                task.wait(0.05)
+                syncingMode = false
+            end)
         end
     end
 
     ModeTargetBtn.MouseButton1Click:Connect(function()
-        if targetPositionMode == "Behind" then
-            SetTargetMode("Top")
-        elseif targetPositionMode == "Top" then
-            SetTargetMode("Front")
-        else
-            SetTargetMode("Behind")
+        local idx = 1
+        for i, m in ipairs(MODE_LIST) do
+            if m == targetPositionMode then idx = i break end
+        end
+        local prev = targetPositionMode
+        local nextMode = MODE_LIST[(idx % #MODE_LIST) + 1]
+        targetPositionMode = nextMode
+        pcall(function() ModeTargetBtn.Text = nextMode end)
+        if prev == "Top" and nextMode ~= "Top" then
+            RestoreGravity()
         end
     end)
 
@@ -384,9 +503,14 @@ local success, err = pcall(function()
         if not wallCheckEnabled or not targetPart then return true end
         local myChar = LP.Character
         if not myChar then return false end
-        local ray = Ray.new(Cam.CFrame.Position, (targetPart.Position - Cam.CFrame.Position).Unit * 500)
-        local hit = W:FindPartOnRayWithIgnoreList(ray, {myChar, targetPart.Parent})
-        return hit == nil or hit:IsDescendantOf(targetPart.Parent)
+        local origin = Cam.CFrame.Position
+        local dir = (targetPart.Position - origin)
+        if dir.Magnitude < 1 then return true end
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Exclude
+        params.FilterDescendantsInstances = { myChar, targetPart.Parent }
+        local result = W:Raycast(origin, dir.Unit * math.min(dir.Magnitude, 500), params)
+        return result == nil or (result.Instance and result.Instance:IsDescendantOf(targetPart.Parent))
     end
 
     local function GetClosestTargetToMouseFOV(radius, wallCheck, teamCheck, specificPart)
@@ -415,9 +539,13 @@ local success, err = pcall(function()
     end
 
     local function ToggleTargetMode(state)
+        -- Debounce chống spam click / hotkey → lag
+        local now = tick()
+        if now - lastTargetToggleAt < 0.25 then return end
+        lastTargetToggleAt = now
+
         if state == nil then state = not targetModeEnabled end
 
-        -- TẮT: cắt ngay, không kẹt người
         if not state then
             targetModeEnabled = false
             StopTargeting()
@@ -425,24 +553,28 @@ local success, err = pcall(function()
             return
         end
 
-        -- BẬT
         targetModeEnabled = true
         SyncAllTargetUI(true)
 
-        if SelectedTargetPlayer and SelectedTargetPlayer.Parent then
-            StartTargetingPlayer(SelectedTargetPlayer)
-        else
-            local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
-            if targetPlr then
-                StartTargetingPlayer(targetPlr)
-            else
-                WindUI:Notify({ Title = "Target", Content = "Chưa có target · click gần người chơi", Duration = 2 })
+        local okPick, targetPlr = pcall(function()
+            if SelectedTargetPlayer and SelectedTargetPlayer.Parent then
+                return SelectedTargetPlayer
             end
+            local _, plr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
+            return plr
+        end)
+
+        if okPick and targetPlr then
+            pcall(StartTargetingPlayer, targetPlr)
+        else
+            pcall(function()
+                WindUI:Notify({ Title = "Target", Content = "Chưa có target · click gần người chơi", Duration = 2 })
+            end)
         end
     end
 
     TargetToggleBtn.MouseButton1Click:Connect(function()
-        ToggleTargetMode() -- toggle + sync UI bên trong
+        pcall(ToggleTargetMode)
     end)
 
     UIS.InputBegan:Connect(function(input, gameProcessed)
@@ -855,7 +987,11 @@ local success, err = pcall(function()
         Title = "Target Position Mode",
         Values = {"Behind", "Top", "Front"},
         Value = "Top",
-        Callback = function(v) SetTargetMode(v) end
+        Callback = function(v)
+            if syncingMode then return end
+            -- WindUI đôi khi trả table → normalize để không mất Behind/Front
+            SetTargetMode(v, true)
+        end
     })
 
     Tabs.Target:Toggle({
@@ -915,8 +1051,8 @@ local success, err = pcall(function()
         Title = "TP To Target Mode",
         Value = false,
         Callback = function(state)
-            if syncingTargetUI then return end -- đang sync từ mobile, bỏ qua
-            ToggleTargetMode(state)
+            if syncingTargetUI then return end
+            pcall(ToggleTargetMode, state)
         end
     })
 
@@ -940,99 +1076,238 @@ local success, err = pcall(function()
         end
     })
 
-    -- ESP SYSTEM
+    -- ESP SYSTEM (Box + Tracer + Health bar thẳng + Name/Distance)
+    local ESPData = {} -- [player] = { drawings / guis }
+
+    local function HasDrawing()
+        return typeof(Drawing) == "table" and type(Drawing.new) == "function"
+    end
+
+    local function NewDraw(class, props)
+        if not HasDrawing() then return nil end
+        local ok, obj = pcall(function() return Drawing.new(class) end)
+        if not ok or not obj then return nil end
+        if props then
+            for k, v in pairs(props) do
+                pcall(function() obj[k] = v end)
+            end
+        end
+        return obj
+    end
+
+    local function ClearPlayerESP(plr)
+        local d = ESPData[plr]
+        if not d then return end
+        for _, obj in pairs(d) do
+            pcall(function()
+                if typeof(obj) == "Instance" then
+                    obj:Destroy()
+                elseif type(obj) == "table" and obj.Remove then
+                    obj:Remove()
+                elseif type(obj) == "userdata" or type(obj) == "table" then
+                    if obj.Remove then obj:Remove()
+                    elseif obj.Destroy then obj:Destroy()
+                    else pcall(function() obj.Visible = false end) end
+                end
+            end)
+        end
+        ESPData[plr] = nil
+        if plr.Character then
+            local hl = plr.Character:FindFirstChild("QHub_Highlight")
+            if hl then pcall(function() hl:Destroy() end) end
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, n in ipairs({ "QHub_Billboard", "QHub_BoxGui", "QHub_HPGui" }) do
+                    local g = hrp:FindFirstChild(n)
+                    if g then pcall(function() g:Destroy() end) end
+                end
+            end
+        end
+    end
+
     local function CreateESP(plr)
         if plr == LP then return end
+        ClearPlayerESP(plr)
 
         local function SetupCharacter(char)
-            if not char then return end
-
-            local hrp = char:WaitForChild("HumanoidRootPart", 10)
-            local hum = char:WaitForChild("Humanoid", 10)
+            if not char or plr == LP then return end
+            local hrp = char:WaitForChild("HumanoidRootPart", 8)
+            local hum = char:WaitForChild("Humanoid", 8)
             if not hrp or not hum then return end
 
-            local hl = char:FindFirstChild("QHub_Highlight") or Instance.new("Highlight")
+            ClearPlayerESP(plr)
+            local data = {}
+
+            -- Highlight
+            local hl = Instance.new("Highlight")
             hl.Name = "QHub_Highlight"
-            hl.FillTransparency = 0.5
+            hl.FillTransparency = 0.55
             hl.FillColor = Color3.fromRGB(255, 45, 85)
             hl.OutlineColor = Color3.fromRGB(255, 255, 255)
             hl.OutlineTransparency = 0
             hl.Enabled = espHighlight
             hl.Parent = char
+            data.hl = hl
 
-            local bb = hrp:FindFirstChild("QHub_Billboard") or Instance.new("BillboardGui")
+            -- Name + Distance billboard (trên đầu)
+            local bb = Instance.new("BillboardGui")
             bb.Name = "QHub_Billboard"
-            bb.Size = UDim2.new(0, 200, 0, 60)
+            bb.Size = UDim2.new(0, 180, 0, 40)
+            bb.StudsOffset = Vector3.new(0, 3.2, 0)
             bb.AlwaysOnTop = true
-            bb.ExtentsOffset = Vector3.new(0, 3.5, 0)
-            bb.Enabled = (espName or espHealth or espDistance)
+            bb.Enabled = (espName or espDistance)
             bb.Parent = hrp
+            local nameLbl = Instance.new("TextLabel")
+            nameLbl.Name = "Info"
+            nameLbl.BackgroundTransparency = 1
+            nameLbl.Size = UDim2.new(1, 0, 1, 0)
+            nameLbl.Font = Enum.Font.GothamBold
+            nameLbl.TextSize = 14
+            nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLbl.TextStrokeTransparency = 0.3
+            nameLbl.Text = plr.Name
+            nameLbl.Parent = bb
+            data.bb = bb
+            data.nameLbl = nameLbl
 
-            local txtLabel = bb:FindFirstChild("TextLabel") or Instance.new("TextLabel")
-            txtLabel.Parent = bb
-            txtLabel.Size = UDim2.new(1, 0, 1, 0)
-            txtLabel.BackgroundTransparency = 1
-            txtLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            txtLabel.TextSize = 13
-            txtLabel.Font = Enum.Font.SourceSansBold
-            txtLabel.TextStrokeTransparency = 0
-
-            local boxBb = hrp:FindFirstChild("QHub_BoxGui") or Instance.new("BillboardGui")
+            -- Box ESP (khung quanh người) — Billboard + UIStroke
+            local boxBb = Instance.new("BillboardGui")
             boxBb.Name = "QHub_BoxGui"
-            boxBb.Size = UDim2.new(4.5, 0, 6, 0)
+            boxBb.Size = UDim2.new(4, 0, 5.5, 0)
+            boxBb.StudsOffset = Vector3.new(0, 0.5, 0)
             boxBb.AlwaysOnTop = true
             boxBb.Enabled = espBox
             boxBb.Parent = hrp
-
-            local boxFrame = boxBb:FindFirstChild("BoxFrame") or Instance.new("Frame")
-            boxFrame.Name = "BoxFrame"
+            local boxFrame = Instance.new("Frame")
+            boxFrame.Name = "Box"
             boxFrame.Size = UDim2.new(1, 0, 1, 0)
-            boxFrame.BackgroundTransparency = 1
+            boxFrame.BackgroundTransparency = 0.85
+            boxFrame.BackgroundColor3 = Color3.fromRGB(255, 45, 85)
+            boxFrame.BorderSizePixel = 0
             boxFrame.Parent = boxBb
+            local stroke = Instance.new("UIStroke")
+            stroke.Thickness = 2
+            stroke.Color = Color3.fromRGB(255, 255, 255)
+            stroke.Parent = boxFrame
+            data.boxBb = boxBb
 
-            local corner = boxFrame:FindFirstChild("UICorner") or Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 4)
-            corner.Parent = boxFrame
+            -- Health bar THẲNG đứng (bên cạnh)
+            local hpBb = Instance.new("BillboardGui")
+            hpBb.Name = "QHub_HPGui"
+            hpBb.Size = UDim2.new(0, 6, 0, 70)
+            hpBb.StudsOffset = Vector3.new(2.4, 0.5, 0)
+            hpBb.AlwaysOnTop = true
+            hpBb.Enabled = espHealth
+            hpBb.Parent = hrp
+            local hpBg = Instance.new("Frame")
+            hpBg.Name = "HPBG"
+            hpBg.Size = UDim2.new(1, 0, 1, 0)
+            hpBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            hpBg.BorderSizePixel = 0
+            hpBg.Parent = hpBb
+            local hpFill = Instance.new("Frame")
+            hpFill.Name = "HPFill"
+            hpFill.AnchorPoint = Vector2.new(0, 1)
+            hpFill.Position = UDim2.new(0, 0, 1, 0)
+            hpFill.Size = UDim2.new(1, 0, 1, 0)
+            hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+            hpFill.BorderSizePixel = 0
+            hpFill.Parent = hpBg
+            data.hpBb = hpBb
+            data.hpFill = hpFill
 
-            local function UpdateESP()
-                if not hum or not hum.Parent or not hrp or not hrp.Parent then return end
-                local infoText = ""
-                if espName then infoText = infoText .. plr.Name .. "\n" end
-                if espHealth then infoText = infoText .. "[" .. math.floor(math.max(0, hum.Health)) .. "/" .. math.floor(hum.MaxHealth) .. " HP] " end
-                if espDistance then
-                    local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                    if myHrp then
-                        local dist = math.floor((myHrp.Position - hrp.Position).Magnitude)
-                        infoText = infoText .. "[" .. dist .. "m]"
+            -- Tracer (dây) — Drawing Line nếu có
+            local tracer = NewDraw("Line", {
+                Thickness = 1.5,
+                Color = Color3.fromRGB(255, 45, 85),
+                Transparency = 0.2,
+                Visible = false,
+            })
+            data.tracer = tracer
+
+            ESPData[plr] = data
+
+            local function refreshHP()
+                if not hum or not hum.Parent then return end
+                local ratio = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+                if data.hpFill then
+                    data.hpFill.Size = UDim2.new(1, 0, ratio, 0)
+                    -- xanh → vàng → đỏ
+                    if ratio > 0.5 then
+                        data.hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+                    elseif ratio > 0.25 then
+                        data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+                    else
+                        data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
                     end
                 end
-                txtLabel.Text = infoText
             end
-
-            hum.HealthChanged:Connect(UpdateESP)
-            UpdateESP()
+            hum.HealthChanged:Connect(refreshHP)
+            refreshHP()
         end
 
-        if plr.Character then task.spawn(function() SetupCharacter(plr.Character) end) end
-        plr.CharacterAdded:Connect(function(newChar) task.spawn(function() SetupCharacter(newChar) end) end)
+        if plr.Character then task.spawn(SetupCharacter, plr.Character) end
+        plr.CharacterAdded:Connect(function(c) task.spawn(SetupCharacter, c) end)
+        plr.CharacterRemoving:Connect(function() ClearPlayerESP(plr) end)
     end
 
     for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
     P.PlayerAdded:Connect(CreateESP)
+    P.PlayerRemoving:Connect(function(p) ClearPlayerESP(p) end)
 
     local function UpdateESPStates()
-        for _, p in ipairs(P:GetPlayers()) do
-            if p ~= LP and p.Character then
-                local hl = p.Character:FindFirstChild("QHub_Highlight")
-                if hl then hl.Enabled = espHighlight end
-                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                local bb = hrp and hrp:FindFirstChild("QHub_Billboard")
-                if bb then bb.Enabled = (espName or espHealth or espDistance) end
-                local boxBb = hrp and hrp:FindFirstChild("QHub_BoxGui")
-                if boxBb then boxBb.Enabled = espBox end
+        for plr, data in pairs(ESPData) do
+            if data.hl then data.hl.Enabled = espHighlight end
+            if data.bb then data.bb.Enabled = (espName or espDistance) end
+            if data.boxBb then data.boxBb.Enabled = espBox end
+            if data.hpBb then data.hpBb.Enabled = espHealth end
+            if data.tracer then
+                pcall(function() data.tracer.Visible = espTracer end)
             end
         end
     end
+
+    -- Loop: name/distance text + tracer line
+    RS.RenderStepped:Connect(function()
+        local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+        local viewport = Cam.ViewportSize
+        local fromPos = Vector2.new(viewport.X / 2, viewport.Y)
+
+        for plr, data in pairs(ESPData) do
+            local char = plr.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                -- Name / Distance
+                if data.nameLbl and data.bb and data.bb.Enabled then
+                    local lines = {}
+                    if espName then table.insert(lines, plr.Name) end
+                    if espDistance and myHrp then
+                        table.insert(lines, math.floor((myHrp.Position - hrp.Position).Magnitude) .. "m")
+                    end
+                    data.nameLbl.Text = table.concat(lines, "\n")
+                end
+
+                -- Tracer dây từ đáy màn hình → chân player
+                if data.tracer and espTracer then
+                    local pos, onScreen = Cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                    if onScreen and pos.Z > 0 then
+                        pcall(function()
+                            data.tracer.From = fromPos
+                            data.tracer.To = Vector2.new(pos.X, pos.Y)
+                            data.tracer.Visible = true
+                        end)
+                    else
+                        pcall(function() data.tracer.Visible = false end)
+                    end
+                elseif data.tracer then
+                    pcall(function() data.tracer.Visible = false end)
+                end
+            else
+                if data.tracer then pcall(function() data.tracer.Visible = false end) end
+            end
+        end
+    end)
 
     Tabs.ESP:Toggle({
         Title = "ESP Highlight",
@@ -1040,9 +1315,16 @@ local success, err = pcall(function()
         Callback = function(v) espHighlight = v UpdateESPStates() end
     })
     Tabs.ESP:Toggle({
-        Title = "ESP Box (Smooth)",
+        Title = "ESP Box",
+        Desc = "Khung quanh người chơi",
         Value = false,
         Callback = function(v) espBox = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Tracer (Dây)",
+        Desc = "Đường từ dưới màn hình tới player (cần Drawing API)",
+        Value = false,
+        Callback = function(v) espTracer = v UpdateESPStates() end
     })
     Tabs.ESP:Toggle({
         Title = "ESP Name",
@@ -1050,7 +1332,8 @@ local success, err = pcall(function()
         Callback = function(v) espName = v UpdateESPStates() end
     })
     Tabs.ESP:Toggle({
-        Title = "ESP Health",
+        Title = "ESP Health (thanh thẳng)",
+        Desc = "Thanh máu dọc bên cạnh người",
         Value = false,
         Callback = function(v) espHealth = v UpdateESPStates() end
     })
@@ -1253,7 +1536,7 @@ local success, err = pcall(function()
                 ToggleTPAll(newState)
             end
         elseif input.KeyCode == targetKeybind then
-            ToggleTargetMode()
+            pcall(ToggleTargetMode)
         elseif input.KeyCode == flyKeybind then
             local newState = not flyEnabled
             if flyToggleUI and flyToggleUI.Set then
