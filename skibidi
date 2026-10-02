@@ -1191,18 +1191,22 @@ local success, err = pcall(function()
             stroke.Parent = boxFrame
             data.boxBb = boxBb
 
-            -- Health bar THẲNG đứng (bên cạnh)
+            -- Health bar THẲNG đứng (size theo stud → xa không bị to phình)
+            -- Pixel size khiến nhìn xa bar vẫn to trên màn hình; stud size tỉ lệ với người
             local hpBb = Instance.new("BillboardGui")
             hpBb.Name = "QHub_HPGui"
-            hpBb.Size = UDim2.new(0, 6, 0, 70)
-            hpBb.StudsOffset = Vector3.new(2.4, 0.5, 0)
+            hpBb.Size = UDim2.new(0.14, 0, 2.6, 0) -- mỏng, dài hơn 1 chút
+            hpBb.StudsOffset = Vector3.new(1.85, 0.35, 0)
             hpBb.AlwaysOnTop = true
+            hpBb.LightInfluence = 0
+            hpBb.MaxDistance = 2500
             hpBb.Enabled = espHealth
             hpBb.Parent = hrp
             local hpBg = Instance.new("Frame")
             hpBg.Name = "HPBG"
             hpBg.Size = UDim2.new(1, 0, 1, 0)
-            hpBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            hpBg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            hpBg.BackgroundTransparency = 0.15
             hpBg.BorderSizePixel = 0
             hpBg.Parent = hpBb
             local hpFill = Instance.new("Frame")
@@ -1216,11 +1220,11 @@ local success, err = pcall(function()
             data.hpBb = hpBb
             data.hpFill = hpFill
 
-            -- Tracer (dây) — Drawing Line nếu có
+            -- Tracer (dây) — đậm hơn
             local tracer = NewDraw("Line", {
-                Thickness = 1.5,
+                Thickness = 2.8,
                 Color = Color3.fromRGB(255, 45, 85),
-                Transparency = 0.2,
+                Transparency = 0.05,
                 Visible = false,
             })
             data.tracer = tracer
