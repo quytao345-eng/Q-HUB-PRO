@@ -3,19 +3,113 @@
 local success, err = pcall(function()
     local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
+    local function MakeTheme(name, t)
+        t.Name = name
+        pcall(function() WindUI:AddTheme(t) end)
+    end
+
+    -- Theme presets
+    MakeTheme("QHubBloodRainbow", {
+        Background = Color3.fromHex("#0a0000"), Accent = Color3.fromHex("#1a0508"), Dialog = Color3.fromHex("#120308"),
+        Outline = Color3.fromHex("#ff2d55"), Text = Color3.fromHex("#ffffff"), Placeholder = Color3.fromHex("#a87888"),
+        Button = Color3.fromHex("#3b0a12"), Icon = Color3.fromHex("#ff6b9d"), Toggle = Color3.fromHex("#ff2d55"),
+        Slider = Color3.fromHex("#c44dff"), Checkbox = Color3.fromHex("#00e5ff"), Primary = Color3.fromHex("#ff2d55"),
+        WindowBackground = Color3.fromHex("#0a0000"), WindowTopbarTitle = Color3.fromHex("#ff4d6d"),
+        WindowTopbarAuthor = Color3.fromHex("#ff9ecd"), WindowTopbarIcon = Color3.fromHex("#00e5ff"),
+        TabBackground = Color3.fromHex("#1a0508"), TabTitle = Color3.fromHex("#ffffff"), TabIcon = Color3.fromHex("#ff6b9d"),
+        ElementBackground = Color3.fromHex("#14060a"), ElementTitle = Color3.fromHex("#ffffff"),
+        ElementDesc = Color3.fromHex("#c9a0ab"), ElementIcon = Color3.fromHex("#c44dff"),
+    })
+    MakeTheme("Ocean", {
+        Background = Color3.fromHex("#040f18"), Accent = Color3.fromHex("#0c3547"), Dialog = Color3.fromHex("#071e2b"),
+        Outline = Color3.fromHex("#38bdf8"), Text = Color3.fromHex("#e0f2fe"), Placeholder = Color3.fromHex("#4ea8c9"),
+        Button = Color3.fromHex("#0369a1"), Icon = Color3.fromHex("#38bdf8"), Toggle = Color3.fromHex("#0ea5e9"),
+        Slider = Color3.fromHex("#22d3ee"), Checkbox = Color3.fromHex("#67e8f9"), Primary = Color3.fromHex("#0ea5e9"),
+        WindowBackground = Color3.fromHex("#040f18"), WindowTopbarTitle = Color3.fromHex("#7dd3fc"),
+        WindowTopbarAuthor = Color3.fromHex("#bae6fd"), WindowTopbarIcon = Color3.fromHex("#22d3ee"),
+        TabBackground = Color3.fromHex("#0c3547"), TabTitle = Color3.fromHex("#e0f2fe"), TabIcon = Color3.fromHex("#38bdf8"),
+        ElementBackground = Color3.fromHex("#0a2836"), ElementTitle = Color3.fromHex("#e0f2fe"),
+        ElementDesc = Color3.fromHex("#7dd3fc"), ElementIcon = Color3.fromHex("#22d3ee"),
+    })
+    MakeTheme("Sunset", {
+        Background = Color3.fromHex("#1a0a00"), Accent = Color3.fromHex("#2d1508"), Dialog = Color3.fromHex("#1f0e05"),
+        Outline = Color3.fromHex("#f97316"), Text = Color3.fromHex("#fff7ed"), Placeholder = Color3.fromHex("#c4a484"),
+        Button = Color3.fromHex("#9a3412"), Icon = Color3.fromHex("#fb923c"), Toggle = Color3.fromHex("#f97316"),
+        Slider = Color3.fromHex("#ec4899"), Checkbox = Color3.fromHex("#fbbf24"), Primary = Color3.fromHex("#f97316"),
+        WindowBackground = Color3.fromHex("#1a0a00"), WindowTopbarTitle = Color3.fromHex("#fdba74"),
+        WindowTopbarAuthor = Color3.fromHex("#f9a8d4"), WindowTopbarIcon = Color3.fromHex("#fbbf24"),
+        TabBackground = Color3.fromHex("#2d1508"), TabTitle = Color3.fromHex("#fff7ed"), TabIcon = Color3.fromHex("#fb923c"),
+        ElementBackground = Color3.fromHex("#241008"), ElementTitle = Color3.fromHex("#fff7ed"),
+        ElementDesc = Color3.fromHex("#fdba74"), ElementIcon = Color3.fromHex("#ec4899"),
+    })
+    MakeTheme("Neon", {
+        Background = Color3.fromHex("#050510"), Accent = Color3.fromHex("#0d0d1a"), Dialog = Color3.fromHex("#0a0a14"),
+        Outline = Color3.fromHex("#a855f7"), Text = Color3.fromHex("#f5f3ff"), Placeholder = Color3.fromHex("#8b8baa"),
+        Button = Color3.fromHex("#3b0764"), Icon = Color3.fromHex("#c084fc"), Toggle = Color3.fromHex("#22c55e"),
+        Slider = Color3.fromHex("#e879f9"), Checkbox = Color3.fromHex("#38bdf8"), Primary = Color3.fromHex("#a855f7"),
+        WindowBackground = Color3.fromHex("#050510"), WindowTopbarTitle = Color3.fromHex("#e879f9"),
+        WindowTopbarAuthor = Color3.fromHex("#86efac"), WindowTopbarIcon = Color3.fromHex("#38bdf8"),
+        TabBackground = Color3.fromHex("#0d0d1a"), TabTitle = Color3.fromHex("#f5f3ff"), TabIcon = Color3.fromHex("#c084fc"),
+        ElementBackground = Color3.fromHex("#12121f"), ElementTitle = Color3.fromHex("#f5f3ff"),
+        ElementDesc = Color3.fromHex("#c4b5fd"), ElementIcon = Color3.fromHex("#22c55e"),
+    })
+    MakeTheme("SakuraAnime", {
+        Background = Color3.fromHex("#1a0f14"), Accent = Color3.fromHex("#2a1520"), Dialog = Color3.fromHex("#201018"),
+        Outline = Color3.fromHex("#f472b6"), Text = Color3.fromHex("#fff1f5"), Placeholder = Color3.fromHex("#d4a5b5"),
+        Button = Color3.fromHex("#9d174d"), Icon = Color3.fromHex("#fda4d0"), Toggle = Color3.fromHex("#f472b6"),
+        Slider = Color3.fromHex("#c084fc"), Checkbox = Color3.fromHex("#fda4d0"), Primary = Color3.fromHex("#ec4899"),
+        WindowBackground = Color3.fromHex("#1a0f14"), WindowTopbarTitle = Color3.fromHex("#fda4d0"),
+        WindowTopbarAuthor = Color3.fromHex("#f9a8d4"), WindowTopbarIcon = Color3.fromHex("#f0abfc"),
+        TabBackground = Color3.fromHex("#2a1520"), TabTitle = Color3.fromHex("#fff1f5"), TabIcon = Color3.fromHex("#fda4d0"),
+        ElementBackground = Color3.fromHex("#24141c"), ElementTitle = Color3.fromHex("#fff1f5"),
+        ElementDesc = Color3.fromHex("#f9a8d4"), ElementIcon = Color3.fromHex("#e879f9"),
+    })
+    -- Egg :)
+    MakeTheme("Egg", {
+        Background = Color3.fromHex("#1a1808"), Accent = Color3.fromHex("#2a2410"), Dialog = Color3.fromHex("#221e0c"),
+        Outline = Color3.fromHex("#fde047"), Text = Color3.fromHex("#fefce8"), Placeholder = Color3.fromHex("#a8a06a"),
+        Button = Color3.fromHex("#854d0e"), Icon = Color3.fromHex("#facc15"), Toggle = Color3.fromHex("#fbbf24"),
+        Slider = Color3.fromHex("#fb923c"), Checkbox = Color3.fromHex("#fde047"), Primary = Color3.fromHex("#eab308"),
+        WindowBackground = Color3.fromHex("#1a1808"), WindowTopbarTitle = Color3.fromHex("#fde047"),
+        WindowTopbarAuthor = Color3.fromHex("#fef08a"), WindowTopbarIcon = Color3.fromHex("#facc15"),
+        TabBackground = Color3.fromHex("#2a2410"), TabTitle = Color3.fromHex("#fefce8"), TabIcon = Color3.fromHex("#fde047"),
+        ElementBackground = Color3.fromHex("#221e10"), ElementTitle = Color3.fromHex("#fefce8"),
+        ElementDesc = Color3.fromHex("#fde68a"), ElementIcon = Color3.fromHex("#fbbf24"),
+    })
+    MakeTheme("Mint", {
+        Background = Color3.fromHex("#041411"), Accent = Color3.fromHex("#0a2a22"), Dialog = Color3.fromHex("#061c17"),
+        Outline = Color3.fromHex("#34d399"), Text = Color3.fromHex("#ecfdf5"), Placeholder = Color3.fromHex("#6b9e8f"),
+        Button = Color3.fromHex("#065f46"), Icon = Color3.fromHex("#6ee7b7"), Toggle = Color3.fromHex("#10b981"),
+        Slider = Color3.fromHex("#2dd4bf"), Checkbox = Color3.fromHex("#34d399"), Primary = Color3.fromHex("#10b981"),
+        WindowBackground = Color3.fromHex("#041411"), WindowTopbarTitle = Color3.fromHex("#6ee7b7"),
+        WindowTopbarAuthor = Color3.fromHex("#a7f3d0"), WindowTopbarIcon = Color3.fromHex("#2dd4bf"),
+        TabBackground = Color3.fromHex("#0a2a22"), TabTitle = Color3.fromHex("#ecfdf5"), TabIcon = Color3.fromHex("#6ee7b7"),
+        ElementBackground = Color3.fromHex("#0c1f1a"), ElementTitle = Color3.fromHex("#ecfdf5"),
+        ElementDesc = Color3.fromHex("#a7f3d0"), ElementIcon = Color3.fromHex("#2dd4bf"),
+    })
+
+    local currentThemeName = "QHubBloodRainbow"
+    local customPrimary = "#ff2d55"
+    local customBg = "#0a0000"
+    local customAccent = "#1a0508"
+
     local Window = WindUI:CreateWindow({
         Title = "⚡ Q HUB",
-        Author = "by Gemini & Quy",
+        Author = "by Quy",
         Icon = "zap",
-        Theme = "Dark",
+        Theme = "QHubBloodRainbow",
         Size = UDim2.fromOffset(560, 400),
         ToggleKey = Enum.KeyCode.LeftControl,
         Transparent = false,
         Folder = "QHub",
     })
 
+    pcall(function()
+        WindUI:SetTheme("QHubBloodRainbow")
+    end)
+
     Window:Tag({
-        Title = "WindUI",
+        Title = "Blood · Rainbow",
         Color = "ElementBackground",
     })
 
@@ -31,16 +125,21 @@ local success, err = pcall(function()
     local behindDistance = 6
     local SelectedTargetPlayer = nil
 
-    -- CHẾ ĐỘ TARGET: "Behind", "Top", "Front"
+    -- CHẾ ĐỘ TARGET: "Behind", "Top", "Front", "Under", "Spin"
     local targetPositionMode = "Top"
     local fixedPovOffset = 50
+    local spinAngle = 0
+    local spinSpeed = 2.2 -- rad/s (không giới hạn qua Input)
+    local autoViewSpecial = true -- Under/Spin tự view target
+    local tpAllDelay = 0.0001 -- delay TP All (giây)
 
     -- KEYBINDS (custom system - WindUI Keybind rebind is buggy)
     local flyKeybind = Enum.KeyCode.F
     local targetKeybind = Enum.KeyCode.R
     local tpAllKeybind = Enum.KeyCode.T
-    local waitingForKeybind = nil -- "fly" | "target" | "tpall" | nil
-    local flyKeybindBtn, targetKeybindBtn, tpAllKeybindBtn = nil, nil, nil
+    local menuKeybind = Enum.KeyCode.LeftControl -- mở/đóng menu PC
+    local waitingForKeybind = nil -- "fly" | "target" | "tpall" | "menu" | nil
+    local flyKeybindBtn, targetKeybindBtn, tpAllKeybindBtn, menuKeybindBtn = nil, nil, nil, nil
     local flyToggleUI, tpAllToggleUI = nil, nil -- forward declare (dùng trong InputBegan)
 
     local function KeyCodeToName(kc)
@@ -139,8 +238,37 @@ local success, err = pcall(function()
     end
 
     local function ResetCamToSelf()
-        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-        if hum and Cam then Cam.CameraSubject = hum end
+        pcall(function()
+            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+            if hum and Cam then
+                Cam.CameraSubject = hum
+                Cam.CameraType = Enum.CameraType.Custom
+            end
+        end)
+    end
+
+    local function ViewTargetPlayer(plr)
+        if not plr then return end
+        pcall(function()
+            local tChar = plr.Character
+            local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
+            if tHum and Cam then
+                Cam.CameraSubject = tHum
+                Cam.CameraType = Enum.CameraType.Custom
+            end
+        end)
+    end
+
+    local function ShouldAutoView()
+        return autoViewSpecial and (targetPositionMode == "Under" or targetPositionMode == "Spin")
+    end
+
+    local function UpdateTargetView()
+        if targetModeEnabled and SelectedTargetPlayer and SelectedTargetPlayer.Parent and ShouldAutoView() then
+            ViewTargetPlayer(SelectedTargetPlayer)
+        else
+            ResetCamToSelf()
+        end
     end
 
     -- TOGGLE BUTTON FOR MENU (Q)
@@ -302,7 +430,7 @@ local success, err = pcall(function()
     end
 
     local function RestoreGravity()
-        -- Tắt Physics của mode Top → gravity bình thường
+        -- Tắt Physics (Top/Under/Spin) → gravity bình thường
         pcall(function()
             local char = LP.Character
             if not char then return end
@@ -320,6 +448,10 @@ local success, err = pcall(function()
         end)
     end
 
+    local function IsPhysicsMode(mode)
+        return mode == "Top" or mode == "Under" or mode == "Spin"
+    end
+
     local function StopTargeting()
         pcall(function() RS:UnbindFromRenderStep("QHub_TargetFollow") end)
         if T.Behind then
@@ -334,7 +466,7 @@ local success, err = pcall(function()
         end
         SelectedTargetPlayer = nil
         RestoreGravity()
-        pcall(ResetCamToSelf)
+        ResetCamToSelf() -- tắt view khi stop target
     end
 
     local function StartTargetingPlayer(plr, forceEnable)
@@ -381,9 +513,12 @@ local success, err = pcall(function()
             local hrp = char:FindFirstChild("HumanoidRootPart")
             local tPlr = SelectedTargetPlayer
             if not tPlr or not tPlr.Parent then
+                -- Target out server
                 targetModeEnabled = false
                 stopFollowOnly()
                 SelectedTargetPlayer = nil
+                RestoreGravity()
+                ResetCamToSelf()
                 task.defer(function() SyncAllTargetUI(false) end)
                 return
             end
@@ -391,23 +526,30 @@ local success, err = pcall(function()
             local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
             if not tHrp or not tHum or tHum.Health <= 0 then
+                -- Target chết
                 targetModeEnabled = false
                 stopFollowOnly()
                 SelectedTargetPlayer = nil
+                RestoreGravity()
+                ResetCamToSelf()
                 task.defer(function() SyncAllTargetUI(false) end)
                 return
             end
             if not hrp then return end
 
-            local dist = math.max(0, behindDistance or 6)
+            local dist = math.max(0.5, behindDistance or 6)
             local mode = targetPositionMode or "Top"
             local myHum = char:FindFirstChildOfClass("Humanoid")
+            dt = dt or 0.016
 
-            if mode == "Top" then
-                -- Cố định trên đầu target, không rơi (set cứng + zero velocity)
-                local topPos = tHrp.Position + Vector3.new(0, dist, 0)
-                local goalCF = CFrame.new(topPos, tHrp.Position)
-                hrp.CFrame = goalCF
+            -- Auto view khi Under / Spin
+            if ShouldAutoView() then
+                if Cam.CameraSubject ~= tHum then
+                    ViewTargetPlayer(tPlr)
+                end
+            end
+
+            local function lockPhysics()
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
                 if myHum then
@@ -415,14 +557,34 @@ local success, err = pcall(function()
                         myHum:ChangeState(Enum.HumanoidStateType.Physics)
                     end)
                 end
-            else
-                local goalCF
-                if mode == "Behind" then
-                    goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
-                else -- Front
-                    local front = tHrp.CFrame * CFrame.new(0, 0, -dist)
-                    goalCF = CFrame.new(front.Position, tHrp.Position)
-                end
+            end
+
+            if mode == "Top" then
+                local topPos = tHrp.Position + Vector3.new(0, dist, 0)
+                hrp.CFrame = CFrame.new(topPos, tHrp.Position)
+                lockPhysics()
+            elseif mode == "Under" then
+                -- Ở dưới target, nhìn lên
+                local underPos = tHrp.Position + Vector3.new(0, -dist, 0)
+                hrp.CFrame = CFrame.new(underPos, tHrp.Position)
+                lockPhysics()
+            elseif mode == "Spin" then
+                -- Quay quanh target
+                spinAngle = spinAngle + dt * spinSpeed
+                local ox = math.cos(spinAngle) * dist
+                local oz = math.sin(spinAngle) * dist
+                local spinPos = tHrp.Position + Vector3.new(ox, 1.5, oz)
+                hrp.CFrame = CFrame.new(spinPos, tHrp.Position)
+                lockPhysics()
+            elseif mode == "Behind" then
+                local goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
+                local alpha = math.clamp((targetSmooth or 0.35), 0.1, 1)
+                hrp.CFrame = hrp.CFrame:Lerp(goalCF, alpha)
+                local vel = hrp.AssemblyLinearVelocity
+                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.2, 0, vel.Z * 0.2)
+            else -- Front
+                local front = tHrp.CFrame * CFrame.new(0, 0, -dist)
+                local goalCF = CFrame.new(front.Position, tHrp.Position)
                 local alpha = math.clamp((targetSmooth or 0.35), 0.1, 1)
                 hrp.CFrame = hrp.CFrame:Lerp(goalCF, alpha)
                 local vel = hrp.AssemblyLinearVelocity
@@ -441,10 +603,13 @@ local success, err = pcall(function()
         else
             T.Behind = TARGET_BIND -- marker
         end
+
+        -- Bật view ngay nếu mode Under/Spin
+        UpdateTargetView()
     end
 
     local syncingMode = false
-    local MODE_LIST = { "Behind", "Top", "Front" }
+    local MODE_LIST = { "Behind", "Top", "Front", "Under", "Spin" }
 
     local function NormalizeMode(v)
         if type(v) == "table" then
@@ -463,10 +628,14 @@ local success, err = pcall(function()
         local prev = targetPositionMode
         targetPositionMode = mode
         pcall(function() ModeTargetBtn.Text = mode end)
-        -- Rời Top → tắt Physics/gravity lock
-        if prev == "Top" and mode ~= "Top" then
+        if IsPhysicsMode(prev) and not IsPhysicsMode(mode) then
             RestoreGravity()
         end
+        if mode == "Spin" then
+            spinAngle = 0
+        end
+        -- Cập nhật camera view theo mode
+        UpdateTargetView()
         if fromDropdown then return end
         if syncingMode then return end
         if ModeDropdownObj then
@@ -494,8 +663,21 @@ local success, err = pcall(function()
         local nextMode = MODE_LIST[(idx % #MODE_LIST) + 1]
         targetPositionMode = nextMode
         pcall(function() ModeTargetBtn.Text = nextMode end)
-        if prev == "Top" and nextMode ~= "Top" then
+        if IsPhysicsMode(prev) and not IsPhysicsMode(nextMode) then
             RestoreGravity()
+        end
+        if nextMode == "Spin" then
+            spinAngle = 0
+        end
+        UpdateTargetView()
+    end)
+
+    -- Target out server → tắt target + view
+    P.PlayerRemoving:Connect(function(plr)
+        if SelectedTargetPlayer == plr then
+            targetModeEnabled = false
+            StopTargeting()
+            SyncAllTargetUI(false)
         end
     end)
 
@@ -592,6 +774,9 @@ local success, err = pcall(function()
                 if flyKeybindBtn and flyKeybindBtn.SetTitle then
                     pcall(function() flyKeybindBtn:SetTitle("Fly Hotkey: [" .. KeyCodeToName(flyKeybind) .. "]") end)
                 end
+                if menuKeybindBtn and menuKeybindBtn.SetTitle then
+                    pcall(function() menuKeybindBtn:SetTitle("Menu Hotkey: [" .. KeyCodeToName(menuKeybind) .. "]") end)
+                end
                 return
             end
 
@@ -614,6 +799,16 @@ local success, err = pcall(function()
                     pcall(function() flyKeybindBtn:SetTitle("Fly Hotkey: [" .. name .. "]") end)
                 end
                 WindUI:Notify({ Title = "Q HUB", Content = "Fly → [" .. name .. "]", Duration = 2 })
+            elseif waitingForKeybind == "menu" then
+                menuKeybind = key
+                if menuKeybindBtn and menuKeybindBtn.SetTitle then
+                    pcall(function() menuKeybindBtn:SetTitle("Menu Hotkey: [" .. name .. "]") end)
+                end
+                -- Đồng bộ WindUI ToggleKey nếu hỗ trợ
+                pcall(function()
+                    if Window.SetToggleKey then Window:SetToggleKey(key) end
+                end)
+                WindUI:Notify({ Title = "Q HUB", Content = "Menu → [" .. name .. "]", Duration = 2 })
             end
             waitingForKeybind = nil
             return
@@ -674,7 +869,97 @@ local success, err = pcall(function()
 
     Tabs.Info:Paragraph({
         Title = "Q HUB",
-        Desc = "Hotkey List:\n• [Q] / [LeftCtrl] Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode\n• [T] TP All Mode"
+        Desc = "Hotkey List:\n• [LeftCtrl] / nút Q · Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode\n• [T] TP All Mode"
+    })
+
+    menuKeybindBtn = Tabs.Info:Button({
+        Title = "Menu Hotkey: [LeftControl]",
+        Desc = "PC · bấm để đổi phím mở menu (vd Ctrl, Insert, RightShift)",
+        Callback = function()
+            waitingForKeybind = "menu"
+            if menuKeybindBtn and menuKeybindBtn.SetTitle then
+                pcall(function() menuKeybindBtn:SetTitle("Menu Hotkey: [ ... ]") end)
+            end
+            WindUI:Notify({ Title = "Q HUB", Content = "Nhấn phím mới để mở menu...", Duration = 2 })
+        end
+    })
+
+    -- THEME PICKER + CUSTOM MÀU
+    local function ApplyThemeByName(name)
+        currentThemeName = name
+        pcall(function() WindUI:SetTheme(name) end)
+        WindUI:Notify({ Title = "Theme", Content = "Đã đổi → " .. tostring(name), Duration = 2 })
+    end
+
+    local function ApplyCustomTheme()
+        local function hex(c, fallback)
+            local ok, col = pcall(function() return Color3.fromHex(c) end)
+            if ok and col then return col end
+            return Color3.fromHex(fallback)
+        end
+        local prim = hex(customPrimary, "#ff2d55")
+        local bg = hex(customBg, "#0a0000")
+        local acc = hex(customAccent, "#1a0508")
+        MakeTheme("Custom", {
+            Background = bg, Accent = acc, Dialog = acc,
+            Outline = prim, Text = Color3.fromHex("#ffffff"), Placeholder = Color3.fromHex("#aaaaaa"),
+            Button = acc, Icon = prim, Toggle = prim, Slider = prim, Checkbox = prim, Primary = prim,
+            WindowBackground = bg, WindowTopbarTitle = prim, WindowTopbarAuthor = Color3.fromHex("#ffffff"),
+            WindowTopbarIcon = prim, TabBackground = acc, TabTitle = Color3.fromHex("#ffffff"), TabIcon = prim,
+            ElementBackground = acc, ElementTitle = Color3.fromHex("#ffffff"),
+            ElementDesc = Color3.fromHex("#cccccc"), ElementIcon = prim,
+        })
+        ApplyThemeByName("Custom")
+    end
+
+    Tabs.Info:Dropdown({
+        Title = "Theme",
+        Values = { "QHubBloodRainbow", "Ocean", "Sunset", "Neon", "SakuraAnime", "Mint", "Egg", "Dark" },
+        Value = "QHubBloodRainbow",
+        Callback = function(v)
+            if type(v) == "table" then v = v[1] or v.Value end
+            if v and v ~= "Custom" then ApplyThemeByName(tostring(v)) end
+        end
+    })
+
+    Tabs.Info:Input({
+        Title = "Custom Primary (#hex)",
+        Desc = "Màu chính · vd #ff2d55",
+        Value = customPrimary,
+        Placeholder = "#ff2d55",
+        Callback = function(txt)
+            if txt and #txt > 0 then customPrimary = txt end
+        end
+    })
+    Tabs.Info:Input({
+        Title = "Custom Background (#hex)",
+        Value = customBg,
+        Placeholder = "#0a0000",
+        Callback = function(txt)
+            if txt and #txt > 0 then customBg = txt end
+        end
+    })
+    Tabs.Info:Input({
+        Title = "Custom Accent (#hex)",
+        Value = customAccent,
+        Placeholder = "#1a0508",
+        Callback = function(txt)
+            if txt and #txt > 0 then customAccent = txt end
+        end
+    })
+    Tabs.Info:Button({
+        Title = "Áp dụng Custom Theme",
+        Callback = function()
+            ApplyCustomTheme()
+        end
+    })
+    Tabs.Info:Button({
+        Title = "Egg :) ",
+        Desc = "Theme trứng bí ẩn",
+        Callback = function()
+            ApplyThemeByName("Egg")
+            WindUI:Notify({ Title = "Egg :)", Content = "cluck cluck 🥚", Duration = 3 })
+        end
     })
 
     -- AIM TAB
@@ -915,7 +1200,7 @@ local success, err = pcall(function()
                                 if targetHrp and targetHrp.Parent and tpAllEnabled then
                                     myHrp.CFrame = (targetHrp.CFrame * CFrame.new(0, -3.5, 0)) * CFrame.Angles(math.rad(90), 0, 0)
                                     myHrp.AssemblyLinearVelocity = Vector3.zero
-                                    task.wait(0.0002)
+                                    task.wait(math.max(0, tpAllDelay))
                                 end
                             end
                         else
@@ -935,9 +1220,24 @@ local success, err = pcall(function()
     end
 
     tpAllToggleUI = Tabs.TP:Toggle({
-        Title = "TP All Under Feet 90° (0.0002s)",
+        Title = "TP All Under Feet 90°",
+        Desc = "Delay mặc định 0.0001s · chỉnh bên dưới",
         Value = false,
         Callback = function(state) ToggleTPAll(state) end
+    })
+
+    Tabs.TP:Input({
+        Title = "TP All Delay (giây)",
+        Desc = "VD: 0.0001 · không giới hạn dưới",
+        Value = "0.0001",
+        Placeholder = "0.0001",
+        Callback = function(txt)
+            local n = tonumber(txt)
+            if n and n >= 0 then
+                tpAllDelay = n
+                WindUI:Notify({ Title = "TP All", Content = "Delay = " .. tostring(n) .. "s", Duration = 2 })
+            end
+        end
     })
 
     tpAllKeybindBtn = Tabs.TP:Button({
@@ -985,12 +1285,39 @@ local success, err = pcall(function()
 
     ModeDropdownObj = Tabs.Target:Dropdown({
         Title = "Target Position Mode",
-        Values = {"Behind", "Top", "Front"},
+        Values = {"Behind", "Top", "Front", "Under", "Spin"},
         Value = "Top",
         Callback = function(v)
             if syncingMode then return end
-            -- WindUI đôi khi trả table → normalize để không mất Behind/Front
             SetTargetMode(v, true)
+        end
+    })
+
+    Tabs.Target:Toggle({
+        Title = "Auto View (Under/Spin)",
+        Desc = "Tự nhìn target khi Under hoặc Spin · tắt khi stop/chết/out",
+        Value = true,
+        Callback = function(state)
+            autoViewSpecial = state
+            if not state then
+                ResetCamToSelf()
+            else
+                UpdateTargetView()
+            end
+        end
+    })
+
+    Tabs.Target:Input({
+        Title = "Spin Speed",
+        Desc = "Số bất kỳ (vd: 0.5, 10, 100) · không giới hạn",
+        Value = "2.2",
+        Placeholder = "2.2",
+        Callback = function(txt)
+            local n = tonumber(txt)
+            if n and n ~= 0 then
+                spinSpeed = n
+                WindUI:Notify({ Title = "Spin", Content = "Speed = " .. tostring(n), Duration = 2 })
+            end
         end
     })
 
@@ -1076,23 +1403,21 @@ local success, err = pcall(function()
         end
     })
 
-    -- ESP SYSTEM (Box + Tracer + Health bar thẳng + Name/Distance)
-    local ESPData = {} -- [player] = { drawings / guis }
+    -- ESP SYSTEM (Box + Tracer ScreenGui all-game + Health bar pixel)
+    local ESPData = {} -- [player] = { ... }
 
-    local function HasDrawing()
-        return typeof(Drawing) == "table" and type(Drawing.new) == "function"
-    end
-
-    local function NewDraw(class, props)
-        if not HasDrawing() then return nil end
-        local ok, obj = pcall(function() return Drawing.new(class) end)
-        if not ok or not obj then return nil end
-        if props then
-            for k, v in pairs(props) do
-                pcall(function() obj[k] = v end)
-            end
-        end
-        return obj
+    -- ScreenGui tracer (không cần Drawing API → chạy mọi game/executor)
+    local TracerGui = Instance.new("ScreenGui")
+    TracerGui.Name = "QHubESPTracers"
+    TracerGui.ResetOnSpawn = false
+    TracerGui.IgnoreGuiInset = true
+    TracerGui.DisplayOrder = 999
+    TracerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    pcall(function()
+        TracerGui.Parent = game:GetService("CoreGui")
+    end)
+    if not TracerGui.Parent then
+        TracerGui.Parent = LP:WaitForChild("PlayerGui")
     end
 
     local function ClearPlayerESP(plr)
@@ -1102,12 +1427,6 @@ local success, err = pcall(function()
             pcall(function()
                 if typeof(obj) == "Instance" then
                     obj:Destroy()
-                elseif type(obj) == "table" and obj.Remove then
-                    obj:Remove()
-                elseif type(obj) == "userdata" or type(obj) == "table" then
-                    if obj.Remove then obj:Remove()
-                    elseif obj.Destroy then obj:Destroy()
-                    else pcall(function() obj.Visible = false end) end
                 end
             end)
         end
@@ -1191,22 +1510,19 @@ local success, err = pcall(function()
             stroke.Parent = boxFrame
             data.boxBb = boxBb
 
-            -- Health bar THẲNG đứng (size theo stud → xa không bị to phình)
-            -- Pixel size khiến nhìn xa bar vẫn to trên màn hình; stud size tỉ lệ với người
+            -- Health bar pixel như cũ (6x70)
             local hpBb = Instance.new("BillboardGui")
             hpBb.Name = "QHub_HPGui"
-            hpBb.Size = UDim2.new(0.14, 0, 2.6, 0) -- mỏng, dài hơn 1 chút
-            hpBb.StudsOffset = Vector3.new(1.85, 0.35, 0)
+            hpBb.Size = UDim2.new(0, 6, 0, 70)
+            hpBb.StudsOffset = Vector3.new(2.4, 0.5, 0)
             hpBb.AlwaysOnTop = true
-            hpBb.LightInfluence = 0
-            hpBb.MaxDistance = 2500
             hpBb.Enabled = espHealth
             hpBb.Parent = hrp
             local hpBg = Instance.new("Frame")
             hpBg.Name = "HPBG"
             hpBg.Size = UDim2.new(1, 0, 1, 0)
-            hpBg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            hpBg.BackgroundTransparency = 0.15
+            -- Phần máu đã mất hiện đỏ
+            hpBg.BackgroundColor3 = Color3.fromRGB(220, 30, 40)
             hpBg.BorderSizePixel = 0
             hpBg.Parent = hpBb
             local hpFill = Instance.new("Frame")
@@ -1214,35 +1530,42 @@ local success, err = pcall(function()
             hpFill.AnchorPoint = Vector2.new(0, 1)
             hpFill.Position = UDim2.new(0, 0, 1, 0)
             hpFill.Size = UDim2.new(1, 0, 1, 0)
+            -- Phần máu còn lại
             hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
             hpFill.BorderSizePixel = 0
             hpFill.Parent = hpBg
             data.hpBb = hpBb
             data.hpFill = hpFill
+            data.hpBg = hpBg
 
-            -- Tracer (dây) — đậm hơn
-            local tracer = NewDraw("Line", {
-                Thickness = 2.8,
-                Color = Color3.fromRGB(255, 45, 85),
-                Transparency = 0.05,
-                Visible = false,
-            })
-            data.tracer = tracer
+            -- Tracer dây: Frame ScreenGui (all game, không cần Drawing)
+            local tracerLine = Instance.new("Frame")
+            tracerLine.Name = "Tracer_" .. plr.Name
+            tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
+            tracerLine.BackgroundColor3 = Color3.fromRGB(255, 45, 85)
+            tracerLine.BorderSizePixel = 0
+            tracerLine.Size = UDim2.fromOffset(0, 3)
+            tracerLine.Visible = false
+            tracerLine.Parent = TracerGui
+            data.tracerLine = tracerLine
 
             ESPData[plr] = data
 
             local function refreshHP()
                 if not hum or not hum.Parent then return end
                 local ratio = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+                if data.hpBg then
+                    data.hpBg.BackgroundColor3 = Color3.fromRGB(220, 30, 40) -- mất máu = đỏ
+                end
                 if data.hpFill then
                     data.hpFill.Size = UDim2.new(1, 0, ratio, 0)
-                    -- xanh → vàng → đỏ
+                    -- máu còn: xanh → vàng khi thấp
                     if ratio > 0.5 then
                         data.hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
                     elseif ratio > 0.25 then
                         data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
                     else
-                        data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                        data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 120, 40)
                     end
                 end
             end
@@ -1265,24 +1588,41 @@ local success, err = pcall(function()
             if data.bb then data.bb.Enabled = (espName or espDistance) end
             if data.boxBb then data.boxBb.Enabled = espBox end
             if data.hpBb then data.hpBb.Enabled = espHealth end
-            if data.tracer then
-                pcall(function() data.tracer.Visible = espTracer end)
+            if data.tracerLine and not espTracer then
+                data.tracerLine.Visible = false
             end
         end
+        if TracerGui then TracerGui.Enabled = true end
     end
 
-    -- Loop: name/distance text + tracer line
+    local function UpdateTracerLine(frame, from, to)
+        local dx = to.X - from.X
+        local dy = to.Y - from.Y
+        local len = math.sqrt(dx * dx + dy * dy)
+        if len < 1 then
+            frame.Visible = false
+            return
+        end
+        local midX = (from.X + to.X) / 2
+        local midY = (from.Y + to.Y) / 2
+        local angle = math.deg(math.atan2(dy, dx))
+        frame.Position = UDim2.fromOffset(midX, midY)
+        frame.Size = UDim2.fromOffset(len, 3) -- đậm 3px
+        frame.Rotation = angle
+        frame.Visible = true
+    end
+
+    -- Loop: name/distance + tracer ScreenGui (all game)
     RS.RenderStepped:Connect(function()
         local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
         local viewport = Cam.ViewportSize
-        local fromPos = Vector2.new(viewport.X / 2, viewport.Y)
+        local fromPos = Vector2.new(viewport.X / 2, viewport.Y - 2)
 
         for plr, data in pairs(ESPData) do
             local char = plr.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             if hrp and hum and hum.Health > 0 then
-                -- Name / Distance
                 if data.nameLbl and data.bb and data.bb.Enabled then
                     local lines = {}
                     if espName then table.insert(lines, plr.Name) end
@@ -1292,23 +1632,20 @@ local success, err = pcall(function()
                     data.nameLbl.Text = table.concat(lines, "\n")
                 end
 
-                -- Tracer dây từ đáy màn hình → chân player
-                if data.tracer and espTracer then
-                    local pos, onScreen = Cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-                    if onScreen and pos.Z > 0 then
-                        pcall(function()
-                            data.tracer.From = fromPos
-                            data.tracer.To = Vector2.new(pos.X, pos.Y)
-                            data.tracer.Visible = true
-                        end)
+                if data.tracerLine then
+                    if espTracer then
+                        local pos, onScreen = Cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                        if onScreen and pos.Z > 0 then
+                            UpdateTracerLine(data.tracerLine, fromPos, Vector2.new(pos.X, pos.Y))
+                        else
+                            data.tracerLine.Visible = false
+                        end
                     else
-                        pcall(function() data.tracer.Visible = false end)
+                        data.tracerLine.Visible = false
                     end
-                elseif data.tracer then
-                    pcall(function() data.tracer.Visible = false end)
                 end
             else
-                if data.tracer then pcall(function() data.tracer.Visible = false end) end
+                if data.tracerLine then data.tracerLine.Visible = false end
             end
         end
     end)
@@ -1326,7 +1663,7 @@ local success, err = pcall(function()
     })
     Tabs.ESP:Toggle({
         Title = "ESP Tracer (Dây)",
-        Desc = "Đường từ dưới màn hình tới player (cần Drawing API)",
+        Desc = "Đường từ dưới màn hình tới player · ScreenGui (all game)",
         Value = false,
         Callback = function(v) espTracer = v UpdateESPStates() end
     })
@@ -1529,8 +1866,16 @@ local success, err = pcall(function()
     -- Hotkey trigger (đặt sau khi Toggle* đã khai báo)
     UIS.InputBegan:Connect(function(input, gameProcessed)
         if waitingForKeybind then return end
-        if gameProcessed or UIS:GetFocusedTextBox() then return end
+        if UIS:GetFocusedTextBox() then return end
         if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+
+        -- Menu: Ctrl (mặc định) — không chặn bởi gameProcessed
+        if input.KeyCode == menuKeybind or input.KeyCode == Enum.KeyCode.RightControl then
+            pcall(ToggleUI)
+            return
+        end
+
+        if gameProcessed then return end
 
         if input.KeyCode == tpAllKeybind then
             local newState = not tpAllEnabled
