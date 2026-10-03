@@ -93,19 +93,75 @@ local success, err = pcall(function()
     local customBg = "#0a0000"
     local customAccent = "#1a0508"
 
+    -- Spoderman: HTTPS thường fail → tải về + getcustomasset (executor)
+    local SPODERMAN_URL = "https://i.kym-cdn.com/photos/images/newsfeed/001/441/893/252.png"
+    local function ResolveImageSource(src)
+        if not src or src == "" then return nil end
+        if string.find(src, "rbxassetid://") or string.find(src, "rbxasset://") then
+            return src
+        end
+        -- HTTP: tải file local rồi getcustomasset
+        if string.sub(src, 1, 4) == "http" then
+            local ok, result = pcall(function()
+                local folder = "QHub"
+                pcall(function()
+                    if isfolder and not isfolder(folder) then makefolder(folder) end
+                end)
+                local path = folder .. "/bg_spoderman.png"
+                local data
+                if writefile and (game.HttpGet or http_request or request or syn) then
+                    if game.HttpGet then
+                        data = game:HttpGet(src)
+                    elseif request or http_request or (syn and syn.request) then
+                        local req = (syn and syn.request) or http_request or request
+                        local res = req({ Url = src, Method = "GET" })
+                        data = res.Body or res.body
+                    end
+                    if data and writefile then
+                        writefile(path, data)
+                    end
+                end
+                if getcustomasset and isfile and isfile(path) then
+                    return getcustomasset(path)
+                end
+                if getcustomasset and isfile == nil then
+                    -- thử luôn
+                    local ok2, asset = pcall(getcustomasset, path)
+                    if ok2 and asset then return asset end
+                end
+                return src -- fallback URL cho WindUI tự cache
+            end)
+            if ok and result then return result end
+            return src
+        end
+        return src
+    end
+
+    local defaultBgResolved = ResolveImageSource(SPODERMAN_URL) or SPODERMAN_URL
+
     local Window = WindUI:CreateWindow({
         Title = "⚡ Q HUB",
         Author = "by Quy",
-        Icon = "zap",
+        Icon = defaultBgResolved, -- Spoderman icon nếu load được
         Theme = "QHubBloodRainbow",
         Size = UDim2.fromOffset(560, 400),
         ToggleKey = Enum.KeyCode.LeftControl,
         Transparent = false,
         Folder = "QHub",
+        Background = defaultBgResolved,
+        BackgroundImageTransparency = 0.45,
     })
 
     pcall(function()
         WindUI:SetTheme("QHubBloodRainbow")
+    end)
+    pcall(function()
+        if Window.SetBackgroundImage then
+            Window:SetBackgroundImage(defaultBgResolved)
+        end
+        if Window.SetBackgroundImageTransparency then
+            Window:SetBackgroundImageTransparency(0.45)
+        end
     end)
 
     Window:Tag({
@@ -281,9 +337,8 @@ local success, err = pcall(function()
         end
     end
 
-    -- OpenButton WindUI: Spoderman icon + viền xanh / xanh biển / xanh lam
-    -- Redbubble shop bị Cloudflare → dùng ảnh Spoderman public CDN
-    local openBtnIcon = "https://i.kym-cdn.com/photos/images/newsfeed/001/441/893/252.png"
+    -- OpenButton WindUI: Spoderman + viền xanh
+    local openBtnIcon = defaultBgResolved or SPODERMAN_URL
     pcall(function()
         Window:EditOpenButton({
             Title = "Q HUB",
@@ -984,6 +1039,95 @@ local success, err = pcall(function()
         end
     })
 
+    -- Theme ảnh nền (mặc định Spoderman · resolve HTTP → getcustomasset)
+    local bgImageUrl = SPODERMAN_URL
+    local bgImageTransparency = 0.45
+
+    local function ApplyBgImage(url, silent)
+        if not url or url == "" then return end
+        bgImageUrl = url
+        local resolved = ResolveImageSource(url) or url
+        local ok = false
+        pcall(function()
+            if Window.SetBackgroundImage then
+                Window:SetBackgroundImage(resolved)
+                ok = true
+            end
+            if Window.SetBackgroundImageTransparency then
+                Window:SetBackgroundImageTransparency(bgImageTransparency)
+            end
+        end)
+        if not silent then
+            if ok then
+                WindUI:Notify({ Title = "Theme ảnh", Content = "Đã set nền (resolved)", Duration = 2 })
+            else
+                WindUI:Notify({
+                    Title = "Theme ảnh",
+                    Content = "Fail · thử rbxassetid:// (upload Roblox)",
+                    Duration = 4
+                })
+            end
+        end
+    end
+
+    task.defer(function()
+        ApplyBgImage(bgImageUrl, true)
+    end)
+
+    Tabs.Info:Input({
+        Title = "Theme ảnh nền (URL / rbxassetid)",
+        Desc = "Mặc định Spoderman · HTTP cần writefile+getcustomasset",
+        Value = bgImageUrl,
+        Placeholder = "rbxassetid://123456 (ổn nhất)",
+        Callback = function(txt)
+            if txt and txt ~= "" then
+                bgImageUrl = txt
+            end
+        end
+    })
+    Tabs.Info:Input({
+        Title = "Độ mờ nền ảnh (0~1)",
+        Desc = "0 = rõ · 1 = gần như trong suốt",
+        Value = "0.45",
+        Placeholder = "0.45",
+        Callback = function(txt)
+            local n = tonumber(txt)
+            if n then
+                bgImageTransparency = math.clamp(n, 0, 1)
+                pcall(function()
+                    if Window.SetBackgroundImageTransparency then
+                        Window:SetBackgroundImageTransparency(bgImageTransparency)
+                    end
+                end)
+            end
+        end
+    })
+    Tabs.Info:Button({
+        Title = "Áp dụng Theme ảnh",
+        Callback = function()
+            if bgImageUrl == "" then
+                WindUI:Notify({ Title = "Theme ảnh", Content = "Chưa nhập URL / rbxassetid", Duration = 2 })
+                return
+            end
+            ApplyBgImage(bgImageUrl)
+        end
+    })
+    Tabs.Info:Button({
+        Title = "Xóa nền ảnh",
+        Callback = function()
+            bgImageUrl = ""
+            pcall(function()
+                if Window.SetBackgroundImage then
+                    Window:SetBackgroundImage("")
+                end
+                if Window.SetBackgroundImageTransparency then
+                    Window:SetBackgroundImageTransparency(1)
+                end
+            end)
+            WindUI:Notify({ Title = "Theme ảnh", Content = "Đã xóa nền", Duration = 2 })
+        end
+    })
+
     -- AIM TAB
     Tabs.Aim:Toggle({
         Title = "Aim Lock",
@@ -1114,62 +1258,119 @@ local success, err = pcall(function()
         end
     })
 
-    Tabs.FixLag:Button({
-        Title = "🧱 Fix Lag 40% (Giảm đồ họa khối / Mesh)",
-        Desc = "Ít hiệu ứng trên part · RenderFidelity thấp · tắt shadow khối",
-        Callback = function()
-            pcall(function()
-                -- Giảm chất lượng render chung
-                pcall(function()
-                    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-                end)
-                Lighting.GlobalShadows = false
-                Lighting.FogEnd = 9e9
+    -- Fix Lag 40%: queue + batch (máy yếu không giật khi chunk stream)
+    local fixLag40Enabled = false
+    local fixLag40Conn = nil
+    local fixLag40Queue = {}
+    local fixLag40Queued = {}
+    local fixLag40BatchRunning = false
+    local FIX40_BATCH = 35
 
-                for _, v in ipairs(W:GetDescendants()) do
+    local function NeedsFixLag40(v)
+        return v:IsA("BasePart")
+            or v:IsA("SpecialMesh")
+            or v:IsA("Texture") or v:IsA("Decal")
+            or v:IsA("SurfaceAppearance")
+            or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam")
+            or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles")
+    end
+
+    local function ApplyFixLag40To(v)
+        if not v or not v.Parent then return end
+        pcall(function()
+            if v:IsA("BasePart") then
+                v.CastShadow = false
+                v.Reflectance = 0
+                if v.Material ~= Enum.Material.ForceField then
+                    v.Material = Enum.Material.SmoothPlastic
+                end
+                if v:IsA("MeshPart") then
                     pcall(function()
-                        if v:IsA("BasePart") then
-                            v.CastShadow = false
-                            v.Reflectance = 0
-                            -- Material nhẹ hơn (ít texture)
-                            if v.Material ~= Enum.Material.ForceField then
-                                v.Material = Enum.Material.SmoothPlastic
-                            end
-                        end
-                        if v:IsA("MeshPart") then
-                            v.CastShadow = false
-                            v.RenderFidelity = Enum.RenderFidelity.Performance
-                            v.CollisionFidelity = Enum.CollisionFidelity.Box
-                        end
-                        if v:IsA("SpecialMesh") then
-                            -- giữ mesh nhưng bỏ texture id nặng
-                            if v.TextureId and v.TextureId ~= "" then
-                                v.TextureId = ""
-                            end
-                        end
-                        if v:IsA("Texture") or v:IsA("Decal") then
-                            v.Transparency = 1
-                        end
-                        if v:IsA("SurfaceAppearance") then
-                            v:Destroy()
-                        end
-                        if v:IsA("MaterialVariant") then
-                            -- bỏ variant nặng
-                        end
-                        if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
-                            v.Enabled = false
-                        end
-                        if v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
-                            v.Enabled = false
-                        end
+                        v.RenderFidelity = Enum.RenderFidelity.Performance
                     end)
                 end
-            end)
-            WindUI:Notify({
-                Title = "Q HUB",
-                Content = "Đã Fix Lag 40% (khối mượt · ít hiệu ứng · graphics thấp)!",
-                Duration = 3
-            })
+            elseif v:IsA("SpecialMesh") then
+                if v.TextureId ~= "" then v.TextureId = "" end
+            elseif v:IsA("Texture") or v:IsA("Decal") then
+                v.Transparency = 1
+            elseif v:IsA("SurfaceAppearance") then
+                v:Destroy()
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam")
+                or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+                v.Enabled = false
+            end
+        end)
+    end
+
+    local function EnqueueFix40(v)
+        if not fixLag40Enabled or not v or fixLag40Queued[v] then return end
+        if not NeedsFixLag40(v) then return end
+        fixLag40Queued[v] = true
+        fixLag40Queue[#fixLag40Queue + 1] = v
+    end
+
+    local function ProcessFix40Batch()
+        if fixLag40BatchRunning or not fixLag40Enabled then return end
+        fixLag40BatchRunning = true
+        task.spawn(function()
+            while fixLag40Enabled and #fixLag40Queue > 0 do
+                local n = 0
+                while n < FIX40_BATCH and #fixLag40Queue > 0 do
+                    local v = table.remove(fixLag40Queue, 1)
+                    if v then
+                        fixLag40Queued[v] = nil
+                        ApplyFixLag40To(v)
+                    end
+                    n = n + 1
+                end
+                task.wait() -- nhường 1 frame · máy yếu không đơ
+            end
+            fixLag40BatchRunning = false
+        end)
+    end
+
+    local function ApplyFixLag40AllBatched()
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        for _, v in ipairs(W:GetDescendants()) do
+            EnqueueFix40(v)
+        end
+        ProcessFix40Batch()
+    end
+
+    Tabs.FixLag:Toggle({
+        Title = "🧱 Fix Lag 40% (Khối / Mesh)",
+        Desc = "Batch nhẹ · chunk mới vẫn mượt · máy yếu không giật",
+        Value = false,
+        Callback = function(state)
+            fixLag40Enabled = state
+            if fixLag40Conn then
+                pcall(function() fixLag40Conn:Disconnect() end)
+                fixLag40Conn = nil
+            end
+            fixLag40Queue = {}
+            fixLag40Queued = {}
+            fixLag40BatchRunning = false
+
+            if state then
+                pcall(ApplyFixLag40AllBatched)
+                fixLag40Conn = W.DescendantAdded:Connect(function(v)
+                    if not fixLag40Enabled then return end
+                    EnqueueFix40(v)
+                    ProcessFix40Batch()
+                end)
+                WindUI:Notify({
+                    Title = "Q HUB",
+                    Content = "Fix Lag 40% ON · batch an toàn",
+                    Duration = 3
+                })
+            else
+                WindUI:Notify({
+                    Title = "Q HUB",
+                    Content = "Fix Lag 40% OFF",
+                    Duration = 2
+                })
+            end
         end
     })
 
