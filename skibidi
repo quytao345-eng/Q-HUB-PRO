@@ -271,33 +271,9 @@ local success, err = pcall(function()
         end
     end
 
-    -- TOGGLE BUTTON FOR MENU (Q)
-    local oldToggle = game:GetService("CoreGui"):FindFirstChild("QHubMobileToggleFluent") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubMobileToggleFluent")
-    if oldToggle then oldToggle:Destroy() end
-
-    local ScreenGui = Instance.new("ScreenGui")
-    local ToggleBtn = Instance.new("TextButton")
-    local UICorner = Instance.new("UICorner")
-
-    ScreenGui.Name = "QHubMobileToggleFluent"
-    ScreenGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
-    ScreenGui.ResetOnSpawn = false
-
-    ToggleBtn.Name = "ToggleBtn"
-    ToggleBtn.Parent = ScreenGui
-    ToggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-    ToggleBtn.Size = UDim2.new(0, 45, 0, 45)
-    ToggleBtn.Font = Enum.Font.SourceSansBold
-    ToggleBtn.Text = "Q"
-    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleBtn.TextSize = 22
-    ToggleBtn.Active = true
-    ToggleBtn.Draggable = true
-    ToggleBtn.BorderSizePixel = 0
-
-    UICorner.CornerRadius = UDim.new(0.5, 0)
-    UICorner.Parent = ToggleBtn
+    -- Bỏ nút Q custom · dùng OpenButton của WindUI
+    local oldToggle = game:GetService("CoreGui"):FindFirstChild("QHubMobileToggleFluent") or LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("QHubMobileToggleFluent")
+    if oldToggle then pcall(function() oldToggle:Destroy() end) end
 
     local function ToggleUI()
         if Window and Window.Toggle then
@@ -305,7 +281,25 @@ local success, err = pcall(function()
         end
     end
 
-    ToggleBtn.MouseButton1Click:Connect(ToggleUI)
+    -- OpenButton WindUI: Spoderman icon + viền xanh / xanh biển / xanh lam
+    -- Redbubble shop bị Cloudflare → dùng ảnh Spoderman public CDN
+    local openBtnIcon = "https://i.kym-cdn.com/photos/images/newsfeed/001/441/893/252.png"
+    pcall(function()
+        Window:EditOpenButton({
+            Title = "Q HUB",
+            Icon = openBtnIcon,
+            CornerRadius = UDim.new(0, 14),
+            StrokeThickness = 2.5,
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromHex("00e5ff")),   -- cyan
+                ColorSequenceKeypoint.new(0.5, Color3.fromHex("0ea5e9")), -- xanh biển
+                ColorSequenceKeypoint.new(1, Color3.fromHex("2563eb")),   -- xanh lam
+            }),
+            OnlyMobile = false,
+            Enabled = true,
+            Draggable = true,
+        })
+    end)
 
     -- TARGET CONTROL PANELS
     local oldTargetToggle = game:GetService("CoreGui"):FindFirstChild("QHubTargetMobileToggle") or LP:WaitForChild("PlayerGui"):FindFirstChild("QHubTargetMobileToggle")
@@ -869,7 +863,35 @@ local success, err = pcall(function()
 
     Tabs.Info:Paragraph({
         Title = "Q HUB",
-        Desc = "Hotkey List:\n• [LeftCtrl] / nút Q · Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode\n• [T] TP All Mode"
+        Desc = "Hotkey List:\n• [LeftCtrl] / nút Open WindUI · Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode\n• [T] TP All Mode"
+    })
+
+    Tabs.Info:Input({
+        Title = "OpenButton Icon (logo)",
+        Desc = "URL / rbxassetid · mặc định Spoderman",
+        Value = openBtnIcon,
+        Placeholder = "https://... hoặc rbxassetid://",
+        Callback = function(txt)
+            if not txt or txt == "" then return end
+            openBtnIcon = txt
+            pcall(function()
+                Window:EditOpenButton({
+                    Title = "Q HUB",
+                    Icon = txt,
+                    CornerRadius = UDim.new(0, 14),
+                    StrokeThickness = 2.5,
+                    Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, Color3.fromHex("00e5ff")),
+                        ColorSequenceKeypoint.new(0.5, Color3.fromHex("0ea5e9")),
+                        ColorSequenceKeypoint.new(1, Color3.fromHex("2563eb")),
+                    }),
+                    OnlyMobile = false,
+                    Enabled = true,
+                    Draggable = true,
+                })
+            end)
+            WindUI:Notify({ Title = "OpenButton", Content = "Đã set icon Spoderman/custom", Duration = 2 })
+        end
     })
 
     menuKeybindBtn = Tabs.Info:Button({
@@ -1089,6 +1111,65 @@ local success, err = pcall(function()
                 end
             end)
             WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 30% (Tắt toàn bộ hiệu ứng hạt/khói/lửa)!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:Button({
+        Title = "🧱 Fix Lag 40% (Giảm đồ họa khối / Mesh)",
+        Desc = "Ít hiệu ứng trên part · RenderFidelity thấp · tắt shadow khối",
+        Callback = function()
+            pcall(function()
+                -- Giảm chất lượng render chung
+                pcall(function()
+                    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+                end)
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+
+                for _, v in ipairs(W:GetDescendants()) do
+                    pcall(function()
+                        if v:IsA("BasePart") then
+                            v.CastShadow = false
+                            v.Reflectance = 0
+                            -- Material nhẹ hơn (ít texture)
+                            if v.Material ~= Enum.Material.ForceField then
+                                v.Material = Enum.Material.SmoothPlastic
+                            end
+                        end
+                        if v:IsA("MeshPart") then
+                            v.CastShadow = false
+                            v.RenderFidelity = Enum.RenderFidelity.Performance
+                            v.CollisionFidelity = Enum.CollisionFidelity.Box
+                        end
+                        if v:IsA("SpecialMesh") then
+                            -- giữ mesh nhưng bỏ texture id nặng
+                            if v.TextureId and v.TextureId ~= "" then
+                                v.TextureId = ""
+                            end
+                        end
+                        if v:IsA("Texture") or v:IsA("Decal") then
+                            v.Transparency = 1
+                        end
+                        if v:IsA("SurfaceAppearance") then
+                            v:Destroy()
+                        end
+                        if v:IsA("MaterialVariant") then
+                            -- bỏ variant nặng
+                        end
+                        if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam") then
+                            v.Enabled = false
+                        end
+                        if v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+                            v.Enabled = false
+                        end
+                    end)
+                end
+            end)
+            WindUI:Notify({
+                Title = "Q HUB",
+                Content = "Đã Fix Lag 40% (khối mượt · ít hiệu ứng · graphics thấp)!",
+                Duration = 3
+            })
         end
     })
 
