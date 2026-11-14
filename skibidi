@@ -1,4 +1,4 @@
--- Q HUB - WindUI (No Theme + Mobile Num Fly + Drag + Lock)
+-- Q HUB - WindUI (Optimized - No Theme)
 local success, err = pcall(function()
     local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
@@ -12,6 +12,7 @@ local success, err = pcall(function()
         Folder = "QHub",
     })
 
+    -- OpenButton đơn giản
     pcall(function()
         Window:EditOpenButton({
             Title = "Q HUB",
@@ -24,7 +25,7 @@ local success, err = pcall(function()
         })
     end)
 
-    -- SERVICES
+    -- SERVICES & VARIABLES
     local P, W, RS, UIS, Lighting = game:GetService("Players"), game:GetService("Workspace"), game:GetService("RunService"), game:GetService("UserInputService"), game:GetService("Lighting")
     local LP = P.LocalPlayer
     local Mouse = LP:GetMouse()
@@ -46,6 +47,7 @@ local success, err = pcall(function()
     local autoViewSpecial = true
     local tpAllDelay = 0.0001
 
+    -- KEYBINDS
     local flyKeybind = Enum.KeyCode.F
     local targetKeybind = Enum.KeyCode.R
     local tpAllKeybind = Enum.KeyCode.T
@@ -60,14 +62,18 @@ local success, err = pcall(function()
     end
 
     local targetModeEnabled = false
+
+    -- AIM
     local aimLockEnabled, silentAimEnabled, showFOVCircle, aimWallCheck, aimTeamCheck = false, false, false, false, false
     local aimPart, aimFOV, aimSmoothness = "Head", 150, 0.2
     local showTargetFOVCircle, targetFOVRadius, targetWallCheck = false, 150, false
     local tpAllEnabled = false
     local tpBlacklist = {}
+
+    -- ESP
     local espHighlight, espName, espHealth, espDistance, espBox, espTracer = false, false, false, false, false, false
 
-    -- FOV
+    -- FOV Drawing
     local FOVCircle, TargetFOVCircle = nil, nil
     local GuiCircle, TargetGuiCircle = nil, nil
 
@@ -112,11 +118,16 @@ local success, err = pcall(function()
             frame.BackgroundTransparency = 1
             frame.Visible = false
             frame.Parent = sg
-            Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 0)
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(1, 0)
+            corner.Parent = frame
+
             local stroke = Instance.new("UIStroke")
             stroke.Color = color
             stroke.Thickness = 1.5
             stroke.Parent = frame
+
             return frame
         end
 
@@ -167,181 +178,81 @@ local success, err = pcall(function()
     end
 
     local function ToggleUI()
-        if Window and Window.Toggle then Window:Toggle() end
-    end
-
-    -- ==================== MOBILE NUM UI (Target + Fly + Drag + Lock) ====================
-    local oldMobile = game:GetService("CoreGui"):FindFirstChild("QHubMobileNums") 
-        or (LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("QHubMobileNums"))
-    if oldMobile then oldMobile:Destroy() end
-
-    local MobileGui = Instance.new("ScreenGui")
-    MobileGui.Name = "QHubMobileNums"
-    MobileGui.ResetOnSpawn = false
-    MobileGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
-
-    -- Target Num Frame
-    local TargetFrame = Instance.new("Frame")
-    TargetFrame.Name = "TargetNumFrame"
-    TargetFrame.Size = UDim2.fromOffset(95, 75)
-    TargetFrame.Position = UDim2.new(0.03, 0, 0.20, 0)
-    TargetFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
-    TargetFrame.BorderSizePixel = 0
-    TargetFrame.Active = true
-    TargetFrame.Parent = MobileGui
-    Instance.new("UICorner", TargetFrame).CornerRadius = UDim.new(0, 10)
-
-    local TargetLabel = Instance.new("TextLabel")
-    TargetLabel.Size = UDim2.new(1, 0, 0, 18)
-    TargetLabel.BackgroundTransparency = 1
-    TargetLabel.Text = "Target Num"
-    TargetLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-    TargetLabel.TextSize = 11
-    TargetLabel.Font = Enum.Font.GothamBold
-    TargetLabel.Parent = TargetFrame
-
-    local NumTargetBox = Instance.new("TextBox")
-    NumTargetBox.Name = "NumTargetBox"
-    NumTargetBox.Size = UDim2.new(1, -12, 0, 36)
-    NumTargetBox.Position = UDim2.fromOffset(6, 24)
-    NumTargetBox.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
-    NumTargetBox.Text = tostring(behindDistance)
-    NumTargetBox.PlaceholderText = "Num"
-    NumTargetBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NumTargetBox.TextSize = 18
-    NumTargetBox.Font = Enum.Font.GothamBold
-    NumTargetBox.ClearTextOnFocus = false
-    NumTargetBox.Parent = TargetFrame
-    Instance.new("UICorner", NumTargetBox).CornerRadius = UDim.new(0, 7)
-
-    -- Fly Num Frame
-    local FlyFrame = Instance.new("Frame")
-    FlyFrame.Name = "FlyNumFrame"
-    FlyFrame.Size = UDim2.fromOffset(95, 75)
-    FlyFrame.Position = UDim2.new(0.03, 0, 0.36, 0)
-    FlyFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
-    FlyFrame.BorderSizePixel = 0
-    FlyFrame.Active = true
-    FlyFrame.Parent = MobileGui
-    Instance.new("UICorner", FlyFrame).CornerRadius = UDim.new(0, 10)
-
-    local FlyLabel = Instance.new("TextLabel")
-    FlyLabel.Size = UDim2.new(1, 0, 0, 18)
-    FlyLabel.BackgroundTransparency = 1
-    FlyLabel.Text = "Fly Speed"
-    FlyLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-    FlyLabel.TextSize = 11
-    FlyLabel.Font = Enum.Font.GothamBold
-    FlyLabel.Parent = FlyFrame
-
-    local NumFlyBox = Instance.new("TextBox")
-    NumFlyBox.Name = "NumFlyBox"
-    NumFlyBox.Size = UDim2.new(1, -12, 0, 36)
-    NumFlyBox.Position = UDim2.fromOffset(6, 24)
-    NumFlyBox.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
-    NumFlyBox.Text = tostring(flySpeed)
-    NumFlyBox.PlaceholderText = "Speed"
-    NumFlyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NumFlyBox.TextSize = 18
-    NumFlyBox.Font = Enum.Font.GothamBold
-    NumFlyBox.ClearTextOnFocus = false
-    NumFlyBox.Parent = FlyFrame
-    Instance.new("UICorner", NumFlyBox).CornerRadius = UDim.new(0, 7)
-
-    -- Lock Button
-    local LockBtn = Instance.new("TextButton")
-    LockBtn.Name = "LockBtn"
-    LockBtn.Size = UDim2.fromOffset(80, 30)
-    LockBtn.Position = UDim2.new(0.03, 0, 0.52, 0)
-    LockBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    LockBtn.Text = "🔓 Unlock"
-    LockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    LockBtn.TextSize = 13
-    LockBtn.Font = Enum.Font.GothamBold
-    LockBtn.Parent = MobileGui
-    Instance.new("UICorner", LockBtn).CornerRadius = UDim.new(0, 8)
-
-    local isLocked = false
-
-    local function MakeDraggable(frame)
-        local dragging, dragStart, startPos = false, nil, nil
-        frame.InputBegan:Connect(function(input)
-            if isLocked then return end
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = true
-                dragStart = input.Position
-                startPos = frame.Position
-            end
-        end)
-        UIS.InputChanged:Connect(function(input)
-            if isLocked or not dragging then return end
-            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-                local delta = input.Position - dragStart
-                frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            end
-        end)
-        UIS.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = false
-            end
-        end)
-    end
-
-    MakeDraggable(TargetFrame)
-    MakeDraggable(FlyFrame)
-
-    LockBtn.MouseButton1Click:Connect(function()
-        isLocked = not isLocked
-        if isLocked then
-            LockBtn.Text = "🔒 Locked"
-            LockBtn.BackgroundColor3 = Color3.fromRGB(180, 55, 55)
-        else
-            LockBtn.Text = "🔓 Unlock"
-            LockBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        if Window and Window.Toggle then
+            Window:Toggle()
         end
-    end)
+    end
 
-    -- Old Target Toggle + Mode (giữ lại)
+    -- TARGET MOBILE UI
+    local oldTargetToggle = game:GetService("CoreGui"):FindFirstChild("QHubTargetMobileToggle") or (LP:FindFirstChild("PlayerGui") and LP.PlayerGui:FindFirstChild("QHubTargetMobileToggle"))
+    if oldTargetToggle then oldTargetToggle:Destroy() end
+
+    local TargetMobileGui = Instance.new("ScreenGui")
+    TargetMobileGui.Name = "QHubTargetMobileToggle"
+    TargetMobileGui.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
+    TargetMobileGui.ResetOnSpawn = false
+    TargetMobileGui.Enabled = true
+
     local TargetToggleBtn = Instance.new("TextButton")
     TargetToggleBtn.Name = "TargetToggleBtn"
-    TargetToggleBtn.Parent = MobileGui
+    TargetToggleBtn.Parent = TargetMobileGui
     TargetToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
-    TargetToggleBtn.Position = UDim2.new(0.03, 0, 0.60, 0)
-    TargetToggleBtn.Size = UDim2.fromOffset(55, 40)
-    TargetToggleBtn.Font = Enum.Font.GothamBold
+    TargetToggleBtn.Position = UDim2.new(0.05, 0, 0.23, 0)
+    TargetToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+    TargetToggleBtn.Font = Enum.Font.SourceSansBold
     TargetToggleBtn.Text = "OFF"
     TargetToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TargetToggleBtn.TextSize = 14
+    TargetToggleBtn.TextSize = 15
+    TargetToggleBtn.Active = true
     TargetToggleBtn.BorderSizePixel = 0
-    Instance.new("UICorner", TargetToggleBtn).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", TargetToggleBtn).CornerRadius = UDim.new(0.5, 0)
 
     local ModeTargetBtn = Instance.new("TextButton")
     ModeTargetBtn.Name = "ModeTargetBtn"
-    ModeTargetBtn.Parent = MobileGui
-    ModeTargetBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    ModeTargetBtn.Position = UDim2.new(0.03, 0, 0.70, 0)
-    ModeTargetBtn.Size = UDim2.fromOffset(70, 28)
-    ModeTargetBtn.Font = Enum.Font.GothamBold
+    ModeTargetBtn.Parent = TargetMobileGui
+    ModeTargetBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    ModeTargetBtn.Position = UDim2.new(0.05, 0, 0.31, 0)
+    ModeTargetBtn.Size = UDim2.new(0, 55, 0, 25)
+    ModeTargetBtn.Font = Enum.Font.SourceSansBold
     ModeTargetBtn.Text = "Top"
     ModeTargetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     ModeTargetBtn.TextSize = 12
+    ModeTargetBtn.Active = true
     ModeTargetBtn.BorderSizePixel = 0
-    Instance.new("UICorner", ModeTargetBtn).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", ModeTargetBtn).CornerRadius = UDim.new(0.2, 0)
 
-    local BehindDistInputObj, ModeDropdownObj, ToggleTargetUIObj = nil, nil, nil
-    local syncingTargetUI, syncingNum = false, false
-    local targetSmooth = 0.35
-    local lastTargetToggleAt = 0
+    local NumTargetBox = Instance.new("TextBox")
+    NumTargetBox.Name = "NumTargetBox"
+    NumTargetBox.Parent = TargetMobileGui
+    NumTargetBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    NumTargetBox.Position = UDim2.new(0.05, 0, 0.36, 0)
+    NumTargetBox.Size = UDim2.new(0, 55, 0, 28)
+    NumTargetBox.Font = Enum.Font.SourceSansBold
+    NumTargetBox.Text = tostring(behindDistance)
+    NumTargetBox.PlaceholderText = "Num"
+    NumTargetBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NumTargetBox.TextSize = 14
+    NumTargetBox.ClearTextOnFocus = false
+    NumTargetBox.BorderSizePixel = 0
+    Instance.new("UICorner", NumTargetBox).CornerRadius = UDim.new(0.2, 0)
 
-    local function UpdateBehindDistance(val)
+    local BehindDistInputObj = nil
+    local ModeDropdownObj = nil
+    local ToggleTargetUIObj = nil
+    local syncingTargetUI = false
+    local syncingNum = false
+
+    local function UpdateBehindDistance(val, fromMobile)
         local num = tonumber(val)
         if not (num and num >= 0) then
-            NumTargetBox.Text = tostring(behindDistance)
+            if NumTargetBox then NumTargetBox.Text = tostring(behindDistance) end
             return
         end
         behindDistance = num
         syncingNum = true
-        NumTargetBox.Text = tostring(num)
+        if NumTargetBox and NumTargetBox.Text ~= tostring(num) then
+            NumTargetBox.Text = tostring(num)
+        end
         if BehindDistInputObj and BehindDistInputObj.Set then
             pcall(function() BehindDistInputObj:Set(tostring(num)) end)
         end
@@ -349,21 +260,29 @@ local success, err = pcall(function()
     end
 
     NumTargetBox.FocusLost:Connect(function()
-        UpdateBehindDistance(NumTargetBox.Text)
+        UpdateBehindDistance(NumTargetBox.Text, true)
     end)
-
-    NumFlyBox.FocusLost:Connect(function()
-        local num = tonumber(NumFlyBox.Text)
-        if num and num > 0 then
-            flySpeed = num
-        else
-            NumFlyBox.Text = tostring(flySpeed)
+    NumTargetBox:GetPropertyChangedSignal("Text"):Connect(function()
+        if syncingNum then return end
+        local num = tonumber(NumTargetBox.Text)
+        if num and num >= 0 then
+            behindDistance = num
+            if BehindDistInputObj and BehindDistInputObj.Set then
+                syncingNum = true
+                pcall(function() BehindDistInputObj:Set(tostring(num)) end)
+                syncingNum = false
+            end
         end
     end)
 
+    local targetSmooth = 0.35
+    local lastTargetToggleAt = 0
+
     local function SetMobileTargetUI(on)
-        TargetToggleBtn.Text = on and "ON" or "OFF"
-        TargetToggleBtn.BackgroundColor3 = on and Color3.fromRGB(30, 200, 30) or Color3.fromRGB(220, 30, 30)
+        pcall(function()
+            TargetToggleBtn.Text = on and "ON" or "OFF"
+            TargetToggleBtn.BackgroundColor3 = on and Color3.fromRGB(30, 220, 30) or Color3.fromRGB(220, 30, 30)
+        end)
     end
 
     local function SyncAllTargetUI(on)
@@ -371,9 +290,14 @@ local success, err = pcall(function()
         syncingTargetUI = true
         SetMobileTargetUI(on)
         pcall(function()
-            if ToggleTargetUIObj and ToggleTargetUIObj.Set then ToggleTargetUIObj:Set(on) end
+            if ToggleTargetUIObj and ToggleTargetUIObj.Set then
+                ToggleTargetUIObj:Set(on)
+            end
         end)
-        task.defer(function() task.wait() syncingTargetUI = false end)
+        task.defer(function()
+            task.wait()
+            syncingTargetUI = false
+        end)
     end
 
     local function RestoreGravity()
@@ -385,6 +309,7 @@ local success, err = pcall(function()
             if hum then
                 hum.PlatformStand = false
                 hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                hum:ChangeState(Enum.HumanoidStateType.Running)
             end
             if hrp then
                 hrp.AssemblyLinearVelocity = Vector3.zero
@@ -401,7 +326,11 @@ local success, err = pcall(function()
         pcall(function() RS:UnbindFromRenderStep("QHub_TargetFollow") end)
         if T.Behind then
             pcall(function()
-                if typeof(T.Behind) == "RBXScriptConnection" then T.Behind:Disconnect() end
+                if typeof(T.Behind) == "RBXScriptConnection" then
+                    T.Behind:Disconnect()
+                elseif typeof(T.Behind) ~= "string" then
+                    task.cancel(T.Behind)
+                end
             end)
             T.Behind = nil
         end
@@ -413,6 +342,7 @@ local success, err = pcall(function()
     local function StartTargetingPlayer(plr, forceEnable)
         if not plr or plr == LP then return end
         SelectedTargetPlayer = plr
+
         if forceEnable then
             targetModeEnabled = true
             SyncAllTargetUI(true)
@@ -421,17 +351,39 @@ local success, err = pcall(function()
 
         local TARGET_BIND = "QHub_TargetFollow"
         pcall(function() RS:UnbindFromRenderStep(TARGET_BIND) end)
+        if T.Behind then
+            pcall(function()
+                if typeof(T.Behind) == "RBXScriptConnection" then T.Behind:Disconnect() end
+            end)
+            T.Behind = nil
+        end
+
+        local function stopFollowOnly()
+            pcall(function() RS:UnbindFromRenderStep(TARGET_BIND) end)
+            if T.Behind then
+                pcall(function()
+                    if typeof(T.Behind) == "RBXScriptConnection" then T.Behind:Disconnect() end
+                end)
+                T.Behind = nil
+            end
+        end
 
         local function followStep(dt)
-            if not targetModeEnabled then return end
+            if not targetModeEnabled then
+                stopFollowOnly()
+                return
+            end
             local char = LP.Character
             if not char then return end
             local hrp = char:FindFirstChild("HumanoidRootPart")
             local tPlr = SelectedTargetPlayer
             if not tPlr or not tPlr.Parent then
                 targetModeEnabled = false
-                StopTargeting()
-                SyncAllTargetUI(false)
+                stopFollowOnly()
+                SelectedTargetPlayer = nil
+                RestoreGravity()
+                ResetCamToSelf()
+                task.defer(function() SyncAllTargetUI(false) end)
                 return
             end
             local tChar = tPlr.Character
@@ -439,83 +391,142 @@ local success, err = pcall(function()
             local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
             if not tHrp or not tHum or tHum.Health <= 0 then
                 targetModeEnabled = false
-                StopTargeting()
-                SyncAllTargetUI(false)
+                stopFollowOnly()
+                SelectedTargetPlayer = nil
+                RestoreGravity()
+                ResetCamToSelf()
+                task.defer(function() SyncAllTargetUI(false) end)
                 return
             end
             if not hrp then return end
 
             local dist = math.max(0.5, behindDistance or 6)
             local mode = targetPositionMode or "Top"
+            local myHum = char:FindFirstChildOfClass("Humanoid")
             dt = dt or 0.016
 
-            if ShouldAutoView() and Cam.CameraSubject ~= tHum then
-                ViewTargetPlayer(tPlr)
+            if ShouldAutoView() then
+                if Cam.CameraSubject ~= tHum then
+                    ViewTargetPlayer(tPlr)
+                end
             end
 
             local function lockPhysics()
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
-                local myHum = char:FindFirstChildOfClass("Humanoid")
-                if myHum then pcall(function() myHum:ChangeState(Enum.HumanoidStateType.Physics) end) end
+                if myHum then
+                    pcall(function()
+                        myHum:ChangeState(Enum.HumanoidStateType.Physics)
+                    end)
+                end
             end
 
             if mode == "Top" then
-                hrp.CFrame = CFrame.new(tHrp.Position + Vector3.new(0, dist, 0), tHrp.Position)
+                local topPos = tHrp.Position + Vector3.new(0, dist, 0)
+                hrp.CFrame = CFrame.new(topPos, tHrp.Position)
                 lockPhysics()
             elseif mode == "Under" then
-                hrp.CFrame = CFrame.new(tHrp.Position + Vector3.new(0, -dist, 0), tHrp.Position)
+                local underPos = tHrp.Position + Vector3.new(0, -dist, 0)
+                hrp.CFrame = CFrame.new(underPos, tHrp.Position)
                 lockPhysics()
             elseif mode == "Spin" then
                 spinAngle = spinAngle + dt * spinSpeed
-                local pos = tHrp.Position + Vector3.new(math.cos(spinAngle) * dist, 1.5, math.sin(spinAngle) * dist)
-                hrp.CFrame = CFrame.new(pos, tHrp.Position)
+                local ox = math.cos(spinAngle) * dist
+                local oz = math.sin(spinAngle) * dist
+                local spinPos = tHrp.Position + Vector3.new(ox, 1.5, oz)
+                hrp.CFrame = CFrame.new(spinPos, tHrp.Position)
                 lockPhysics()
             elseif mode == "Behind" then
-                hrp.CFrame = hrp.CFrame:Lerp(tHrp.CFrame * CFrame.new(0, 0, dist), math.clamp(targetSmooth, 0.1, 1))
-            else
+                local goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
+                local alpha = math.clamp((targetSmooth or 0.35), 0.1, 1)
+                hrp.CFrame = hrp.CFrame:Lerp(goalCF, alpha)
+                local vel = hrp.AssemblyLinearVelocity
+                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.2, 0, vel.Z * 0.2)
+            else -- Front
                 local front = tHrp.CFrame * CFrame.new(0, 0, -dist)
-                hrp.CFrame = hrp.CFrame:Lerp(CFrame.new(front.Position, tHrp.Position), math.clamp(targetSmooth, 0.1, 1))
+                local goalCF = CFrame.new(front.Position, tHrp.Position)
+                local alpha = math.clamp((targetSmooth or 0.35), 0.1, 1)
+                hrp.CFrame = hrp.CFrame:Lerp(goalCF, alpha)
+                local vel = hrp.AssemblyLinearVelocity
+                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.2, 0, vel.Z * 0.2)
             end
         end
 
-        local ok = pcall(function()
+        local bindOk = pcall(function()
             RS:BindToRenderStep(TARGET_BIND, Enum.RenderPriority.Camera.Value + 1, followStep)
         end)
-        if not ok then
-            T.Behind = RS.Heartbeat:Connect(function(dt) pcall(followStep, dt) end)
+        if not bindOk then
+            T.Behind = RS.Heartbeat:Connect(function(dt)
+                pcall(followStep, dt)
+            end)
         else
             T.Behind = TARGET_BIND
         end
+
         UpdateTargetView()
     end
 
-    local MODE_LIST = {"Behind", "Top", "Front", "Under", "Spin"}
-    local function SetTargetMode(mode, fromDropdown)
-        if type(mode) == "table" then mode = mode[1] or mode.Value end
-        mode = tostring(mode or "")
-        local valid = false
-        for _, m in ipairs(MODE_LIST) do if m == mode then valid = true break end end
-        if not valid then return end
+    local syncingMode = false
+    local MODE_LIST = { "Behind", "Top", "Front", "Under", "Spin" }
 
+    local function NormalizeMode(v)
+        if type(v) == "table" then
+            v = v[1] or v.Value or v.Name
+        end
+        v = tostring(v or "")
+        for _, m in ipairs(MODE_LIST) do
+            if m == v then return m end
+        end
+        return nil
+    end
+
+    local function SetTargetMode(mode, fromDropdown)
+        mode = NormalizeMode(mode)
+        if not mode then return end
         local prev = targetPositionMode
         targetPositionMode = mode
-        ModeTargetBtn.Text = mode
-        if IsPhysicsMode(prev) and not IsPhysicsMode(mode) then RestoreGravity() end
-        if mode == "Spin" then spinAngle = 0 end
+        pcall(function() ModeTargetBtn.Text = mode end)
+        if IsPhysicsMode(prev) and not IsPhysicsMode(mode) then
+            RestoreGravity()
+        end
+        if mode == "Spin" then
+            spinAngle = 0
+        end
         UpdateTargetView()
-        if not fromDropdown and ModeDropdownObj then
+        if fromDropdown then return end
+        if syncingMode then return end
+        if ModeDropdownObj then
+            syncingMode = true
             pcall(function()
-                if ModeDropdownObj.Select then ModeDropdownObj:Select(mode)
-                elseif ModeDropdownObj.Set then ModeDropdownObj:Set(mode) end
+                if ModeDropdownObj.Select then
+                    ModeDropdownObj:Select(mode)
+                elseif ModeDropdownObj.Set then
+                    ModeDropdownObj:Set(mode)
+                end
+            end)
+            task.defer(function()
+                task.wait(0.05)
+                syncingMode = false
             end)
         end
     end
 
     ModeTargetBtn.MouseButton1Click:Connect(function()
         local idx = 1
-        for i, m in ipairs(MODE_LIST) do if m == targetPositionMode then idx = i break end end
-        SetTargetMode(MODE_LIST[idx % #MODE_LIST + 1])
+        for i, m in ipairs(MODE_LIST) do
+            if m == targetPositionMode then idx = i break end
+        end
+        local prev = targetPositionMode
+        local nextMode = MODE_LIST[(idx % #MODE_LIST) + 1]
+        targetPositionMode = nextMode
+        pcall(function() ModeTargetBtn.Text = nextMode end)
+        if IsPhysicsMode(prev) and not IsPhysicsMode(nextMode) then
+            RestoreGravity()
+        end
+        if nextMode == "Spin" then
+            spinAngle = 0
+        end
+        UpdateTargetView()
     end)
 
     P.PlayerRemoving:Connect(function(plr)
@@ -526,32 +537,35 @@ local success, err = pcall(function()
         end
     end)
 
-    local function IsVisiblePart(part, wallCheck)
-        if not wallCheck or not part then return true end
+    local function IsVisiblePart(targetPart, wallCheckEnabled)
+        if not wallCheckEnabled or not targetPart then return true end
+        local myChar = LP.Character
+        if not myChar then return false end
         local origin = Cam.CFrame.Position
-        local dir = part.Position - origin
+        local dir = (targetPart.Position - origin)
         if dir.Magnitude < 1 then return true end
         local params = RaycastParams.new()
         params.FilterType = Enum.RaycastFilterType.Exclude
-        params.FilterDescendantsInstances = {LP.Character, part.Parent}
+        params.FilterDescendantsInstances = { myChar, targetPart.Parent }
         local result = W:Raycast(origin, dir.Unit * math.min(dir.Magnitude, 500), params)
-        return result == nil or (result.Instance and result.Instance:IsDescendantOf(part.Parent))
+        return result == nil or (result.Instance and result.Instance:IsDescendantOf(targetPart.Parent))
     end
 
     local function GetClosestTargetToMouseFOV(radius, wallCheck, teamCheck, specificPart)
-        local closestPart, closestPlayer, shortest = nil, nil, radius
-        local center = Vector2.new(Mouse.X, Mouse.Y + fixedPovOffset)
+        local closestPart, closestPlayer, shortestDistance = nil, nil, radius
+        local fovCenterPos = Vector2.new(Mouse.X, Mouse.Y + fixedPovOffset)
+
         for _, p in ipairs(P:GetPlayers()) do
             if p ~= LP and p.Character and not (teamCheck and p.Team == LP.Team) then
                 local hum = p.Character:FindFirstChildOfClass("Humanoid")
                 if hum and hum.Health > 0 then
                     local part = specificPart and (p.Character:FindFirstChild(specificPart) or p.Character:FindFirstChild("HumanoidRootPart")) or p.Character:FindFirstChild("HumanoidRootPart")
                     if part then
-                        local pos, on = Cam:WorldToViewportPoint(part.Position)
-                        if on then
-                            local d = (Vector2.new(pos.X, pos.Y) - center).Magnitude
-                            if d < shortest and IsVisiblePart(part, wallCheck) then
-                                shortest = d
+                        local screenPos, onScreen = Cam:WorldToViewportPoint(part.Position)
+                        if onScreen then
+                            local distFromCenter = (Vector2.new(screenPos.X, screenPos.Y) - fovCenterPos).Magnitude
+                            if distFromCenter < shortestDistance and IsVisiblePart(part, wallCheck) then
+                                shortestDistance = distFromCenter
                                 closestPart, closestPlayer = part, p
                             end
                         end
@@ -566,271 +580,1044 @@ local success, err = pcall(function()
         local now = tick()
         if now - lastTargetToggleAt < 0.25 then return end
         lastTargetToggleAt = now
+
         if state == nil then state = not targetModeEnabled end
+
         if not state then
             targetModeEnabled = false
             StopTargeting()
             SyncAllTargetUI(false)
             return
         end
+
         targetModeEnabled = true
         SyncAllTargetUI(true)
-        local _, plr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
-        if plr then
-            StartTargetingPlayer(plr)
+
+        local okPick, targetPlr = pcall(function()
+            if SelectedTargetPlayer and SelectedTargetPlayer.Parent then
+                return SelectedTargetPlayer
+            end
+            local _, plr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
+            return plr
+        end)
+
+        if okPick and targetPlr then
+            pcall(StartTargetingPlayer, targetPlr)
         else
-            WindUI:Notify({Title = "Target", Content = "Chưa có target", Duration = 2})
+            pcall(function()
+                WindUI:Notify({ Title = "Target", Content = "Chưa có target · click gần người chơi", Duration = 2 })
+            end)
         end
     end
 
-    TargetToggleBtn.MouseButton1Click:Connect(function() pcall(ToggleTargetMode) end)
+    TargetToggleBtn.MouseButton1Click:Connect(function()
+        pcall(ToggleTargetMode)
+    end)
 
-    -- Silent Aim
-    pcall(function()
-        local mt = getrawmetatable(game)
-        local old = mt.__index
-        setreadonly(mt, false)
-        mt.__index = newcclosure(function(self, key)
-            if not checkcaller() and silentAimEnabled and self == Mouse then
-                local part = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
-                if part then
-                    local k = tostring(key):lower()
-                    if k == "hit" then return part.CFrame
-                    elseif k == "target" then return part
-                    elseif k == "x" then return Cam:WorldToViewportPoint(part.Position).X
-                    elseif k == "y" then return Cam:WorldToViewportPoint(part.Position).Y end
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if waitingForKeybind and input.UserInputType == Enum.UserInputType.Keyboard then
+            local key = input.KeyCode
+            if key == Enum.KeyCode.Unknown or key == Enum.KeyCode.Escape then
+                waitingForKeybind = nil
+                if tpAllKeybindBtn and tpAllKeybindBtn.SetTitle then
+                    pcall(function() tpAllKeybindBtn:SetTitle("TP All Hotkey: [" .. KeyCodeToName(tpAllKeybind) .. "]") end)
+                end
+                if targetKeybindBtn and targetKeybindBtn.SetTitle then
+                    pcall(function() targetKeybindBtn:SetTitle("Target Hotkey: [" .. KeyCodeToName(targetKeybind) .. "]") end)
+                end
+                if flyKeybindBtn and flyKeybindBtn.SetTitle then
+                    pcall(function() flyKeybindBtn:SetTitle("Fly Hotkey: [" .. KeyCodeToName(flyKeybind) .. "]") end)
+                end
+                if menuKeybindBtn and menuKeybindBtn.SetTitle then
+                    pcall(function() menuKeybindBtn:SetTitle("Menu Hotkey: [" .. KeyCodeToName(menuKeybind) .. "]") end)
+                end
+                return
+            end
+
+            local name = key.Name
+            if waitingForKeybind == "tpall" then
+                tpAllKeybind = key
+                if tpAllKeybindBtn and tpAllKeybindBtn.SetTitle then
+                    pcall(function() tpAllKeybindBtn:SetTitle("TP All Hotkey: [" .. name .. "]") end)
+                end
+                WindUI:Notify({ Title = "Q HUB", Content = "TP All → [" .. name .. "]", Duration = 2 })
+            elseif waitingForKeybind == "target" then
+                targetKeybind = key
+                if targetKeybindBtn and targetKeybindBtn.SetTitle then
+                    pcall(function() targetKeybindBtn:SetTitle("Target Hotkey: [" .. name .. "]") end)
+                end
+                WindUI:Notify({ Title = "Q HUB", Content = "Target → [" .. name .. "]", Duration = 2 })
+            elseif waitingForKeybind == "fly" then
+                flyKeybind = key
+                if flyKeybindBtn and flyKeybindBtn.SetTitle then
+                    pcall(function() flyKeybindBtn:SetTitle("Fly Hotkey: [" .. name .. "]") end)
+                end
+                WindUI:Notify({ Title = "Q HUB", Content = "Fly → [" .. name .. "]", Duration = 2 })
+            elseif waitingForKeybind == "menu" then
+                menuKeybind = key
+                if menuKeybindBtn and menuKeybindBtn.SetTitle then
+                    pcall(function() menuKeybindBtn:SetTitle("Menu Hotkey: [" .. name .. "]") end)
+                end
+                pcall(function()
+                    if Window.SetToggleKey then Window:SetToggleKey(key) end
+                end)
+                WindUI:Notify({ Title = "Q HUB", Content = "Menu → [" .. name .. "]", Duration = 2 })
+            end
+            waitingForKeybind = nil
+            return
+        end
+
+        if gameProcessed or not targetModeEnabled then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if not SelectedTargetPlayer then
+                local _, targetPlr = GetClosestTargetToMouseFOV(targetFOVRadius, targetWallCheck)
+                if targetPlr then
+                    StartTargetingPlayer(targetPlr)
                 end
             end
-            return old(self, key)
+        end
+    end)
+
+    local function GetPlayerListNames()
+        local names = {}
+        for _, p in ipairs(P:GetPlayers()) do
+            if p ~= LP then table.insert(names, p.Name) end
+        end
+        return #names > 0 and names or {"No players found"}
+    end
+
+    -- SILENT AIM HOOK
+    pcall(function()
+        local rawMeta = getrawmetatable(game)
+        local oldIndex = rawMeta.__index
+        setreadonly(rawMeta, false)
+        rawMeta.__index = newcclosure(function(self, key)
+            if not checkcaller() and silentAimEnabled and self == Mouse then
+                local targetPart, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
+                if targetPart then
+                    local k = key:lower()
+                    if k == "hit" then return targetPart.CFrame
+                    elseif k == "target" then return targetPart
+                    elseif k == "x" then return Cam:WorldToViewportPoint(targetPart.Position).X
+                    elseif k == "y" then return Cam:WorldToViewportPoint(targetPart.Position).Y
+                    end
+                end
+            end
+            return oldIndex(self, key)
         end)
-        setreadonly(mt, true)
+        setreadonly(rawMeta, true)
     end)
 
     -- TABS
     local Tabs = {
-        Info = Window:Tab({Title = "Info", Icon = "info"}),
-        Aim = Window:Tab({Title = "Aim", Icon = "crosshair"}),
-        TP = Window:Tab({Title = "TP All", Icon = "user-check"}),
-        Target = Window:Tab({Title = "Target", Icon = "target"}),
-        ESP = Window:Tab({Title = "ESP", Icon = "eye"}),
-        FixLag = Window:Tab({Title = "Fix Lag", Icon = "zap"}),
-        Misc = Window:Tab({Title = "Misc", Icon = "move"})
+        Info = Window:Tab({ Title = "Info", Icon = "info" }),
+        Aim = Window:Tab({ Title = "Aim", Icon = "crosshair" }),
+        TP = Window:Tab({ Title = "TP All", Icon = "user-check" }),
+        Target = Window:Tab({ Title = "Target", Icon = "target" }),
+        ESP = Window:Tab({ Title = "ESP", Icon = "eye" }),
+        FixLag = Window:Tab({ Title = "Fix Lag", Icon = "zap" }),
+        Misc = Window:Tab({ Title = "Misc", Icon = "move" })
     }
 
+    -- INFO TAB (gọn)
     Tabs.Info:Paragraph({
         Title = "Q HUB",
-        Desc = "Hotkey:\n• LeftCtrl = Menu\n• F = Fly\n• R = Target\n• T = TP All"
+        Desc = "Hotkey List:\n• [LeftCtrl] Toggle Menu\n• [F] Fly Mode\n• [R] Target Mode\n• [T] TP All Mode"
     })
 
     menuKeybindBtn = Tabs.Info:Button({
         Title = "Menu Hotkey: [LeftControl]",
+        Desc = "Bấm để đổi phím mở menu",
         Callback = function()
             waitingForKeybind = "menu"
-            WindUI:Notify({Title = "Q HUB", Content = "Nhấn phím mới...", Duration = 2})
+            if menuKeybindBtn and menuKeybindBtn.SetTitle then
+                pcall(function() menuKeybindBtn:SetTitle("Menu Hotkey: [ ... ]") end)
+            end
+            WindUI:Notify({ Title = "Q HUB", Content = "Nhấn phím mới để mở menu...", Duration = 2 })
         end
     })
 
-    -- AIM
-    Tabs.Aim:Toggle({Title = "Aim Lock", Value = false, Callback = function(v) aimLockEnabled = v end})
-    Tabs.Aim:Toggle({Title = "Silent Aim", Value = false, Callback = function(v) silentAimEnabled = v end})
-    Tabs.Aim:Toggle({Title = "Draw Aim FOV", Value = false, Callback = function(v) showFOVCircle = v end})
-    Tabs.Aim:Toggle({Title = "Wall Check", Value = false, Callback = function(v) aimWallCheck = v end})
-    Tabs.Aim:Toggle({Title = "Team Check", Value = false, Callback = function(v) aimTeamCheck = v end})
-    Tabs.Aim:Dropdown({Title = "Aim Part", Values = {"Head", "HumanoidRootPart"}, Value = "Head", Callback = function(v) aimPart = v end})
-    Tabs.Aim:Slider({Title = "Smoothness", Step = 0.01, Value = {Min = 0.05, Max = 1, Default = 0.2}, Callback = function(v) aimSmoothness = v end})
-    Tabs.Aim:Slider({Title = "FOV Size", Step = 1, Value = {Min = 50, Max = 500, Default = 150}, Callback = function(v) aimFOV = v end})
+    -- AIM TAB
+    Tabs.Aim:Toggle({
+        Title = "Aim Lock",
+        Value = false,
+        Callback = function(v) aimLockEnabled = v end
+    })
+    Tabs.Aim:Toggle({
+        Title = "Silent Aim",
+        Value = false,
+        Callback = function(v) silentAimEnabled = v end
+    })
+    Tabs.Aim:Toggle({
+        Title = "Draw Aim FOV",
+        Value = false,
+        Callback = function(v) showFOVCircle = v end
+    })
+    Tabs.Aim:Toggle({
+        Title = "Wall Check",
+        Value = false,
+        Callback = function(v) aimWallCheck = v end
+    })
+    Tabs.Aim:Toggle({
+        Title = "Team Check",
+        Value = false,
+        Callback = function(v) aimTeamCheck = v end
+    })
+    Tabs.Aim:Dropdown({
+        Title = "Aim Part",
+        Values = {"Head", "HumanoidRootPart"},
+        Value = "Head",
+        Callback = function(v) aimPart = v end
+    })
+    Tabs.Aim:Slider({
+        Title = "Smoothness",
+        Step = 0.01,
+        Value = { Min = 0.05, Max = 1, Default = 0.2 },
+        Callback = function(v) aimSmoothness = v end
+    })
+    Tabs.Aim:Slider({
+        Title = "FOV Size",
+        Step = 1,
+        Value = { Min = 50, Max = 500, Default = 150 },
+        Callback = function(v) aimFOV = v end
+    })
 
+    -- RENDER LOOP FOV + AIMLOCK
     RS.RenderStepped:Connect(function()
-        local pos = Vector2.new(Mouse.X, Mouse.Y + fixedPovOffset)
+        local fovPos = Vector2.new(Mouse.X, Mouse.Y + fixedPovOffset)
+
         if showFOVCircle then
-            if FOVCircle then FOVCircle.Position, FOVCircle.Radius, FOVCircle.Visible = pos, aimFOV, true
-            elseif GuiCircle then GuiCircle.Position = UDim2.fromOffset(pos.X, pos.Y) GuiCircle.Size = UDim2.fromOffset(aimFOV*2, aimFOV*2) GuiCircle.Visible = true end
+            if FOVCircle then
+                FOVCircle.Position, FOVCircle.Radius, FOVCircle.Visible = fovPos, aimFOV, true
+            elseif GuiCircle then
+                GuiCircle.Position = UDim2.new(0, fovPos.X, 0, fovPos.Y)
+                GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
+                GuiCircle.Visible = true
+            end
         else
             if FOVCircle then FOVCircle.Visible = false end
             if GuiCircle then GuiCircle.Visible = false end
         end
+
         if showTargetFOVCircle then
-            if TargetFOVCircle then TargetFOVCircle.Position, TargetFOVCircle.Radius, TargetFOVCircle.Visible = pos, targetFOVRadius, true
-            elseif TargetGuiCircle then TargetGuiCircle.Position = UDim2.fromOffset(pos.X, pos.Y) TargetGuiCircle.Size = UDim2.fromOffset(targetFOVRadius*2, targetFOVRadius*2) TargetGuiCircle.Visible = true end
+            if TargetFOVCircle then
+                TargetFOVCircle.Position, TargetFOVCircle.Radius, TargetFOVCircle.Visible = fovPos, targetFOVRadius, true
+            elseif TargetGuiCircle then
+                TargetGuiCircle.Position = UDim2.new(0, fovPos.X, 0, fovPos.Y)
+                TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
+                TargetGuiCircle.Visible = true
+            end
         else
             if TargetFOVCircle then TargetFOVCircle.Visible = false end
             if TargetGuiCircle then TargetGuiCircle.Visible = false end
         end
+
         if aimLockEnabled then
-            local target = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
+            local target, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
             if target then Cam.CFrame = Cam.CFrame:Lerp(CFrame.new(Cam.CFrame.Position, target.Position), aimSmoothness) end
         end
     end)
 
-    -- FIX LAG (giữ nguyên các nút)
-    Tabs.FixLag:Button({Title = "💡 Fix Lag 10%", Callback = function()
-        pcall(function() Lighting.GlobalShadows = false Lighting.FogEnd = 9e9 end)
-        WindUI:Notify({Title = "Q HUB", Content = "Fix Lag 10%!", Duration = 2})
-    end})
-    Tabs.FixLag:Button({Title = "✨ Fix Lag 20%", Callback = function()
-        pcall(function()
-            Lighting.GlobalShadows = false Lighting.FogEnd = 9e9
-            for _, v in ipairs(Lighting:GetChildren()) do
-                if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("BloomEffect") or v:IsA("SunRaysEffect") then v.Enabled = false end
-            end
-        end)
-        WindUI:Notify({Title = "Q HUB", Content = "Fix Lag 20%!", Duration = 2})
-    end})
-    Tabs.FixLag:Button({Title = "💥 Fix Lag 30%", Callback = function()
-        pcall(function()
-            for _, v in ipairs(W:GetDescendants()) do
-                if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then v.Enabled = false end
-            end
-        end)
-        WindUI:Notify({Title = "Q HUB", Content = "Fix Lag 30%!", Duration = 2})
-    end})
-    Tabs.FixLag:Button({Title = "👕 Fix Lag 50%", Callback = function()
-        for _, p in ipairs(P:GetPlayers()) do
-            if p.Character then
-                for _, a in ipairs(p.Character:GetChildren()) do
-                    if a:IsA("Accessory") or a:IsA("Shirt") or a:IsA("Pants") then a:Destroy() end
+    -- FIX LAG
+    Tabs.FixLag:Button({
+        Title = "💡 Fix Lag 10% (Tắt Shadows & Fog)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+            end)
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 10%!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:Button({
+        Title = "✨ Fix Lag 20% (Tắt Post Effects)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("ColorCorrectionEffect") then
+                        v.Enabled = false
+                    end
                 end
+            end)
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 20%!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:Button({
+        Title = "💥 Fix Lag 30% (Tắt Particles)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                        v.Enabled = false
+                    end
+                end
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                        v.Enabled = false
+                    end
+                end
+            end)
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 30%!", Duration = 3 })
+        end
+    })
+
+    local fixLag40Enabled = false
+    local fixLag40Conn = nil
+    local fixLag40Queue = {}
+    local fixLag40Queued = {}
+    local fixLag40BatchRunning = false
+    local FIX40_BATCH = 35
+
+    local function NeedsFixLag40(v)
+        return v:IsA("BasePart")
+            or v:IsA("SpecialMesh")
+            or v:IsA("Texture") or v:IsA("Decal")
+            or v:IsA("SurfaceAppearance")
+            or v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam")
+            or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles")
+    end
+
+    local function ApplyFixLag40To(v)
+        if not v or not v.Parent then return end
+        pcall(function()
+            if v:IsA("BasePart") then
+                v.CastShadow = false
+                v.Reflectance = 0
+                if v.Material ~= Enum.Material.ForceField then
+                    v.Material = Enum.Material.SmoothPlastic
+                end
+                if v:IsA("MeshPart") then
+                    pcall(function()
+                        v.RenderFidelity = Enum.RenderFidelity.Performance
+                    end)
+                end
+            elseif v:IsA("SpecialMesh") then
+                if v.TextureId ~= "" then v.TextureId = "" end
+            elseif v:IsA("Texture") or v:IsA("Decal") then
+                v.Transparency = 1
+            elseif v:IsA("SurfaceAppearance") then
+                v:Destroy()
+            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Beam")
+                or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+                v.Enabled = false
+            end
+        end)
+    end
+
+    local function EnqueueFix40(v)
+        if not fixLag40Enabled or not v or fixLag40Queued[v] then return end
+        if not NeedsFixLag40(v) then return end
+        fixLag40Queued[v] = true
+        fixLag40Queue[#fixLag40Queue + 1] = v
+    end
+
+    local function ProcessFix40Batch()
+        if fixLag40BatchRunning or not fixLag40Enabled then return end
+        fixLag40BatchRunning = true
+        task.spawn(function()
+            while fixLag40Enabled and #fixLag40Queue > 0 do
+                local n = 0
+                while n < FIX40_BATCH and #fixLag40Queue > 0 do
+                    local v = table.remove(fixLag40Queue, 1)
+                    if v then
+                        fixLag40Queued[v] = nil
+                        ApplyFixLag40To(v)
+                    end
+                    n = n + 1
+                end
+                task.wait()
+            end
+            fixLag40BatchRunning = false
+        end)
+    end
+
+    local function ApplyFixLag40AllBatched()
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 9e9
+        for _, v in ipairs(W:GetDescendants()) do
+            EnqueueFix40(v)
+        end
+        ProcessFix40Batch()
+    end
+
+    Tabs.FixLag:Toggle({
+        Title = "🧱 Fix Lag 40% (Khối / Mesh)",
+        Desc = "Batch nhẹ · chunk mới vẫn mượt",
+        Value = false,
+        Callback = function(state)
+            fixLag40Enabled = state
+            if fixLag40Conn then
+                pcall(function() fixLag40Conn:Disconnect() end)
+                fixLag40Conn = nil
+            end
+            fixLag40Queue = {}
+            fixLag40Queued = {}
+            fixLag40BatchRunning = false
+
+            if state then
+                pcall(ApplyFixLag40AllBatched)
+                fixLag40Conn = W.DescendantAdded:Connect(function(v)
+                    if not fixLag40Enabled then return end
+                    EnqueueFix40(v)
+                    ProcessFix40Batch()
+                end)
+                WindUI:Notify({ Title = "Q HUB", Content = "Fix Lag 40% ON", Duration = 3 })
+            else
+                WindUI:Notify({ Title = "Q HUB", Content = "Fix Lag 40% OFF", Duration = 2 })
             end
         end
-        WindUI:Notify({Title = "Q HUB", Content = "Fix Lag 50%!", Duration = 2})
-    end})
-    Tabs.FixLag:Button({Title = "🗿 Fix Lag 80%", Callback = function()
-        pcall(function()
-            for _, v in ipairs(W:GetDescendants()) do
-                if v:IsA("BasePart") and not v:IsA("Terrain") then
-                    v.Material = Enum.Material.SmoothPlastic
-                    v.Reflectance = 0
+    })
+
+    Tabs.FixLag:Button({
+        Title = "👕 Fix Lag 50% (Xóa Accessories)",
+        Callback = function()
+            pcall(function()
+                for _, p in ipairs(P:GetPlayers()) do
+                    if p.Character then
+                        for _, acc in ipairs(p.Character:GetChildren()) do
+                            if acc:IsA("Accessory") or acc:IsA("Shirt") or acc:IsA("Pants") or acc:IsA("ShirtGraphic") then
+                                acc:Destroy()
+                            end
+                        end
+                    end
                 end
-            end
-        end)
-        WindUI:Notify({Title = "Q HUB", Content = "Fix Lag 80%!", Duration = 2})
-    end})
+            end)
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 50%!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:Button({
+        Title = "🗿 Fix Lag 80% (Smooth Stone)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                Lighting.Brightness = 1
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                        v.Enabled = false
+                    end
+                end
+
+                local stoneColor = Color3.fromRGB(130, 130, 130)
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("BasePart") and not v:IsA("Terrain") then
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                        v.Color = stoneColor
+                    elseif v:IsA("Decal") or v:IsA("Texture") then
+                        v:Destroy()
+                    elseif v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") then
+                        v.Enabled = false
+                    end
+                end
+            end)
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 80%!", Duration = 3 })
+        end
+    })
+
+    Tabs.FixLag:Button({
+        Title = "🚀 Fix Lag 100% (Xóa Players & Effects)",
+        Callback = function()
+            pcall(function()
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 9e9
+                Lighting.Brightness = 1
+                for _, v in ipairs(Lighting:GetChildren()) do
+                    if v:IsA("PostEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                        v.Enabled = false
+                    end
+                end
+
+                for _, v in ipairs(W:GetDescendants()) do
+                    if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Fire") or v:IsA("Sparkles") or v:IsA("Explosion") then
+                        v:Destroy()
+                    elseif v:IsA("BasePart") then
+                        v.Material = Enum.Material.SmoothPlastic
+                        v.Reflectance = 0
+                    elseif v:IsA("Decal") or v:IsA("Texture") then
+                        v:Destroy()
+                    end
+                end
+
+                for _, p in ipairs(P:GetPlayers()) do
+                    if p ~= LP and p.Character then
+                        p.Character:Destroy()
+                    end
+                end
+            end)
+            WindUI:Notify({ Title = "Q HUB", Content = "Đã Fix Lag 100%!", Duration = 3 })
+        end
+    })
 
     -- TP ALL
     local function ToggleTPAll(state)
         if state == nil then state = not tpAllEnabled end
         tpAllEnabled = state
+
         if tpAllEnabled then
             T.Teleport = task.spawn(function()
+                local isSkyFalling = false
                 while tpAllEnabled do
-                    local list = {}
+                    local alivePlayers = {}
                     for _, p in ipairs(P:GetPlayers()) do
                         if p ~= LP and not table.find(tpBlacklist, p.Name) and p.Character then
-                            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                            local tr = p.Character:FindFirstChild("HumanoidRootPart")
                             local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                            if hrp and hum and hum.Health > 0 then table.insert(list, hrp) end
+                            if tr and hum and hum.Health > 0 then table.insert(alivePlayers, tr) end
                         end
                     end
-                    local my = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-                    if my and #list > 0 then
-                        for _, t in ipairs(list) do
-                            if tpAllEnabled and t.Parent then
-                                my.CFrame = (t.CFrame * CFrame.new(0, -3.5, 0)) * CFrame.Angles(math.rad(90), 0, 0)
-                                my.AssemblyLinearVelocity = Vector3.zero
-                                task.wait(tpAllDelay)
+
+                    local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                    if myHrp then
+                        if #alivePlayers > 0 then
+                            isSkyFalling = false
+                            for _, targetHrp in ipairs(alivePlayers) do
+                                if targetHrp and targetHrp.Parent and tpAllEnabled then
+                                    myHrp.CFrame = (targetHrp.CFrame * CFrame.new(0, -3.5, 0)) * CFrame.Angles(math.rad(90), 0, 0)
+                                    myHrp.AssemblyLinearVelocity = Vector3.zero
+                                    task.wait(math.max(0, tpAllDelay))
+                                end
                             end
+                        else
+                            if not isSkyFalling then
+                                isSkyFalling = true
+                                myHrp.CFrame = myHrp.CFrame + Vector3.new(0, 500, 0)
+                                myHrp.AssemblyLinearVelocity = Vector3.zero
+                            end
+                            task.wait(0.1)
                         end
-                    else task.wait(0.1) end
+                    else task.wait(0.05) end
                 end
             end)
-        else StopT("Teleport") end
+        else
+            StopT("Teleport")
+        end
     end
 
-    tpAllToggleUI = Tabs.TP:Toggle({Title = "TP All Under Feet", Value = false, Callback = function(v) ToggleTPAll(v) end})
-    Tabs.TP:Input({Title = "TP Delay", Value = "0.0001", Callback = function(t) local n = tonumber(t) if n then tpAllDelay = n end end})
-    tpAllKeybindBtn = Tabs.TP:Button({Title = "TP All Hotkey: [T]", Callback = function() waitingForKeybind = "tpall" end})
+    tpAllToggleUI = Tabs.TP:Toggle({
+        Title = "TP All Under Feet 90°",
+        Desc = "Delay mặc định 0.0001s",
+        Value = false,
+        Callback = function(state) ToggleTPAll(state) end
+    })
+
+    Tabs.TP:Input({
+        Title = "TP All Delay (giây)",
+        Desc = "VD: 0.0001",
+        Value = "0.0001",
+        Placeholder = "0.0001",
+        Callback = function(txt)
+            local n = tonumber(txt)
+            if n and n >= 0 then
+                tpAllDelay = n
+                WindUI:Notify({ Title = "TP All", Content = "Delay = " .. tostring(n) .. "s", Duration = 2 })
+            end
+        end
+    })
+
+    tpAllKeybindBtn = Tabs.TP:Button({
+        Title = "TP All Hotkey: [" .. KeyCodeToName(tpAllKeybind) .. "]",
+        Desc = "Bấm để đổi phím",
+        Callback = function()
+            waitingForKeybind = "tpall"
+            if tpAllKeybindBtn and tpAllKeybindBtn.SetTitle then
+                pcall(function() tpAllKeybindBtn:SetTitle("TP All Hotkey: [ ... ]") end)
+            end
+            WindUI:Notify({ Title = "Q HUB", Content = "Nhấn phím mới cho TP All...", Duration = 2 })
+        end
+    })
+
+    local TPBlacklistDropdown = Tabs.TP:Dropdown({
+        Title = "Blacklist",
+        Values = GetPlayerListNames(),
+        Multi = true,
+        AllowNone = true,
+        Value = {},
+        Callback = function(s)
+            tpBlacklist = {}
+            if type(s) == "table" then
+                for _, name in ipairs(s) do
+                    if name ~= "No players found" then
+                        table.insert(tpBlacklist, name)
+                    end
+                end
+            end
+        end
+    })
 
     -- TARGET TAB
-    targetKeybindBtn = Tabs.Target:Button({Title = "Target Hotkey: [R]", Callback = function() waitingForKeybind = "target" end})
-    ModeDropdownObj = Tabs.Target:Dropdown({Title = "Position Mode", Values = MODE_LIST, Value = "Top", Callback = function(v) SetTargetMode(v, true) end})
-    Tabs.Target:Toggle({Title = "Auto View (Under/Spin)", Value = true, Callback = function(v) autoViewSpecial = v UpdateTargetView() end})
-    Tabs.Target:Input({Title = "Spin Speed", Value = "2.2", Callback = function(t) local n = tonumber(t) if n then spinSpeed = n end end})
-    Tabs.Target:Toggle({Title = "Show Mobile Buttons", Value = true, Callback = function(v)
-        TargetFrame.Visible = v
-        FlyFrame.Visible = v
-        LockBtn.Visible = v
-        TargetToggleBtn.Visible = v
-        ModeTargetBtn.Visible = v
-    end})
-    Tabs.Target:Toggle({Title = "Draw Target FOV", Value = false, Callback = function(v) showTargetFOVCircle = v end})
-    Tabs.Target:Toggle({Title = "Wall Check", Value = false, Callback = function(v) targetWallCheck = v end})
-    Tabs.Target:Slider({Title = "FOV Size", Step = 1, Value = {Min = 50, Max = 500, Default = 150}, Callback = function(v) targetFOVRadius = v end})
-    ToggleTargetUIObj = Tabs.Target:Toggle({Title = "Target Mode", Value = false, Callback = function(v) if not syncingTargetUI then ToggleTargetMode(v) end end})
-    BehindDistInputObj = Tabs.Target:Input({Title = "Distance", Value = "6", Callback = function(t) UpdateBehindDistance(t) end})
-    Tabs.Target:Slider({Title = "Smooth", Step = 0.05, Value = {Min = 0.1, Max = 1, Default = 0.35}, Callback = function(v) targetSmooth = v end})
-
-    -- ESP (đơn giản)
-    local function ApplyESP(plr)
-        if plr == LP then return end
-        local function setup(char)
-            local hl = char:FindFirstChild("QHubHL")
-            if not hl then
-                hl = Instance.new("Highlight")
-                hl.Name = "QHubHL"
-                hl.FillTransparency = 0.55
-                hl.FillColor = Color3.fromRGB(255, 45, 85)
-                hl.OutlineColor = Color3.new(1,1,1)
-                hl.Parent = char
+    targetKeybindBtn = Tabs.Target:Button({
+        Title = "Target Hotkey: [" .. KeyCodeToName(targetKeybind) .. "]",
+        Desc = "Bấm để đổi phím",
+        Callback = function()
+            waitingForKeybind = "target"
+            if targetKeybindBtn and targetKeybindBtn.SetTitle then
+                pcall(function() targetKeybindBtn:SetTitle("Target Hotkey: [ ... ]") end)
             end
-            hl.Enabled = espHighlight
+            WindUI:Notify({ Title = "Q HUB", Content = "Nhấn phím mới cho Target...", Duration = 2 })
         end
-        if plr.Character then setup(plr.Character) end
-        plr.CharacterAdded:Connect(setup)
+    })
+
+    ModeDropdownObj = Tabs.Target:Dropdown({
+        Title = "Target Position Mode",
+        Values = {"Behind", "Top", "Front", "Under", "Spin"},
+        Value = "Top",
+        Callback = function(v)
+            if syncingMode then return end
+            SetTargetMode(v, true)
+        end
+    })
+
+    Tabs.Target:Toggle({
+        Title = "Auto View (Under/Spin)",
+        Desc = "Tự nhìn target khi Under hoặc Spin",
+        Value = true,
+        Callback = function(state)
+            autoViewSpecial = state
+            if not state then
+                ResetCamToSelf()
+            else
+                UpdateTargetView()
+            end
+        end
+    })
+
+    Tabs.Target:Input({
+        Title = "Spin Speed",
+        Desc = "Số bất kỳ (vd: 0.5, 10, 100)",
+        Value = "2.2",
+        Placeholder = "2.2",
+        Callback = function(txt)
+            local n = tonumber(txt)
+            if n and n ~= 0 then
+                spinSpeed = n
+                WindUI:Notify({ Title = "Spin", Content = "Speed = " .. tostring(n), Duration = 2 })
+            end
+        end
+    })
+
+    Tabs.Target:Toggle({
+        Title = "Show Target Button",
+        Value = true,
+        Callback = function(state)
+            TargetToggleBtn.Visible = state
+            ModeTargetBtn.Visible = state
+        end
+    })
+    Tabs.Target:Toggle({
+        Title = "Show Num Input Box",
+        Value = true,
+        Callback = function(state) NumTargetBox.Visible = state end
+    })
+    Tabs.Target:Toggle({
+        Title = "Draw Target FOV",
+        Value = false,
+        Callback = function(state) showTargetFOVCircle = state end
+    })
+    Tabs.Target:Toggle({
+        Title = "Wall Check",
+        Value = false,
+        Callback = function(state) targetWallCheck = state end
+    })
+    Tabs.Target:Slider({
+        Title = "FOV Size",
+        Step = 1,
+        Value = { Min = 50, Max = 500, Default = 150 },
+        Callback = function(val) targetFOVRadius = val end
+    })
+
+    Tabs.Target:Button({
+        Title = "Teleport To Target",
+        Callback = function()
+            if SelectedTargetPlayer and SelectedTargetPlayer.Character then
+                local tHrp = SelectedTargetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                if tHrp and myHrp then myHrp.CFrame = tHrp.CFrame * CFrame.new(0, 0, 3) end
+            end
+        end
+    })
+
+    local function UpdateDropdowns()
+        task.wait(0.1)
+        local list = GetPlayerListNames()
+        pcall(function()
+            if TPBlacklistDropdown and TPBlacklistDropdown.Refresh then
+                TPBlacklistDropdown:Refresh(list)
+            end
+        end)
     end
-    for _, p in ipairs(P:GetPlayers()) do ApplyESP(p) end
-    P.PlayerAdded:Connect(ApplyESP)
+    P.PlayerAdded:Connect(UpdateDropdowns)
+    P.PlayerRemoving:Connect(UpdateDropdowns)
 
-    Tabs.ESP:Toggle({Title = "ESP Highlight", Value = false, Callback = function(v)
-        espHighlight = v
-        for _, p in ipairs(P:GetPlayers()) do
-            if p.Character then
-                local hl = p.Character:FindFirstChild("QHubHL")
-                if hl then hl.Enabled = v end
+    ToggleTargetUIObj = Tabs.Target:Toggle({
+        Title = "TP To Target Mode",
+        Value = false,
+        Callback = function(state)
+            if syncingTargetUI then return end
+            pcall(ToggleTargetMode, state)
+        end
+    })
+
+    BehindDistInputObj = Tabs.Target:Input({
+        Title = "Num Distance / Target",
+        Desc = "Đồng bộ với ô Num mobile",
+        Value = tostring(behindDistance),
+        Placeholder = "VD: 5",
+        Callback = function(txt)
+            if syncingNum then return end
+            UpdateBehindDistance(txt, false)
+        end
+    })
+
+    Tabs.Target:Slider({
+        Title = "Target Smooth",
+        Step = 0.05,
+        Value = { Min = 0.1, Max = 1, Default = 0.35 },
+        Callback = function(v)
+            targetSmooth = v
+        end
+    })
+
+    -- ESP (defer để load nhanh)
+    local ESPData = {}
+
+    local TracerGui = Instance.new("ScreenGui")
+    TracerGui.Name = "QHubESPTracers"
+    TracerGui.ResetOnSpawn = false
+    TracerGui.IgnoreGuiInset = true
+    TracerGui.DisplayOrder = 999
+    TracerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    pcall(function()
+        TracerGui.Parent = game:GetService("CoreGui")
+    end)
+    if not TracerGui.Parent then
+        TracerGui.Parent = LP:WaitForChild("PlayerGui")
+    end
+
+    local function ClearPlayerESP(plr)
+        local d = ESPData[plr]
+        if not d then return end
+        for _, obj in pairs(d) do
+            pcall(function()
+                if typeof(obj) == "Instance" then
+                    obj:Destroy()
+                end
+            end)
+        end
+        ESPData[plr] = nil
+        if plr.Character then
+            local hl = plr.Character:FindFirstChild("QHub_Highlight")
+            if hl then pcall(function() hl:Destroy() end) end
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, n in ipairs({ "QHub_Billboard", "QHub_BoxGui", "QHub_HPGui" }) do
+                    local g = hrp:FindFirstChild(n)
+                    if g then pcall(function() g:Destroy() end) end
+                end
             end
         end
-    end})
+    end
 
-    -- MISC
+    local function CreateESP(plr)
+        if plr == LP then return end
+        ClearPlayerESP(plr)
+
+        local function SetupCharacter(char)
+            if not char or plr == LP then return end
+            local hrp = char:WaitForChild("HumanoidRootPart", 8)
+            local hum = char:WaitForChild("Humanoid", 8)
+            if not hrp or not hum then return end
+
+            ClearPlayerESP(plr)
+            local data = {}
+
+            local hl = Instance.new("Highlight")
+            hl.Name = "QHub_Highlight"
+            hl.FillTransparency = 0.55
+            hl.FillColor = Color3.fromRGB(255, 45, 85)
+            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+            hl.OutlineTransparency = 0
+            hl.Enabled = espHighlight
+            hl.Parent = char
+            data.hl = hl
+
+            local bb = Instance.new("BillboardGui")
+            bb.Name = "QHub_Billboard"
+            bb.Size = UDim2.new(0, 180, 0, 40)
+            bb.StudsOffset = Vector3.new(0, 3.2, 0)
+            bb.AlwaysOnTop = true
+            bb.Enabled = (espName or espDistance)
+            bb.Parent = hrp
+            local nameLbl = Instance.new("TextLabel")
+            nameLbl.Name = "Info"
+            nameLbl.BackgroundTransparency = 1
+            nameLbl.Size = UDim2.new(1, 0, 1, 0)
+            nameLbl.Font = Enum.Font.GothamBold
+            nameLbl.TextSize = 14
+            nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLbl.TextStrokeTransparency = 0.3
+            nameLbl.Text = plr.Name
+            nameLbl.Parent = bb
+            data.bb = bb
+            data.nameLbl = nameLbl
+
+            local boxBb = Instance.new("BillboardGui")
+            boxBb.Name = "QHub_BoxGui"
+            boxBb.Size = UDim2.new(4, 0, 5.5, 0)
+            boxBb.StudsOffset = Vector3.new(0, 0.5, 0)
+            boxBb.AlwaysOnTop = true
+            boxBb.Enabled = espBox
+            boxBb.Parent = hrp
+            local boxFrame = Instance.new("Frame")
+            boxFrame.Name = "Box"
+            boxFrame.Size = UDim2.new(1, 0, 1, 0)
+            boxFrame.BackgroundTransparency = 0.85
+            boxFrame.BackgroundColor3 = Color3.fromRGB(255, 45, 85)
+            boxFrame.BorderSizePixel = 0
+            boxFrame.Parent = boxBb
+            local stroke = Instance.new("UIStroke")
+            stroke.Thickness = 2
+            stroke.Color = Color3.fromRGB(255, 255, 255)
+            stroke.Parent = boxFrame
+            data.boxBb = boxBb
+
+            local hpBb = Instance.new("BillboardGui")
+            hpBb.Name = "QHub_HPGui"
+            hpBb.Size = UDim2.new(0, 6, 0, 70)
+            hpBb.StudsOffset = Vector3.new(2.4, 0.5, 0)
+            hpBb.AlwaysOnTop = true
+            hpBb.Enabled = espHealth
+            hpBb.Parent = hrp
+            local hpBg = Instance.new("Frame")
+            hpBg.Name = "HPBG"
+            hpBg.Size = UDim2.new(1, 0, 1, 0)
+            hpBg.BackgroundColor3 = Color3.fromRGB(220, 30, 40)
+            hpBg.BorderSizePixel = 0
+            hpBg.Parent = hpBb
+            local hpFill = Instance.new("Frame")
+            hpFill.Name = "HPFill"
+            hpFill.AnchorPoint = Vector2.new(0, 1)
+            hpFill.Position = UDim2.new(0, 0, 1, 0)
+            hpFill.Size = UDim2.new(1, 0, 1, 0)
+            hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+            hpFill.BorderSizePixel = 0
+            hpFill.Parent = hpBg
+            data.hpBb = hpBb
+            data.hpFill = hpFill
+            data.hpBg = hpBg
+
+            local tracerLine = Instance.new("Frame")
+            tracerLine.Name = "Tracer_" .. plr.Name
+            tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
+            tracerLine.BackgroundColor3 = Color3.fromRGB(255, 45, 85)
+            tracerLine.BorderSizePixel = 0
+            tracerLine.Size = UDim2.fromOffset(0, 3)
+            tracerLine.Visible = false
+            tracerLine.Parent = TracerGui
+            data.tracerLine = tracerLine
+
+            ESPData[plr] = data
+
+            local function refreshHP()
+                if not hum or not hum.Parent then return end
+                local ratio = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+                if data.hpBg then
+                    data.hpBg.BackgroundColor3 = Color3.fromRGB(220, 30, 40)
+                end
+                if data.hpFill then
+                    data.hpFill.Size = UDim2.new(1, 0, ratio, 0)
+                    if ratio > 0.5 then
+                        data.hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+                    elseif ratio > 0.25 then
+                        data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+                    else
+                        data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 120, 40)
+                    end
+                end
+            end
+            hum.HealthChanged:Connect(refreshHP)
+            refreshHP()
+        end
+
+        if plr.Character then task.spawn(SetupCharacter, plr.Character) end
+        plr.CharacterAdded:Connect(function(c) task.spawn(SetupCharacter, c) end)
+        plr.CharacterRemoving:Connect(function() ClearPlayerESP(plr) end)
+    end
+
+    -- Defer ESP creation
+    task.defer(function()
+        for _, p in ipairs(P:GetPlayers()) do CreateESP(p) end
+        P.PlayerAdded:Connect(CreateESP)
+        P.PlayerRemoving:Connect(function(p) ClearPlayerESP(p) end)
+    end)
+
+    local function UpdateESPStates()
+        for plr, data in pairs(ESPData) do
+            if data.hl then data.hl.Enabled = espHighlight end
+            if data.bb then data.bb.Enabled = (espName or espDistance) end
+            if data.boxBb then data.boxBb.Enabled = espBox end
+            if data.hpBb then data.hpBb.Enabled = espHealth end
+            if data.tracerLine and not espTracer then
+                data.tracerLine.Visible = false
+            end
+        end
+        if TracerGui then TracerGui.Enabled = true end
+    end
+
+    local function UpdateTracerLine(frame, from, to)
+        local dx = to.X - from.X
+        local dy = to.Y - from.Y
+        local len = math.sqrt(dx * dx + dy * dy)
+        if len < 1 then
+            frame.Visible = false
+            return
+        end
+        local midX = (from.X + to.X) / 2
+        local midY = (from.Y + to.Y) / 2
+        local angle = math.deg(math.atan2(dy, dx))
+        frame.Position = UDim2.fromOffset(midX, midY)
+        frame.Size = UDim2.fromOffset(len, 3)
+        frame.Rotation = angle
+        frame.Visible = true
+    end
+
+    RS.RenderStepped:Connect(function()
+        local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+        local viewport = Cam.ViewportSize
+        local fromPos = Vector2.new(viewport.X / 2, viewport.Y - 2)
+
+        for plr, data in pairs(ESPData) do
+            local char = plr.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 then
+                if data.nameLbl and data.bb and data.bb.Enabled then
+                    local lines = {}
+                    if espName then table.insert(lines, plr.Name) end
+                    if espDistance and myHrp then
+                        table.insert(lines, math.floor((myHrp.Position - hrp.Position).Magnitude) .. "m")
+                    end
+                    data.nameLbl.Text = table.concat(lines, "\n")
+                end
+
+                if data.tracerLine then
+                    if espTracer then
+                        local pos, onScreen = Cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                        if onScreen and pos.Z > 0 then
+                            UpdateTracerLine(data.tracerLine, fromPos, Vector2.new(pos.X, pos.Y))
+                        else
+                            data.tracerLine.Visible = false
+                        end
+                    else
+                        data.tracerLine.Visible = false
+                    end
+                end
+            else
+                if data.tracerLine then data.tracerLine.Visible = false end
+            end
+        end
+    end)
+
+    Tabs.ESP:Toggle({
+        Title = "ESP Highlight",
+        Value = false,
+        Callback = function(v) espHighlight = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Box",
+        Desc = "Khung quanh người chơi",
+        Value = false,
+        Callback = function(v) espBox = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Tracer (Dây)",
+        Desc = "Đường từ dưới màn hình tới player",
+        Value = false,
+        Callback = function(v) espTracer = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Name",
+        Value = false,
+        Callback = function(v) espName = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Health (thanh thẳng)",
+        Desc = "Thanh máu dọc bên cạnh người",
+        Value = false,
+        Callback = function(v) espHealth = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "ESP Distance (m)",
+        Value = false,
+        Callback = function(v) espDistance = v UpdateESPStates() end
+    })
+
+    -- FLY
     local function ToggleFly(state)
         if state == nil then state = not flyEnabled end
         flyEnabled = state
+
         local char = LP.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChildOfClass("Humanoid")
+
         if flyEnabled and hrp and hum then
             hum.PlatformStand = true
+
             local bg = Instance.new("BodyGyro")
-            bg.Name = "QHubFlyGyro"
+            bg.Name = "QHub_FlyGyro"
             bg.P = 9e4
             bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-            bg.CFrame = hrp.CFrame
+            bg.cframe = hrp.CFrame
             bg.Parent = hrp
+
             local bv = Instance.new("BodyVelocity")
-            bv.Name = "QHubFlyVel"
-            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            bv.Velocity = Vector3.zero
+            bv.Name = "QHub_FlyVel"
+            bv.velocity = Vector3.zero
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
             bv.Parent = hrp
+
             T.Fly = RS.RenderStepped:Connect(function()
-                if not flyEnabled or not hrp.Parent then
+                if not flyEnabled or not hrp or not hrp.Parent then
                     StopT("Fly")
                     if bg then bg:Destroy() end
                     if bv then bv:Destroy() end
                     if hum then hum.PlatformStand = false end
                     return
                 end
-                bg.CFrame = Cam.CFrame
-                local move = Vector3.zero
-                if UIS:IsKeyDown(Enum.KeyCode.W) then move += Cam.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.S) then move -= Cam.CFrame.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.A) then move -= Cam.CFrame.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.D) then move += Cam.CFrame.RightVector end
-                bv.Velocity = move.Magnitude > 0 and move.Unit * flySpeed or Vector3.zero
+
+                bg.cframe = Cam.CFrame
+                local moveVector = Vector3.zero
+                local camCF = Cam.CFrame
+
+                if UIS:IsKeyDown(Enum.KeyCode.W) then moveVector = moveVector + camCF.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.S) then moveVector = moveVector - camCF.LookVector end
+                if UIS:IsKeyDown(Enum.KeyCode.A) then moveVector = moveVector - camCF.RightVector end
+                if UIS:IsKeyDown(Enum.KeyCode.D) then moveVector = moveVector + camCF.RightVector end
+
+                if hum.MoveDirection.Magnitude > 0 then
+                    moveVector = moveVector + (camCF.LookVector * (hum.MoveDirection:Dot(camCF.LookVector)))
+                    moveVector = moveVector + (camCF.RightVector * (hum.MoveDirection:Dot(camCF.RightVector)))
+                end
+
+                if moveVector.Magnitude > 0 then
+                    bv.velocity = moveVector.Unit * flySpeed
+                else
+                    bv.velocity = Vector3.zero
+                end
             end)
         else
             StopT("Fly")
             if hrp then
-                local bg = hrp:FindFirstChild("QHubFlyGyro")
-                local bv = hrp:FindFirstChild("QHubFlyVel")
+                local bg = hrp:FindFirstChild("QHub_FlyGyro")
+                local bv = hrp:FindFirstChild("QHub_FlyVel")
                 if bg then bg:Destroy() end
                 if bv then bv:Destroy() end
             end
@@ -838,108 +1625,211 @@ local success, err = pcall(function()
         end
     end
 
-    flyToggleUI = Tabs.Misc:Toggle({Title = "Fly Mode", Value = false, Callback = function(v) ToggleFly(v) end})
-    flyKeybindBtn = Tabs.Misc:Button({Title = "Fly Hotkey: [F]", Callback = function() waitingForKeybind = "fly" end})
-    Tabs.Misc:Input({Title = "Fly Speed", Value = "50", Callback = function(t)
-        local n = tonumber(t)
-        if n then
-            flySpeed = n
-            NumFlyBox.Text = tostring(n)
-        end
-    end})
+    flyToggleUI = Tabs.Misc:Toggle({
+        Title = "Fly Mode",
+        Value = false,
+        Callback = function(state) ToggleFly(state) end
+    })
 
-    Tabs.Misc:Toggle({Title = "CFrame Speed", Value = false, Callback = function(v)
-        speedToggleEnabled = v
-        if v then
-            if not speedConn then
-                speedConn = RS.Heartbeat:Connect(function(dt)
-                    if not speedToggleEnabled or flyEnabled then return end
-                    local char = LP.Character
-                    if not char then return end
-                    local hum = char:FindFirstChildOfClass("Humanoid")
-                    local hrp = char:FindFirstChild("HumanoidRootPart")
-                    if not hum or not hrp then return end
-                    local dir = hum.MoveDirection
-                    local target = dir.Magnitude > 0.05 and dir.Unit * (walkSpeed * 60) or Vector3.zero
-                    local alpha = 1 - math.exp(-(speedSmooth * 12) * dt)
-                    speedCurrentVel = speedCurrentVel:Lerp(target, alpha)
-                    if speedCurrentVel.Magnitude > 0.5 then
-                        local vy = hrp.AssemblyLinearVelocity.Y
-                        hrp.CFrame += speedCurrentVel * dt
-                        hrp.AssemblyLinearVelocity = Vector3.new(speedCurrentVel.X, vy, speedCurrentVel.Z)
-                    end
-                end)
+    flyKeybindBtn = Tabs.Misc:Button({
+        Title = "Fly Hotkey: [" .. KeyCodeToName(flyKeybind) .. "]",
+        Desc = "Bấm để đổi phím",
+        Callback = function()
+            waitingForKeybind = "fly"
+            if flyKeybindBtn and flyKeybindBtn.SetTitle then
+                pcall(function() flyKeybindBtn:SetTitle("Fly Hotkey: [ ... ]") end)
             end
-        else
-            if speedConn then speedConn:Disconnect() speedConn = nil end
-            speedCurrentVel = Vector3.zero
+            WindUI:Notify({ Title = "Q HUB", Content = "Nhấn phím mới cho Fly...", Duration = 2 })
         end
-    end})
-    Tabs.Misc:Input({Title = "Speed Value", Value = "3", Callback = function(t) local n = tonumber(t) if n then walkSpeed = n end end})
-    Tabs.Misc:Toggle({Title = "Infinite Jump", Value = false, Callback = function(v) infJumpEnabled = v end})
-    Tabs.Misc:Toggle({Title = "Noclip", Value = false, Callback = function(v)
-        noclipEnabled = v
-        if v then
-            T.Noclip = RS.Stepped:Connect(function()
-                if LP.Character then
-                    for _, p in ipairs(LP.Character:GetDescendants()) do
-                        if p:IsA("BasePart") then p.CanCollide = false end
-                    end
-                end
-            end)
-        else StopT("Noclip") end
-    end})
-    Tabs.Misc:Input({Title = "Jump Power", Value = "50", Callback = function(t) local n = tonumber(t) if n then jumpPower = n end end})
-    Tabs.Misc:Button({Title = "Rejoin", Callback = function() game:GetService("TeleportService"):Teleport(game.PlaceId, LP) end})
+    })
+
+    Tabs.Misc:Input({
+        Title = "Fly Speed",
+        Value = "50",
+        Placeholder = "Speed",
+        Callback = function(txt)
+            local num = tonumber(txt)
+            if num then flySpeed = num end
+        end
+    })
+
+    local function StopCFrameSpeed()
+        speedToggleEnabled = false
+        speedCurrentVel = Vector3.zero
+        if speedConn then
+            pcall(function() speedConn:Disconnect() end)
+            speedConn = nil
+        end
+    end
+
+    local function StartCFrameSpeed()
+        if speedConn then return end
+        speedConn = RS.Heartbeat:Connect(function(dt)
+            if not speedToggleEnabled or flyEnabled then return end
+            local char = LP.Character
+            if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hum or not hrp then return end
+
+            local dir = hum.MoveDirection
+            local target
+            if dir.Magnitude > 0.05 then
+                target = dir.Unit * (walkSpeed * 60)
+            else
+                target = Vector3.zero
+            end
+
+            local alpha = 1 - math.exp(-(speedSmooth * 12) * dt)
+            speedCurrentVel = speedCurrentVel:Lerp(target, alpha)
+
+            if speedCurrentVel.Magnitude > 0.5 then
+                local vy = hrp.AssemblyLinearVelocity.Y
+                hrp.CFrame = hrp.CFrame + speedCurrentVel * dt
+                hrp.AssemblyLinearVelocity = Vector3.new(speedCurrentVel.X, vy, speedCurrentVel.Z)
+            end
+        end)
+    end
+
+    Tabs.Misc:Toggle({
+        Title = "CFrame Speed (Smooth)",
+        Desc = "CFrame + lerp · chỉ chạy khi bật",
+        Value = false,
+        Callback = function(state)
+            speedToggleEnabled = state
+            if state then
+                StartCFrameSpeed()
+            else
+                StopCFrameSpeed()
+            end
+        end
+    })
+    Tabs.Misc:Input({
+        Title = "CFrame Speed Value",
+        Desc = "2~5 vừa · 8+ nhanh",
+        Value = "3",
+        Placeholder = "3",
+        Callback = function(txt)
+            local num = tonumber(txt)
+            if num then walkSpeed = num end
+        end
+    })
+    Tabs.Misc:Input({
+        Title = "Speed Smooth (0.1~1)",
+        Desc = "Thấp = mượt hơn · cao = raw nhanh",
+        Value = "0.35",
+        Placeholder = "0.35",
+        Callback = function(txt)
+            local num = tonumber(txt)
+            if num then
+                speedSmooth = math.clamp(num, 0.05, 1)
+            end
+        end
+    })
+    Tabs.Misc:Input({
+        Title = "Jump Power",
+        Value = "50",
+        Placeholder = "JumpPower",
+        Callback = function(txt)
+            local num = tonumber(txt)
+            if num then jumpPower = num end
+        end
+    })
+    Tabs.Misc:Toggle({
+        Title = "Infinite Jump",
+        Value = false,
+        Callback = function(state) infJumpEnabled = state end
+    })
 
     UIS.JumpRequest:Connect(function()
         if infJumpEnabled and LP.Character then
             local hum = LP.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            if hum then hum:ChangeState("Jumping") end
         end
     end)
 
-    RS.Heartbeat:Connect(function()
-        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.UseJumpPower = true
-            hum.JumpPower = jumpPower
-        end
-    end)
-
-    -- Keybinds
-    UIS.InputBegan:Connect(function(input, gpe)
-        if waitingForKeybind and input.UserInputType == Enum.UserInputType.Keyboard then
-            local key = input.KeyCode
-            if key ~= Enum.KeyCode.Unknown and key ~= Enum.KeyCode.Escape then
-                if waitingForKeybind == "menu" then menuKeybind = key
-                elseif waitingForKeybind == "fly" then flyKeybind = key
-                elseif waitingForKeybind == "target" then targetKeybind = key
-                elseif waitingForKeybind == "tpall" then tpAllKeybind = key end
-                waitingForKeybind = nil
-                WindUI:Notify({Title = "Q HUB", Content = "Đã đổi phím!", Duration = 2})
+    Tabs.Misc:Toggle({
+        Title = "Noclip",
+        Value = false,
+        Callback = function(state)
+            noclipEnabled = state
+            if state then
+                T.Noclip = RS.Stepped:Connect(function()
+                    if LP.Character and noclipEnabled then
+                        for _, part in ipairs(LP.Character:GetDescendants()) do
+                            if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
+                        end
+                    end
+                end)
+            else
+                StopT("Noclip")
             end
-            return
         end
-        if UIS:GetFocusedTextBox() then return end
-        if input.KeyCode == menuKeybind or input.KeyCode == Enum.KeyCode.RightControl then
-            ToggleUI()
-            return
+    })
+
+    Tabs.Misc:Button({
+        Title = "Rejoin",
+        Callback = function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
         end
-        if gpe then return end
-        if input.KeyCode == flyKeybind then
-            ToggleFly()
-            if flyToggleUI and flyToggleUI.Set then flyToggleUI:Set(flyEnabled) end
-        elseif input.KeyCode == targetKeybind then
-            ToggleTargetMode()
-        elseif input.KeyCode == tpAllKeybind then
-            ToggleTPAll()
-            if tpAllToggleUI and tpAllToggleUI.Set then tpAllToggleUI:Set(tpAllEnabled) end
+    })
+
+    -- Jump power
+    RS.Heartbeat:Connect(function()
+        local char = LP.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            pcall(function()
+                hum.UseJumpPower = true
+                hum.JumpPower = jumpPower
+            end)
         end
     end)
 
-    pcall(function() if Tabs.Info.Select then Tabs.Info:Select() end end)
-    WindUI:Notify({Title = "Q HUB", Content = "Loaded (Mobile Num + Drag + Lock)!", Duration = 3})
+    -- Hotkeys
+    UIS.InputBegan:Connect(function(input, gameProcessed)
+        if waitingForKeybind then return end
+        if UIS:GetFocusedTextBox() then return end
+        if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+
+        if input.KeyCode == menuKeybind or input.KeyCode == Enum.KeyCode.RightControl then
+            pcall(ToggleUI)
+            return
+        end
+
+        if gameProcessed then return end
+
+        if input.KeyCode == tpAllKeybind then
+            local newState = not tpAllEnabled
+            if tpAllToggleUI and tpAllToggleUI.Set then
+                pcall(function() tpAllToggleUI:Set(newState) end)
+            else
+                ToggleTPAll(newState)
+            end
+        elseif input.KeyCode == targetKeybind then
+            pcall(ToggleTargetMode)
+        elseif input.KeyCode == flyKeybind then
+            local newState = not flyEnabled
+            if flyToggleUI and flyToggleUI.Set then
+                pcall(function() flyToggleUI:Set(newState) end)
+            else
+                ToggleFly(newState)
+            end
+        end
+    end)
+
+    pcall(function()
+        if Tabs.Info and Tabs.Info.Select then
+            Tabs.Info:Select()
+        end
+    end)
+
+    WindUI:Notify({
+        Title = "Q HUB",
+        Content = "Loaded (Optimized - No Theme)!",
+        Duration = 3,
+        Icon = "zap"
+    })
 end)
 
 if not success then
