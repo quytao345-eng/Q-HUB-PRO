@@ -47,6 +47,14 @@ local success, err = pcall(function()
     local autoViewSpecial = true
     local tpAllDelay = 0.0001
 
+    -- NUM UI CONTROLS
+    local numScale = 1
+    local numDraggable = false
+    local syncingFlyNum = false
+    local FlySpeedInputObj = nil
+    local NumFlyBox = nil
+    local mobileNumElements = {} -- lưu các element để scale + drag
+
     -- KEYBINDS
     local flyKeybind = Enum.KeyCode.F
     local targetKeybind = Enum.KeyCode.R
@@ -236,6 +244,91 @@ local success, err = pcall(function()
     NumTargetBox.BorderSizePixel = 0
     Instance.new("UICorner", NumTargetBox).CornerRadius = UDim.new(0.2, 0)
 
+    -- NUM FLY BOX (mobile)
+    NumFlyBox = Instance.new("TextBox")
+    NumFlyBox.Name = "NumFlyBox"
+    NumFlyBox.Parent = TargetMobileGui
+    NumFlyBox.BackgroundColor3 = Color3.fromRGB(30, 60, 120)
+    NumFlyBox.Position = UDim2.new(0.05, 0, 0.42, 0)
+    NumFlyBox.Size = UDim2.new(0, 55, 0, 28)
+    NumFlyBox.Font = Enum.Font.SourceSansBold
+    NumFlyBox.Text = tostring(flySpeed)
+    NumFlyBox.PlaceholderText = "Fly"
+    NumFlyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NumFlyBox.TextSize = 14
+    NumFlyBox.ClearTextOnFocus = false
+    NumFlyBox.BorderSizePixel = 0
+    Instance.new("UICorner", NumFlyBox).CornerRadius = UDim.new(0.2, 0)
+
+    -- Lưu base size để scale
+    local baseSizes = {
+        [TargetToggleBtn] = UDim2.new(0, 45, 0, 45),
+        [ModeTargetBtn] = UDim2.new(0, 55, 0, 25),
+        [NumTargetBox] = UDim2.new(0, 55, 0, 28),
+        [NumFlyBox] = UDim2.new(0, 55, 0, 28),
+    }
+    local baseTextSizes = {
+        [TargetToggleBtn] = 15,
+        [ModeTargetBtn] = 12,
+        [NumTargetBox] = 14,
+        [NumFlyBox] = 14,
+    }
+
+    mobileNumElements = { TargetToggleBtn, ModeTargetBtn, NumTargetBox, NumFlyBox }
+
+    -- Hàm apply scale
+    local function ApplyNumScale(scale)
+        numScale = math.clamp(tonumber(scale) or 1, 1, 10)
+        for _, el in ipairs(mobileNumElements) do
+            if el and el.Parent then
+                local base = baseSizes[el]
+                if base then
+                    el.Size = UDim2.new(0, base.X.Offset * numScale, 0, base.Y.Offset * numScale)
+                end
+                local baseTs = baseTextSizes[el]
+                if baseTs then
+                    el.TextSize = math.floor(baseTs * numScale)
+                end
+            end
+        end
+    end
+
+    -- Hàm drag cho 1 element
+    local function MakeDraggable(guiObject)
+        local dragging = false
+        local dragStart, startPos
+
+        guiObject.InputBegan:Connect(function(input)
+            if not numDraggable then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                dragStart = input.Position
+                startPos = guiObject.Position
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+
+        guiObject.InputChanged:Connect(function(input)
+            if not numDraggable or not dragging then return end
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                local delta = input.Position - dragStart
+                guiObject.Position = UDim2.new(
+                    startPos.X.Scale, startPos.X.Offset + delta.X,
+                    startPos.Y.Scale, startPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+    end
+
+    -- Gắn drag cho tất cả num elements
+    for _, el in ipairs(mobileNumElements) do
+        MakeDraggable(el)
+    end
+
     local BehindDistInputObj = nil
     local ModeDropdownObj = nil
     local ToggleTargetUIObj = nil
@@ -259,6 +352,23 @@ local success, err = pcall(function()
         syncingNum = false
     end
 
+    local function UpdateFlySpeed(val, fromMobile)
+        local num = tonumber(val)
+        if not (num and num > 0) then
+            if NumFlyBox then NumFlyBox.Text = tostring(flySpeed) end
+            return
+        end
+        flySpeed = num
+        syncingFlyNum = true
+        if NumFlyBox and NumFlyBox.Text ~= tostring(num) then
+            NumFlyBox.Text = tostring(num)
+        end
+        if FlySpeedInputObj and FlySpeedInputObj.Set then
+            pcall(function() FlySpeedInputObj:Set(tostring(num)) end)
+        end
+        syncingFlyNum = false
+    end
+
     NumTargetBox.FocusLost:Connect(function()
         UpdateBehindDistance(NumTargetBox.Text, true)
     end)
@@ -271,6 +381,22 @@ local success, err = pcall(function()
                 syncingNum = true
                 pcall(function() BehindDistInputObj:Set(tostring(num)) end)
                 syncingNum = false
+            end
+        end
+    end)
+
+    NumFlyBox.FocusLost:Connect(function()
+        UpdateFlySpeed(NumFlyBox.Text, true)
+    end)
+    NumFlyBox:GetPropertyChangedSignal("Text"):Connect(function()
+        if syncingFlyNum then return end
+        local num = tonumber(NumFlyBox.Text)
+        if num and num > 0 then
+            flySpeed = num
+            if FlySpeedInputObj and FlySpeedInputObj.Set then
+                syncingFlyNum = true
+                pcall(function() FlySpeedInputObj:Set(tostring(num)) end)
+                syncingFlyNum = false
             end
         end
     end)
@@ -1643,13 +1769,47 @@ local success, err = pcall(function()
         end
     })
 
-    Tabs.Misc:Input({
-        Title = "Fly Speed",
+    FlySpeedInputObj = Tabs.Misc:Input({
+        Title = "Fly Speed / Num Fly",
+        Desc = "Đồng bộ với ô Num Fly mobile",
         Value = "50",
         Placeholder = "Speed",
         Callback = function(txt)
-            local num = tonumber(txt)
-            if num then flySpeed = num end
+            if syncingFlyNum then return end
+            UpdateFlySpeed(txt, false)
+        end
+    })
+
+    -- 2 tính năng mới: Di chuyển Num + Kích thước Num
+    Tabs.Misc:Toggle({
+        Title = "Di chuyển Num",
+        Desc = "Bật để kéo thả các ô Num (Target + Fly)",
+        Value = false,
+        Callback = function(state)
+            numDraggable = state
+            WindUI:Notify({
+                Title = "Q HUB",
+                Content = state and "Đã bật kéo Num" or "Đã tắt kéo Num",
+                Duration = 2
+            })
+        end
+    })
+
+    Tabs.Misc:Slider({
+        Title = "Kích thước Num (1-10)",
+        Desc = "Scale toàn bộ ô Num mobile",
+        Step = 1,
+        Value = { Min = 1, Max = 10, Default = 1 },
+        Callback = function(val)
+            ApplyNumScale(val)
+        end
+    })
+
+    Tabs.Misc:Toggle({
+        Title = "Hiện Num Fly",
+        Value = true,
+        Callback = function(state)
+            if NumFlyBox then NumFlyBox.Visible = state end
         end
     })
 
@@ -1692,8 +1852,8 @@ local success, err = pcall(function()
     end
 
     Tabs.Misc:Toggle({
-        Title = "CFrame Speed (Smooth)",
-        Desc = "CFrame + lerp · chỉ chạy khi bật",
+        Title = "Smooth Speed",
+        Desc = "Speed mượt · chỉ chạy khi bật",
         Value = false,
         Callback = function(state)
             speedToggleEnabled = state
@@ -1705,7 +1865,7 @@ local success, err = pcall(function()
         end
     })
     Tabs.Misc:Input({
-        Title = "CFrame Speed Value",
+        Title = "Smooth Speed Value",
         Desc = "2~5 vừa · 8+ nhanh",
         Value = "3",
         Placeholder = "3",
@@ -1715,7 +1875,7 @@ local success, err = pcall(function()
         end
     })
     Tabs.Misc:Input({
-        Title = "Speed Smooth (0.1~1)",
+        Title = "Smooth Amount (0.1~1)",
         Desc = "Thấp = mượt hơn · cao = raw nhanh",
         Value = "0.35",
         Placeholder = "0.35",
