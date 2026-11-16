@@ -32,11 +32,8 @@ local success, err = pcall(function()
     local Cam = W.CurrentCamera
     local T = {}
 
-    local walkSpeed, jumpPower, flySpeed = 3, 50, 50
-    local speedSmooth = 0.35
-    local speedToggleEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
-    local speedCurrentVel = Vector3.zero
-    local speedConn = nil
+    local walkSpeed, jumpPower, flySpeed = 16, 50, 50
+    local speedEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
     local behindDistance = 6
     local SelectedTargetPlayer = nil
 
@@ -50,10 +47,9 @@ local success, err = pcall(function()
     -- NUM UI CONTROLS
     local numScale = 1
     local numDraggable = false
-    local syncingFlyNum = false
-    local FlySpeedInputObj = nil
-    local NumFlyBox = nil
-    local mobileNumElements = {} -- lưu các element để scale + drag
+    local mobileNumElements = {}
+    local FlyToggleBtn = nil
+    local flyToggleUI = nil
 
     -- KEYBINDS
     local flyKeybind = Enum.KeyCode.F
@@ -62,7 +58,7 @@ local success, err = pcall(function()
     local menuKeybind = Enum.KeyCode.LeftControl
     local waitingForKeybind = nil
     local flyKeybindBtn, targetKeybindBtn, tpAllKeybindBtn, menuKeybindBtn = nil, nil, nil, nil
-    local flyToggleUI, tpAllToggleUI = nil, nil
+    local tpAllToggleUI = nil
 
     local function KeyCodeToName(kc)
         if typeof(kc) == "EnumItem" then return kc.Name end
@@ -244,37 +240,37 @@ local success, err = pcall(function()
     NumTargetBox.BorderSizePixel = 0
     Instance.new("UICorner", NumTargetBox).CornerRadius = UDim.new(0.2, 0)
 
-    -- NUM FLY BOX (mobile)
-    NumFlyBox = Instance.new("TextBox")
-    NumFlyBox.Name = "NumFlyBox"
-    NumFlyBox.Parent = TargetMobileGui
-    NumFlyBox.BackgroundColor3 = Color3.fromRGB(30, 60, 120)
-    NumFlyBox.Position = UDim2.new(0.05, 0, 0.42, 0)
-    NumFlyBox.Size = UDim2.new(0, 55, 0, 28)
-    NumFlyBox.Font = Enum.Font.SourceSansBold
-    NumFlyBox.Text = tostring(flySpeed)
-    NumFlyBox.PlaceholderText = "Fly"
-    NumFlyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NumFlyBox.TextSize = 14
-    NumFlyBox.ClearTextOnFocus = false
-    NumFlyBox.BorderSizePixel = 0
-    Instance.new("UICorner", NumFlyBox).CornerRadius = UDim.new(0.2, 0)
+    -- FLY TOGGLE BUTTON (mobile) - bật/tắt Fly
+    FlyToggleBtn = Instance.new("TextButton")
+    FlyToggleBtn.Name = "FlyToggleBtn"
+    FlyToggleBtn.Parent = TargetMobileGui
+    FlyToggleBtn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
+    FlyToggleBtn.Position = UDim2.new(0.05, 0, 0.43, 0)
+    FlyToggleBtn.Size = UDim2.new(0, 45, 0, 45)
+    FlyToggleBtn.Font = Enum.Font.SourceSansBold
+    FlyToggleBtn.Text = "FLY"
+    FlyToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FlyToggleBtn.TextSize = 13
+    FlyToggleBtn.Active = true
+    FlyToggleBtn.BorderSizePixel = 0
+    FlyToggleBtn.Visible = true
+    Instance.new("UICorner", FlyToggleBtn).CornerRadius = UDim.new(0.5, 0)
 
     -- Lưu base size để scale
     local baseSizes = {
         [TargetToggleBtn] = UDim2.new(0, 45, 0, 45),
         [ModeTargetBtn] = UDim2.new(0, 55, 0, 25),
         [NumTargetBox] = UDim2.new(0, 55, 0, 28),
-        [NumFlyBox] = UDim2.new(0, 55, 0, 28),
+        [FlyToggleBtn] = UDim2.new(0, 45, 0, 45),
     }
     local baseTextSizes = {
         [TargetToggleBtn] = 15,
         [ModeTargetBtn] = 12,
         [NumTargetBox] = 14,
-        [NumFlyBox] = 14,
+        [FlyToggleBtn] = 13,
     }
 
-    mobileNumElements = { TargetToggleBtn, ModeTargetBtn, NumTargetBox, NumFlyBox }
+    mobileNumElements = { TargetToggleBtn, ModeTargetBtn, NumTargetBox, FlyToggleBtn }
 
     -- Hàm apply scale
     local function ApplyNumScale(scale)
@@ -334,6 +330,7 @@ local success, err = pcall(function()
     local ToggleTargetUIObj = nil
     local syncingTargetUI = false
     local syncingNum = false
+    local syncingFlyUI = false
 
     local function UpdateBehindDistance(val, fromMobile)
         local num = tonumber(val)
@@ -352,21 +349,28 @@ local success, err = pcall(function()
         syncingNum = false
     end
 
-    local function UpdateFlySpeed(val, fromMobile)
-        local num = tonumber(val)
-        if not (num and num > 0) then
-            if NumFlyBox then NumFlyBox.Text = tostring(flySpeed) end
-            return
-        end
-        flySpeed = num
-        syncingFlyNum = true
-        if NumFlyBox and NumFlyBox.Text ~= tostring(num) then
-            NumFlyBox.Text = tostring(num)
-        end
-        if FlySpeedInputObj and FlySpeedInputObj.Set then
-            pcall(function() FlySpeedInputObj:Set(tostring(num)) end)
-        end
-        syncingFlyNum = false
+    local function SetMobileFlyUI(on)
+        pcall(function()
+            if FlyToggleBtn then
+                FlyToggleBtn.Text = on and "ON" or "FLY"
+                FlyToggleBtn.BackgroundColor3 = on and Color3.fromRGB(30, 220, 30) or Color3.fromRGB(220, 30, 30)
+            end
+        end)
+    end
+
+    local function SyncFlyUI(on)
+        if syncingFlyUI then return end
+        syncingFlyUI = true
+        SetMobileFlyUI(on)
+        pcall(function()
+            if flyToggleUI and flyToggleUI.Set then
+                flyToggleUI:Set(on)
+            end
+        end)
+        task.defer(function()
+            task.wait()
+            syncingFlyUI = false
+        end)
     end
 
     NumTargetBox.FocusLost:Connect(function()
@@ -385,23 +389,6 @@ local success, err = pcall(function()
         end
     end)
 
-    NumFlyBox.FocusLost:Connect(function()
-        UpdateFlySpeed(NumFlyBox.Text, true)
-    end)
-    NumFlyBox:GetPropertyChangedSignal("Text"):Connect(function()
-        if syncingFlyNum then return end
-        local num = tonumber(NumFlyBox.Text)
-        if num and num > 0 then
-            flySpeed = num
-            if FlySpeedInputObj and FlySpeedInputObj.Set then
-                syncingFlyNum = true
-                pcall(function() FlySpeedInputObj:Set(tostring(num)) end)
-                syncingFlyNum = false
-            end
-        end
-    end)
-
-    local targetSmooth = 0.35
     local lastTargetToggleAt = 0
 
     local function SetMobileTargetUI(on)
@@ -445,7 +432,7 @@ local success, err = pcall(function()
     end
 
     local function IsPhysicsMode(mode)
-        return mode == "Top" or mode == "Under" or mode == "Spin"
+        return mode == "Top" or mode == "Under" or mode == "Spin" or mode == "Behind" or mode == "Front"
     end
 
     local function StopTargeting()
@@ -556,25 +543,23 @@ local success, err = pcall(function()
                 hrp.CFrame = CFrame.new(underPos, tHrp.Position)
                 lockPhysics()
             elseif mode == "Spin" then
+                -- Ngang người chơi, không bay lên (Y = 0)
                 spinAngle = spinAngle + dt * spinSpeed
                 local ox = math.cos(spinAngle) * dist
                 local oz = math.sin(spinAngle) * dist
-                local spinPos = tHrp.Position + Vector3.new(ox, 1.5, oz)
+                local spinPos = tHrp.Position + Vector3.new(ox, 0, oz)
                 hrp.CFrame = CFrame.new(spinPos, tHrp.Position)
                 lockPhysics()
             elseif mode == "Behind" then
+                -- Snap thẳng, bỏ smooth
                 local goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
-                local alpha = math.clamp((targetSmooth or 0.35), 0.1, 1)
-                hrp.CFrame = hrp.CFrame:Lerp(goalCF, alpha)
-                local vel = hrp.AssemblyLinearVelocity
-                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.2, 0, vel.Z * 0.2)
+                hrp.CFrame = goalCF
+                lockPhysics()
             else -- Front
+                -- Snap thẳng, bỏ smooth
                 local front = tHrp.CFrame * CFrame.new(0, 0, -dist)
-                local goalCF = CFrame.new(front.Position, tHrp.Position)
-                local alpha = math.clamp((targetSmooth or 0.35), 0.1, 1)
-                hrp.CFrame = hrp.CFrame:Lerp(goalCF, alpha)
-                local vel = hrp.AssemblyLinearVelocity
-                hrp.AssemblyLinearVelocity = Vector3.new(vel.X * 0.2, 0, vel.Z * 0.2)
+                hrp.CFrame = CFrame.new(front.Position, tHrp.Position)
+                lockPhysics()
             end
         end
 
@@ -1343,6 +1328,14 @@ local success, err = pcall(function()
         Callback = function(state) NumTargetBox.Visible = state end
     })
     Tabs.Target:Toggle({
+        Title = "Show Num Fly",
+        Desc = "Hiện/ẩn nút bật tắt Fly mobile",
+        Value = true,
+        Callback = function(state)
+            if FlyToggleBtn then FlyToggleBtn.Visible = state end
+        end
+    })
+    Tabs.Target:Toggle({
         Title = "Draw Target FOV",
         Value = false,
         Callback = function(state) showTargetFOVCircle = state end
@@ -1399,15 +1392,6 @@ local success, err = pcall(function()
         Callback = function(txt)
             if syncingNum then return end
             UpdateBehindDistance(txt, false)
-        end
-    })
-
-    Tabs.Target:Slider({
-        Title = "Target Smooth",
-        Step = 0.05,
-        Value = { Min = 0.1, Max = 1, Default = 0.35 },
-        Callback = function(v)
-            targetSmooth = v
         end
     })
 
@@ -1689,6 +1673,7 @@ local success, err = pcall(function()
     local function ToggleFly(state)
         if state == nil then state = not flyEnabled end
         flyEnabled = state
+        SyncFlyUI(flyEnabled)
 
         local char = LP.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1751,10 +1736,18 @@ local success, err = pcall(function()
         end
     end
 
+    -- Nút FLY mobile bấm để bật/tắt
+    FlyToggleBtn.MouseButton1Click:Connect(function()
+        pcall(ToggleFly)
+    end)
+
     flyToggleUI = Tabs.Misc:Toggle({
         Title = "Fly Mode",
         Value = false,
-        Callback = function(state) ToggleFly(state) end
+        Callback = function(state)
+            if syncingFlyUI then return end
+            ToggleFly(state)
+        end
     })
 
     flyKeybindBtn = Tabs.Misc:Button({
@@ -1769,21 +1762,96 @@ local success, err = pcall(function()
         end
     })
 
-    FlySpeedInputObj = Tabs.Misc:Input({
-        Title = "Fly Speed / Num Fly",
-        Desc = "Đồng bộ với ô Num Fly mobile",
+    Tabs.Misc:Input({
+        Title = "Fly Speed",
         Value = "50",
         Placeholder = "Speed",
         Callback = function(txt)
-            if syncingFlyNum then return end
-            UpdateFlySpeed(txt, false)
+            local num = tonumber(txt)
+            if num and num > 0 then flySpeed = num end
         end
     })
 
-    -- 2 tính năng mới: Di chuyển Num + Kích thước Num
+    -- Smooth Speed (CFrame) - né anti WalkSpeed, có animation, 16 = bình thường
+    local speedConn = nil
+
+    local function StopSmoothSpeed()
+        speedEnabled = false
+        if speedConn then
+            pcall(function() speedConn:Disconnect() end)
+            speedConn = nil
+        end
+    end
+
+    local function StartSmoothSpeed()
+        if speedConn then return end
+        speedConn = RS.Heartbeat:Connect(function(dt)
+            if not speedEnabled or flyEnabled then return end
+            local char = LP.Character
+            if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hum or not hrp then return end
+
+            local dir = hum.MoveDirection
+            local vy = hrp.AssemblyLinearVelocity.Y
+
+            if dir.Magnitude < 0.05 then
+                -- Dừng ngay, không trượt
+                hrp.AssemblyLinearVelocity = Vector3.new(0, vy, 0)
+                return
+            end
+
+            -- walkSpeed giống WalkSpeed: 16 = bình thường (studs/s)
+            local speed = walkSpeed
+            local move = dir.Unit * speed * dt
+            hrp.CFrame = hrp.CFrame + Vector3.new(move.X, 0, move.Z)
+
+            -- Giữ velocity nhẹ theo hướng để animation đi bộ chạy
+            local animVel = dir.Unit * math.min(speed, 16)
+            hrp.AssemblyLinearVelocity = Vector3.new(animVel.X, vy, animVel.Z)
+
+            -- Giữ state Running để animation không bị mất
+            pcall(function()
+                if hum:GetState() ~= Enum.HumanoidStateType.Running
+                    and hum:GetState() ~= Enum.HumanoidStateType.RunningNoPhysics then
+                    hum:ChangeState(Enum.HumanoidStateType.Running)
+                end
+            end)
+        end)
+    end
+
+    Tabs.Misc:Toggle({
+        Title = "Smooth Speed",
+        Desc = "CFrame · có anim · 16 = bình thường",
+        Value = false,
+        Callback = function(state)
+            speedEnabled = state
+            if state then
+                StartSmoothSpeed()
+            else
+                StopSmoothSpeed()
+            end
+        end
+    })
+
+    Tabs.Misc:Input({
+        Title = "Speed Value",
+        Desc = "16 = bình thường · 32/50/100 nhanh hơn",
+        Value = "16",
+        Placeholder = "16",
+        Callback = function(txt)
+            local num = tonumber(txt)
+            if num and num > 0 then
+                walkSpeed = num
+            end
+        end
+    })
+
+    -- Di chuyển + kích thước Num
     Tabs.Misc:Toggle({
         Title = "Di chuyển Num",
-        Desc = "Bật để kéo thả các ô Num (Target + Fly)",
+        Desc = "Bật để kéo thả các ô Num mobile",
         Value = false,
         Callback = function(state)
             numDraggable = state
@@ -1806,86 +1874,13 @@ local success, err = pcall(function()
     })
 
     Tabs.Misc:Toggle({
-        Title = "Hiện Num Fly",
+        Title = "Hiện nút Fly (mobile)",
         Value = true,
         Callback = function(state)
-            if NumFlyBox then NumFlyBox.Visible = state end
+            if FlyToggleBtn then FlyToggleBtn.Visible = state end
         end
     })
 
-    local function StopCFrameSpeed()
-        speedToggleEnabled = false
-        speedCurrentVel = Vector3.zero
-        if speedConn then
-            pcall(function() speedConn:Disconnect() end)
-            speedConn = nil
-        end
-    end
-
-    local function StartCFrameSpeed()
-        if speedConn then return end
-        speedConn = RS.Heartbeat:Connect(function(dt)
-            if not speedToggleEnabled or flyEnabled then return end
-            local char = LP.Character
-            if not char then return end
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hum or not hrp then return end
-
-            local dir = hum.MoveDirection
-            local target
-            if dir.Magnitude > 0.05 then
-                target = dir.Unit * (walkSpeed * 60)
-            else
-                target = Vector3.zero
-            end
-
-            local alpha = 1 - math.exp(-(speedSmooth * 12) * dt)
-            speedCurrentVel = speedCurrentVel:Lerp(target, alpha)
-
-            if speedCurrentVel.Magnitude > 0.5 then
-                local vy = hrp.AssemblyLinearVelocity.Y
-                hrp.CFrame = hrp.CFrame + speedCurrentVel * dt
-                hrp.AssemblyLinearVelocity = Vector3.new(speedCurrentVel.X, vy, speedCurrentVel.Z)
-            end
-        end)
-    end
-
-    Tabs.Misc:Toggle({
-        Title = "Smooth Speed",
-        Desc = "Speed mượt · chỉ chạy khi bật",
-        Value = false,
-        Callback = function(state)
-            speedToggleEnabled = state
-            if state then
-                StartCFrameSpeed()
-            else
-                StopCFrameSpeed()
-            end
-        end
-    })
-    Tabs.Misc:Input({
-        Title = "Smooth Speed Value",
-        Desc = "2~5 vừa · 8+ nhanh",
-        Value = "3",
-        Placeholder = "3",
-        Callback = function(txt)
-            local num = tonumber(txt)
-            if num then walkSpeed = num end
-        end
-    })
-    Tabs.Misc:Input({
-        Title = "Smooth Amount (0.1~1)",
-        Desc = "Thấp = mượt hơn · cao = raw nhanh",
-        Value = "0.35",
-        Placeholder = "0.35",
-        Callback = function(txt)
-            local num = tonumber(txt)
-            if num then
-                speedSmooth = math.clamp(num, 0.05, 1)
-            end
-        end
-    })
     Tabs.Misc:Input({
         Title = "Jump Power",
         Value = "50",
