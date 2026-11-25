@@ -32,7 +32,7 @@ local success, err = pcall(function()
     local Cam = W.CurrentCamera
     local T = {}
 
-    local walkSpeed, jumpPower, flySpeed = 16, 50, 50
+    local walkSpeed, flySpeed = 16, 50
     local speedEnabled, infJumpEnabled, noclipEnabled, flyEnabled = false, false, false, false
     local behindDistance = 6
     local SelectedTargetPlayer = nil
@@ -75,7 +75,7 @@ local success, err = pcall(function()
     local tpBlacklist = {}
 
     -- ESP
-    local espHighlight, espName, espHealth, espDistance, espBox, espTracer = false, false, false, false, false, false
+    local espHighlight, espName, espHealth, espDistance, espBox, espTracer, espTeamCheck = false, false, false, false, false, false, false
 
     -- FOV Drawing
     local FOVCircle, TargetFOVCircle = nil, nil
@@ -1498,17 +1498,19 @@ local success, err = pcall(function()
             stroke.Parent = boxFrame
             data.boxBb = boxBb
 
+            -- Thanh máu nhỏ (theo stud, không bị to khi lại gần)
             local hpBb = Instance.new("BillboardGui")
             hpBb.Name = "QHub_HPGui"
-            hpBb.Size = UDim2.new(0, 6, 0, 70)
-            hpBb.StudsOffset = Vector3.new(2.4, 0.5, 0)
+            hpBb.Size = UDim2.new(0.12, 0, 1.6, 0)
+            hpBb.StudsOffset = Vector3.new(1.6, 0.3, 0)
             hpBb.AlwaysOnTop = true
             hpBb.Enabled = espHealth
             hpBb.Parent = hrp
             local hpBg = Instance.new("Frame")
             hpBg.Name = "HPBG"
             hpBg.Size = UDim2.new(1, 0, 1, 0)
-            hpBg.BackgroundColor3 = Color3.fromRGB(220, 30, 40)
+            hpBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            hpBg.BackgroundTransparency = 0.25
             hpBg.BorderSizePixel = 0
             hpBg.Parent = hpBb
             local hpFill = Instance.new("Frame")
@@ -1523,12 +1525,13 @@ local success, err = pcall(function()
             data.hpFill = hpFill
             data.hpBg = hpBg
 
+            -- Tracer mỏng
             local tracerLine = Instance.new("Frame")
             tracerLine.Name = "Tracer_" .. plr.Name
             tracerLine.AnchorPoint = Vector2.new(0.5, 0.5)
             tracerLine.BackgroundColor3 = Color3.fromRGB(255, 45, 85)
             tracerLine.BorderSizePixel = 0
-            tracerLine.Size = UDim2.fromOffset(0, 3)
+            tracerLine.Size = UDim2.fromOffset(0, 1)
             tracerLine.Visible = false
             tracerLine.Parent = TracerGui
             data.tracerLine = tracerLine
@@ -1538,9 +1541,6 @@ local success, err = pcall(function()
             local function refreshHP()
                 if not hum or not hum.Parent then return end
                 local ratio = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
-                if data.hpBg then
-                    data.hpBg.BackgroundColor3 = Color3.fromRGB(220, 30, 40)
-                end
                 if data.hpFill then
                     data.hpFill.Size = UDim2.new(1, 0, ratio, 0)
                     if ratio > 0.5 then
@@ -1548,7 +1548,7 @@ local success, err = pcall(function()
                     elseif ratio > 0.25 then
                         data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
                     else
-                        data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 120, 40)
+                        data.hpFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
                     end
                 end
             end
@@ -1593,7 +1593,7 @@ local success, err = pcall(function()
         local midY = (from.Y + to.Y) / 2
         local angle = math.deg(math.atan2(dy, dx))
         frame.Position = UDim2.fromOffset(midX, midY)
-        frame.Size = UDim2.fromOffset(len, 3)
+        frame.Size = UDim2.fromOffset(len, 1) -- mỏng 1px
         frame.Rotation = angle
         frame.Visible = true
     end
@@ -1601,13 +1601,28 @@ local success, err = pcall(function()
     RS.RenderStepped:Connect(function()
         local myHrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
         local viewport = Cam.ViewportSize
-        local fromPos = Vector2.new(viewport.X / 2, viewport.Y - 2)
+        -- Dây từ trên cùng màn hình
+        local fromPos = Vector2.new(viewport.X / 2, 2)
 
         for plr, data in pairs(ESPData) do
             local char = plr.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hrp and hum and hum.Health > 0 then
+
+            -- Team check: ẩn teammate
+            local isTeammate = espTeamCheck and plr.Team ~= nil and LP.Team ~= nil and plr.Team == LP.Team
+            if isTeammate then
+                if data.hl then data.hl.Enabled = false end
+                if data.bb then data.bb.Enabled = false end
+                if data.boxBb then data.boxBb.Enabled = false end
+                if data.hpBb then data.hpBb.Enabled = false end
+                if data.tracerLine then data.tracerLine.Visible = false end
+            elseif hrp and hum and hum.Health > 0 then
+                if data.hl then data.hl.Enabled = espHighlight end
+                if data.bb then data.bb.Enabled = (espName or espDistance) end
+                if data.boxBb then data.boxBb.Enabled = espBox end
+                if data.hpBb then data.hpBb.Enabled = espHealth end
+
                 if data.nameLbl and data.bb and data.bb.Enabled then
                     local lines = {}
                     if espName then table.insert(lines, plr.Name) end
@@ -1619,7 +1634,7 @@ local success, err = pcall(function()
 
                 if data.tracerLine then
                     if espTracer then
-                        local pos, onScreen = Cam:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+                        local pos, onScreen = Cam:WorldToViewportPoint(hrp.Position)
                         if onScreen and pos.Z > 0 then
                             UpdateTracerLine(data.tracerLine, fromPos, Vector2.new(pos.X, pos.Y))
                         else
@@ -1648,7 +1663,7 @@ local success, err = pcall(function()
     })
     Tabs.ESP:Toggle({
         Title = "ESP Tracer (Dây)",
-        Desc = "Đường từ dưới màn hình tới player",
+        Desc = "Dây mỏng từ trên cùng màn hình",
         Value = false,
         Callback = function(v) espTracer = v UpdateESPStates() end
     })
@@ -1658,8 +1673,8 @@ local success, err = pcall(function()
         Callback = function(v) espName = v UpdateESPStates() end
     })
     Tabs.ESP:Toggle({
-        Title = "ESP Health (thanh thẳng)",
-        Desc = "Thanh máu dọc bên cạnh người",
+        Title = "ESP Health",
+        Desc = "Thanh máu nhỏ bên cạnh người",
         Value = false,
         Callback = function(v) espHealth = v UpdateESPStates() end
     })
@@ -1667,6 +1682,12 @@ local success, err = pcall(function()
         Title = "ESP Distance (m)",
         Value = false,
         Callback = function(v) espDistance = v UpdateESPStates() end
+    })
+    Tabs.ESP:Toggle({
+        Title = "Team Check",
+        Desc = "Ẩn ESP đồng đội",
+        Value = false,
+        Callback = function(v) espTeamCheck = v UpdateESPStates() end
     })
 
     -- FLY
@@ -1881,15 +1902,6 @@ local success, err = pcall(function()
         end
     })
 
-    Tabs.Misc:Input({
-        Title = "Jump Power",
-        Value = "50",
-        Placeholder = "JumpPower",
-        Callback = function(txt)
-            local num = tonumber(txt)
-            if num then jumpPower = num end
-        end
-    })
     Tabs.Misc:Toggle({
         Title = "Infinite Jump",
         Value = false,
@@ -1928,18 +1940,6 @@ local success, err = pcall(function()
             game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
         end
     })
-
-    -- Jump power
-    RS.Heartbeat:Connect(function()
-        local char = LP.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            pcall(function()
-                hum.UseJumpPower = true
-                hum.JumpPower = jumpPower
-            end)
-        end
-    end)
 
     -- Hotkeys
     UIS.InputBegan:Connect(function(input, gameProcessed)
