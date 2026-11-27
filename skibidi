@@ -38,7 +38,7 @@ local success, err = pcall(function()
     local SelectedTargetPlayer = nil
 
     local targetPositionMode = "Top"
-    local fixedPovOffset = 50
+    local fixedPovOffset = 0 -- FOV Aim/Target nằm giữa con chuột
     local spinAngle = 0
     local spinSpeed = 2.2
     local autoViewSpecial = true
@@ -114,6 +114,7 @@ local success, err = pcall(function()
         local sg = Instance.new("ScreenGui")
         sg.Name = "QHubFOVCircleGui"
         sg.ResetOnSpawn = false
+        sg.IgnoreGuiInset = true
         sg.Parent = game:GetService("CoreGui") or LP:WaitForChild("PlayerGui")
 
         local function CreateGuiCircle(color)
@@ -662,9 +663,17 @@ local success, err = pcall(function()
         return result == nil or (result.Instance and result.Instance:IsDescendantOf(targetPart.Parent))
     end
 
-    local function GetClosestTargetToMouseFOV(radius, wallCheck, teamCheck, specificPart)
+    local function GetMouseScreenPos()
+        -- Vị trí chuột chính xác trên màn hình (FOV Target)
+        local ok, pos = pcall(function() return UIS:GetMouseLocation() end)
+        if ok and pos then return pos end
+        return Vector2.new(Mouse.X, Mouse.Y)
+    end
+
+    local function GetClosestTargetToMouseFOV(radius, wallCheck, teamCheck, specificPart, centerPos)
         local closestPart, closestPlayer, shortestDistance = nil, nil, radius
-        local fovCenterPos = Vector2.new(Mouse.X, Mouse.Y + fixedPovOffset)
+        -- centerPos: nil = theo chuột (Target) · có thì dùng (Aim = giữa màn hình)
+        local fovCenterPos = centerPos or GetMouseScreenPos()
 
         for _, p in ipairs(P:GetPlayers()) do
             if p ~= LP and p.Character and not (teamCheck and p.Team == LP.Team) then
@@ -685,6 +694,11 @@ local success, err = pcall(function()
             end
         end
         return closestPart, closestPlayer
+    end
+
+    local function GetScreenCenter()
+        local vs = Cam.ViewportSize
+        return Vector2.new(vs.X / 2, vs.Y / 2)
     end
 
     local function ToggleTargetMode(state)
@@ -804,7 +818,7 @@ local success, err = pcall(function()
         setreadonly(rawMeta, false)
         rawMeta.__index = newcclosure(function(self, key)
             if not checkcaller() and silentAimEnabled and self == Mouse then
-                local targetPart, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
+                local targetPart, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart, GetScreenCenter())
                 if targetPart then
                     local k = key:lower()
                     if k == "hit" then return targetPart.CFrame
@@ -895,13 +909,15 @@ local success, err = pcall(function()
 
     -- RENDER LOOP FOV + AIMLOCK
     RS.RenderStepped:Connect(function()
-        local fovPos = Vector2.new(Mouse.X, Mouse.Y + fixedPovOffset)
+        -- Aim FOV: giữa màn hình · Target FOV: đúng giữa con chuột
+        local aimFovPos = GetScreenCenter()
+        local targetFovPos = GetMouseScreenPos()
 
         if showFOVCircle then
             if FOVCircle then
-                FOVCircle.Position, FOVCircle.Radius, FOVCircle.Visible = fovPos, aimFOV, true
+                FOVCircle.Position, FOVCircle.Radius, FOVCircle.Visible = aimFovPos, aimFOV, true
             elseif GuiCircle then
-                GuiCircle.Position = UDim2.new(0, fovPos.X, 0, fovPos.Y)
+                GuiCircle.Position = UDim2.new(0, aimFovPos.X, 0, aimFovPos.Y)
                 GuiCircle.Size = UDim2.new(0, aimFOV * 2, 0, aimFOV * 2)
                 GuiCircle.Visible = true
             end
@@ -912,9 +928,9 @@ local success, err = pcall(function()
 
         if showTargetFOVCircle then
             if TargetFOVCircle then
-                TargetFOVCircle.Position, TargetFOVCircle.Radius, TargetFOVCircle.Visible = fovPos, targetFOVRadius, true
+                TargetFOVCircle.Position, TargetFOVCircle.Radius, TargetFOVCircle.Visible = targetFovPos, targetFOVRadius, true
             elseif TargetGuiCircle then
-                TargetGuiCircle.Position = UDim2.new(0, fovPos.X, 0, fovPos.Y)
+                TargetGuiCircle.Position = UDim2.new(0, targetFovPos.X, 0, targetFovPos.Y)
                 TargetGuiCircle.Size = UDim2.new(0, targetFOVRadius * 2, 0, targetFOVRadius * 2)
                 TargetGuiCircle.Visible = true
             end
@@ -924,7 +940,7 @@ local success, err = pcall(function()
         end
 
         if aimLockEnabled then
-            local target, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart)
+            local target, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart, aimFovPos)
             if target then Cam.CFrame = Cam.CFrame:Lerp(CFrame.new(Cam.CFrame.Position, target.Position), aimSmoothness) end
         end
     end)
@@ -1488,8 +1504,7 @@ local success, err = pcall(function()
             local boxFrame = Instance.new("Frame")
             boxFrame.Name = "Box"
             boxFrame.Size = UDim2.new(1, 0, 1, 0)
-            boxFrame.BackgroundTransparency = 0.85
-            boxFrame.BackgroundColor3 = Color3.fromRGB(255, 45, 85)
+            boxFrame.BackgroundTransparency = 1 -- không tô màu bên trong
             boxFrame.BorderSizePixel = 0
             boxFrame.Parent = boxBb
             local stroke = Instance.new("UIStroke")
