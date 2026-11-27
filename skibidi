@@ -463,119 +463,101 @@ local success, err = pcall(function()
         end
         if not targetModeEnabled then return end
 
-        local TARGET_BIND = "QHub_TargetFollow"
-        pcall(function() RS:UnbindFromRenderStep(TARGET_BIND) end)
+        -- Dừng follow cũ
+        pcall(function() RS:UnbindFromRenderStep("QHub_TargetFollow") end)
         if T.Behind then
             pcall(function()
-                if typeof(T.Behind) == "RBXScriptConnection" then T.Behind:Disconnect() end
+                if typeof(T.Behind) == "RBXScriptConnection" then
+                    T.Behind:Disconnect()
+                elseif typeof(T.Behind) ~= "string" then
+                    task.cancel(T.Behind)
+                end
             end)
             T.Behind = nil
         end
 
-        local function stopFollowOnly()
-            pcall(function() RS:UnbindFromRenderStep(TARGET_BIND) end)
-            if T.Behind then
-                pcall(function()
-                    if typeof(T.Behind) == "RBXScriptConnection" then T.Behind:Disconnect() end
-                end)
-                T.Behind = nil
-            end
-        end
-
-        local function followStep(dt)
-            if not targetModeEnabled then
-                stopFollowOnly()
-                return
-            end
+        -- Set physics 1 lần (tránh rung khi ChangeState mỗi frame)
+        pcall(function()
             local char = LP.Character
-            if not char then return end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local tPlr = SelectedTargetPlayer
-            if not tPlr or not tPlr.Parent then
-                targetModeEnabled = false
-                stopFollowOnly()
-                SelectedTargetPlayer = nil
-                RestoreGravity()
-                ResetCamToSelf()
-                task.defer(function() SyncAllTargetUI(false) end)
-                return
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hum then
+                hum.PlatformStand = true
+                hum:ChangeState(Enum.HumanoidStateType.Physics)
             end
-            local tChar = tPlr.Character
-            local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
-            local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-            if not tHrp or not tHum or tHum.Health <= 0 then
-                targetModeEnabled = false
-                stopFollowOnly()
-                SelectedTargetPlayer = nil
-                RestoreGravity()
-                ResetCamToSelf()
-                task.defer(function() SyncAllTargetUI(false) end)
-                return
-            end
-            if not hrp then return end
-
-            local dist = math.max(0.5, behindDistance or 6)
-            local mode = targetPositionMode or "Top"
-            local myHum = char:FindFirstChildOfClass("Humanoid")
-            dt = dt or 0.016
-
-            if ShouldAutoView() then
-                if Cam.CameraSubject ~= tHum then
-                    ViewTargetPlayer(tPlr)
-                end
-            end
-
-            local function lockPhysics()
+            if hrp then
                 hrp.AssemblyLinearVelocity = Vector3.zero
                 hrp.AssemblyAngularVelocity = Vector3.zero
-                if myHum then
-                    pcall(function()
-                        myHum:ChangeState(Enum.HumanoidStateType.Physics)
-                    end)
-                end
             end
-
-            if mode == "Top" then
-                local topPos = tHrp.Position + Vector3.new(0, dist, 0)
-                hrp.CFrame = CFrame.new(topPos, tHrp.Position)
-                lockPhysics()
-            elseif mode == "Under" then
-                local underPos = tHrp.Position + Vector3.new(0, -dist, 0)
-                hrp.CFrame = CFrame.new(underPos, tHrp.Position)
-                lockPhysics()
-            elseif mode == "Spin" then
-                -- Ngang người chơi, không bay lên (Y = 0)
-                spinAngle = spinAngle + dt * spinSpeed
-                local ox = math.cos(spinAngle) * dist
-                local oz = math.sin(spinAngle) * dist
-                local spinPos = tHrp.Position + Vector3.new(ox, 0, oz)
-                hrp.CFrame = CFrame.new(spinPos, tHrp.Position)
-                lockPhysics()
-            elseif mode == "Behind" then
-                -- Snap thẳng, bỏ smooth
-                local goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
-                hrp.CFrame = goalCF
-                lockPhysics()
-            else -- Front
-                -- Snap thẳng, bỏ smooth
-                local front = tHrp.CFrame * CFrame.new(0, 0, -dist)
-                hrp.CFrame = CFrame.new(front.Position, tHrp.Position)
-                lockPhysics()
-            end
-        end
-
-        local bindOk = pcall(function()
-            RS:BindToRenderStep(TARGET_BIND, Enum.RenderPriority.Camera.Value + 1, followStep)
         end)
-        if not bindOk then
-            T.Behind = RS.Heartbeat:Connect(function(dt)
-                pcall(followStep, dt)
-            end)
-        else
-            T.Behind = TARGET_BIND
-        end
 
         UpdateTargetView()
+
+        -- Tele liên tục mỗi 0.0001s · nhẹ · không rung
+        T.Behind = task.spawn(function()
+            local lastSpin = os.clock()
+            while targetModeEnabled do
+                local tPlr = SelectedTargetPlayer
+                if not tPlr or not tPlr.Parent then
+                    targetModeEnabled = false
+                    SelectedTargetPlayer = nil
+                    RestoreGravity()
+                    ResetCamToSelf()
+                    task.defer(function() SyncAllTargetUI(false) end)
+                    break
+                end
+
+                local char = LP.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local tChar = tPlr.Character
+                local tHrp = tChar and tChar:FindFirstChild("HumanoidRootPart")
+                local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
+
+                if not hrp or not tHrp or not tHum or tHum.Health <= 0 then
+                    targetModeEnabled = false
+                    SelectedTargetPlayer = nil
+                    RestoreGravity()
+                    ResetCamToSelf()
+                    task.defer(function() SyncAllTargetUI(false) end)
+                    break
+                end
+
+                local dist = math.max(0.5, behindDistance or 6)
+                local mode = targetPositionMode or "Top"
+                local goalCF
+
+                if mode == "Top" then
+                    goalCF = CFrame.new(tHrp.Position + Vector3.new(0, dist, 0), tHrp.Position)
+                elseif mode == "Under" then
+                    goalCF = CFrame.new(tHrp.Position + Vector3.new(0, -dist, 0), tHrp.Position)
+                elseif mode == "Spin" then
+                    local now = os.clock()
+                    local dt = math.clamp(now - lastSpin, 0, 0.05)
+                    lastSpin = now
+                    spinAngle = spinAngle + dt * spinSpeed
+                    local ox = math.cos(spinAngle) * dist
+                    local oz = math.sin(spinAngle) * dist
+                    goalCF = CFrame.new(tHrp.Position + Vector3.new(ox, 0, oz), tHrp.Position)
+                elseif mode == "Behind" then
+                    goalCF = tHrp.CFrame * CFrame.new(0, 0, dist)
+                else -- Front
+                    local front = tHrp.CFrame * CFrame.new(0, 0, -dist)
+                    goalCF = CFrame.new(front.Position, tHrp.Position)
+                end
+
+                -- Teleport + zero velocity (không ChangeState mỗi lần → hết rung)
+                hrp.CFrame = goalCF
+                hrp.AssemblyLinearVelocity = Vector3.zero
+                hrp.AssemblyAngularVelocity = Vector3.zero
+
+                -- Auto view (Under/Spin) — chỉ set khi lệch
+                if ShouldAutoView() and tHum and Cam.CameraSubject ~= tHum then
+                    ViewTargetPlayer(tPlr)
+                end
+
+                task.wait(0.0001)
+            end
+        end)
     end
 
     local syncingMode = false
@@ -870,6 +852,7 @@ local success, err = pcall(function()
     })
     Tabs.Aim:Toggle({
         Title = "Silent Aim",
+        Desc = "Nhân vật tự quay · camera không quay",
         Value = false,
         Callback = function(v) silentAimEnabled = v end
     })
@@ -942,6 +925,21 @@ local success, err = pcall(function()
         if aimLockEnabled then
             local target, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart, aimFovPos)
             if target then Cam.CFrame = Cam.CFrame:Lerp(CFrame.new(Cam.CFrame.Position, target.Position), aimSmoothness) end
+        end
+
+        -- Silent Aim: nhân vật tự quay về target, camera không quay
+        if silentAimEnabled then
+            local targetPart, _ = GetClosestTargetToMouseFOV(aimFOV, aimWallCheck, aimTeamCheck, aimPart, aimFovPos)
+            if targetPart then
+                local char = LP.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local pos = hrp.Position
+                    local lookAt = Vector3.new(targetPart.Position.X, pos.Y, targetPart.Position.Z)
+                    local goalCF = CFrame.new(pos, lookAt)
+                    hrp.CFrame = hrp.CFrame:Lerp(goalCF, math.clamp(aimSmoothness or 0.2, 0.05, 1))
+                end
+            end
         end
     end)
 
